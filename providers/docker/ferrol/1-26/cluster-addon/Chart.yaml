@@ -1,0 +1,20 @@
+apiVersion: v2
+type: application
+description: |
+  This chart installs and configures:
+  * Docker Ferrol Cluster Class
+name: docker-ferrol-1-26
+version: "v1"
+maintainers:
+  - name: Syself
+    email: info@syself.com
+    url: https://github.com/syself
+dependencies:
+  - name: "cilium"
+    version: "1.13.2"
+    repository: "https://helm.cilium.io/"
+    alias: "cilium"
+  - name: "metrics-server"
+    version: "3.10.0"
+    repository: "https://kubernetes-sigs.github.io/metrics-server/"
+    alias: "metrics-server"

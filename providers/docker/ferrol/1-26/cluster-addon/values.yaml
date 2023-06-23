@@ -1,0 +1,72 @@
+cilium:
+  rollOutCiliumPods: true
+  priorityClassName: "system-node-critical"
+
+  hubble:
+    metrics:
+      enabled:
+        - dns:query;ignoreAAAA
+        - drop
+        - tcp
+        - flow
+        - icmp
+        - http
+    relay:
+      enabled: true
+      rollOutPods: true
+    ui:
+      enabled: true
+      rollOutPods: true
+  ipam:
+    mode: "kubernetes"
+
+  kubeProxyReplacement: "partial"
+
+  operator:
+    rollOutPods: true
+    priorityClassName: "system-node-critical"
+
+metrics-server:
+  fullnameOverride: metrics-server
+  replicas: 2
+
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  tolerations:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+    - key: CriticalAddonsOnly
+      operator: Exists
+
+  service:
+    labels:
+      kubernetes.io/cluster-service: "true"
+      kubernetes.io/name: "metrics-server"
+
+  defaultArgs:
+    - --cert-dir=/tmp
+    - --kubelet-preferred-address-types=ExternalIP,Hostname
+    - --kubelet-use-node-status-port
+    - --metric-resolution=15s
+
+  args:
+    - --kubelet-certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - metrics-server
+          topologyKey: "kubernetes.io/hostname"
