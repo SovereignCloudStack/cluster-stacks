@@ -1,0 +1,16 @@
+export PROVIDER=docker
+
+# Versions
+export K8S_VERSION=1-25
+export CAPI_VERSION=v1.4.0
+export CAPD_VERSION=v1.4.0
+
+# Names
+export NAMESPACE=cluster
+export CLUSTER_CLASS_NAME=ferrol
+export CLUSTER_NAME=test-ef3424
+export CLUSTER_TOPOLOGY=true
+export FLAVOR=docker
+
+# Debugging
+export DISABLE_VERSIONCHECK="true"
