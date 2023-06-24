@@ -44,6 +44,7 @@ BIN_DIR := bin
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/$(BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+export GOBIN := $(abspath $(TOOLS_BIN_DIR))
 
 ARTIFACTS_PATH := $(ROOT_DIR)/_artifacts
 # Docker
@@ -58,34 +59,35 @@ TTY := -t
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
 kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize
 $(KUSTOMIZE): # Build kustomize from tools folder.
-	cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(KUSTOMIZE) sigs.k8s.io/kustomize/kustomize/v4
+	go install sigs.k8s.io/kustomize/kustomize/v5@v5.1.0
 
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 envsubst: $(ENVSUBST) ## Build a local copy of envsubst
 $(ENVSUBST): $(TOOLS_DIR)/go.mod # Build envsubst from tools folder.
-	cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(ENVSUBST) github.com/drone/envsubst/v2/cmd/envsubst
+	go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 
 CTLPTL := $(abspath $(TOOLS_BIN_DIR)/ctlptl)
 ctlptl: $(CTLPTL) ## Build a local copy of ctlptl
 $(CTLPTL):
-	cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(CTLPTL) github.com/tilt-dev/ctlptl/cmd/ctlptl
+	go install github.com/tilt-dev/ctlptl/cmd/ctlptl@v0.8.20
 
 CLUSTERCTL := $(abspath $(TOOLS_BIN_DIR)/clusterctl)
 clusterctl: $(CLUSTERCTL) ## Build a local copy of clusterctl
 $(CLUSTERCTL): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(CLUSTERCTL) sigs.k8s.io/cluster-api/cmd/clusterctl
+	curl -sSLf https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.3/clusterctl-linux-amd64 -o $(CLUSTERCTL)
+	chmod a+rx $(CLUSTERCTL)
 
 HELM := $(abspath $(TOOLS_BIN_DIR)/helm)
 helm: $(HELM) ## Build a local copy of helm
 $(HELM): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(HELM) helm.sh/helm/v3/cmd/helm
+	go install helm.sh/helm/v3/cmd/helm@v3.12.1
 
 KIND := $(abspath $(TOOLS_BIN_DIR)/kind)
 kind: $(KIND) ## Build a local copy of kind
 $(KIND): $(TOOLS_DIR)/go.mod
-	@cd $(TOOLS_DIR) && go build -mod=vendor -tags=tools -o $(KIND) sigs.k8s.io/kind
+	go install sigs.k8s.io/kind@v0.20.0
 
-all-tools: $(KIND) $(CTLPTL) $(KIND) $(ENVSUBST) $(KUSTOMIZE) $(CLUSTERCTL) $(HELM)
+all-tools: $(KIND) $(CTLPTL) $(ENVSUBST) $(KUSTOMIZE) $(CLUSTERCTL) $(HELM)
 	echo 'done'
 
 .PHONY: basics
