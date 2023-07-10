@@ -107,7 +107,7 @@ basics: $(KIND) $(CTLPTL) $(KIND) $(ENVSUBST) $(KUSTOMIZE)
 ###############
 
 .PHONY: cluster
-cluster: basics ## Creates kind-dev Cluster
+cluster: basics $(CLUSTERCTL) ## Creates kind-dev Cluster
 	./hack/kind-dev.sh
 
 .PHONY: watch
@@ -218,7 +218,6 @@ delete-bootstrap-cluster: basics ## Deletes Kind-dev Cluster
 .PHONY: create-bootstrap-cluster
 create-bootstrap-cluster: basics cluster ## Create mgt-cluster and install capi-stack.
 	EXP_RUNTIME_SDK=true CLUSTER_TOPOLOGY=true DISABLE_VERSIONCHECK="true" $(CLUSTERCTL) init --core cluster-api:$(CAPI_VERSION) --bootstrap kubeadm:$(CAPI_VERSION) --control-plane kubeadm:$(CAPI_VERSION)
-	# kubectl apply -f https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/download/$(CAAPH_VERSION)/add-on-components.yaml
 	kubectl wait -n cert-manager deployment cert-manager --for=condition=Available --timeout=300s
 	kubectl wait -n capi-kubeadm-bootstrap-system deployment capi-kubeadm-bootstrap-controller-manager --for=condition=Available --timeout=300s
 	kubectl wait -n capi-kubeadm-control-plane-system deployment capi-kubeadm-control-plane-controller-manager --for=condition=Available --timeout=300s
