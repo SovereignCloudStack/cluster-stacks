@@ -5,26 +5,12 @@
 
 - [Contributing Guidelines](#contributing-guidelines)
   - [Finding Things That Need Help](#finding-things-that-need-help)
-  - [Branches](#branches)
   - [Contributing a Patch](#contributing-a-patch)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 Read the following guide if you're interested in contributing to cluster stack framework.
 
-## Branches
-
-Cluster API has two types of branches: the _main_ branch and
-_release-X_ branches.
-
-The _main_ branch is where development happens. All the latest and
-greatest code, including breaking changes, happens on main.
-
-The _release-X_ branches contain stable, backwards compatible code. On every
-major or minor release, a new branch is created. It is from these
-branches that minor and patch releases are tagged. In some cases, it may
-be necessary to open PRs for bugfixes directly against stable branches, but
-this should generally not be the case.
 
 ## Contributing a Patch
 

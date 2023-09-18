@@ -123,29 +123,26 @@ The versioning of the cluster stack is primarily managed through a file named me
 
 Here is an example of how metadata.yaml could look like:
 ```
-clusterStack: v3
-components:
-  clusterClass:
-    version: v3
-  clusterAddon:
-    version: v2
-  nodeImage:
-    version: v1
-
+apiVersion: metadata.clusterstack.x-k8s.io/v1alpha1
+versions:
+  clusterStack: v3
+  kubernetes: v1.27.3
+  components:
+    clusterAddon: v2
+    nodeImage: v1
 ```
 In this example, the cluster stack (and thus the cluster class) is on version 3, while the cluster addon is on version 2 and node image is on version 1.
 
 When there's a change or update in the node images or cluster addons, we would bump the version of the cluster stack and cluster class, while leaving the unaffected component's version intact. So if the node image was updated, the metadata.yaml might then look like this:
 
 ```
-clusterStack: v4
-components:
-  clusterClass:
-    version: v4
-  clusterAddon:
-    version: v2
-  nodeImage:
-    version: v2
+apiVersion: metadata.clusterstack.x-k8s.io/v1alpha1
+versions:
+  clusterStack: v4
+  kubernetes: v1.27.3
+  components:
+    clusterAddon: v2
+    nodeImage: v2
 ```
 
 Here, the cluster stack and cluster class versions were updated to v4, the node image version was bumped to v2 due to the changes, while the cluster addon remained on v2 as it was not affected by the update.
@@ -164,6 +161,9 @@ The `cluster stack` approach offers several advantages for managing and deployin
 
 Overall, the cluster stack approach promotes standardization, flexibility, resilience, and simplified operations in managing Kubernetes clusters. It empowers users to efficiently deploy and manage their clusters, while enabling collaboration and continuous improvement within the Kubernetes community.
 
+# :construction_worker: Development
+
+See [Development Docs](./docs/development.md) for an introduction to the development of Cluster Stacks.
 
 # :handshake: Contributing
 We welcome and appreciate contributions from the community! Check out our CONTRIBUTING.md guide to get started.

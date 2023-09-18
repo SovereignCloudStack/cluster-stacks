@@ -1,7 +1,0 @@
-apiVersion: v2
-type: application
-description: |
-  This chart installs and configures:
-  * Docker Ferrol Cluster Class
-name: docker-ferrol-1-26
-version: "v1"
