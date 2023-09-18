@@ -1,5 +1,0 @@
-images:
-  controlPlane:
-    - name: docker-ferrol-1-26-controlplaneAMD64Docker-v2
-  worker:
-    - name: docker-ferrol-1-26-workerAMD64Docker-v2

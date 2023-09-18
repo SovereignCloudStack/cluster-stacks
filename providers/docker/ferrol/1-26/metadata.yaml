@@ -1,8 +1,0 @@
-clusterStack: v1
-components:
-  clusterClass:
-    version: v1
-  clusterAddon:
-    version: v1
-  nodeImage:
-    version: v1

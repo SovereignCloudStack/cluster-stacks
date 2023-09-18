@@ -1,8 +1,0 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerClusterTemplate
-metadata:
-  name: {{ .Chart.Name }}-{{ .Chart.Version }}-docker-cluster
-  namespace: {{ .Release.Namespace }}
-spec:
-  template:
-    spec: {}

@@ -59,4 +59,4 @@ export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 echo ""
 echo "Cluster initialising... Please hold on"
 echo ""
-ctlptl_kind-cluster cluster-stacks ${K8S_VERSION}
+ctlptl_kind-cluster scs-cluster-stacks ${K8S_VERSION}
