@@ -295,6 +295,9 @@ release-docker: clean-release $(HELM) ## Builds and push container images using 
 	# git checkout "${RELEASE_TAG}"
 	@./hack/ensure-env-variables.sh RELEASE_CLUSTER_CLASS RELEASE_KUBERNETES_VERSION
 	@mkdir -p .release
+	cp providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/cluster-addon-values.yaml .release/
+	cp providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/node-images.yaml .release/
+	cp providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/metadata.yaml .release/
 	cp providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/topology-* .release/
 	$(HELM) package providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/cluster-addon -d .release/
 	$(HELM) package providers/docker/$(RELEASE_CLUSTER_CLASS)/$(RELEASE_KUBERNETES_VERSION)/cluster-class -d .release/
