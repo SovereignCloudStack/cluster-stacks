@@ -20,6 +20,7 @@ etcd_defrag: true
 tweak_kubeapi_memlimit: true
 worker_machine_gen: genw01
 control_plane_machine_gen: genc01
+openstack_security_groups: []
 
 # TBD, currently needed:
 images:

@@ -13,8 +13,14 @@ spec:
         name: {{ .Values.testcluster_name }}-cloud-config
       image: ubuntu-capi-image-v1.27.5
       securityGroups:
+{{- if .Values.openstack_security_groups }}
+{{- range $.Values.openstack_security_groups }}
+        - name: {{ . }}
+{{- end}}
+{{- else }}
         - name: {{ .Values.prefix }}-allow-ssh
         - name: {{ .Values.prefix }}-allow-icmp
         - name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-cilium
+{{- end}}
       # serverGroupID left blank for now
       sshKeyName: {{ .Values.prefix }}-keypair
