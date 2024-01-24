@@ -5,7 +5,7 @@ dns_nameservers:
   - 62.138.222.222
 controller_flavor: SCS-2V:4:20
 worker_flavor: SCS-2V:4:20
-prefix: test
+prefix: capi
 testcluster_name: testcluster
 node_cidr: 10.8.0.0/20
 etcd_unsafe_fs: false
