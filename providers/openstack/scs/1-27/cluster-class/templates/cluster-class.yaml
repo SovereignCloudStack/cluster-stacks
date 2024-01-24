@@ -37,3 +37,22 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-md-0-{{ .Values.worker_machine_gen }}
+  variables:
+   - name: external_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         format: "uuid4"
+         description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+   - name: dns_nameservers
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: array
+         description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
+         default: [ "5.1.66.255", "185.150.99.255" ]
+         items:
+           type: string
