@@ -18,5 +18,9 @@ spec:
 {{- end }}
       managedSecurityGroups: true
       nodeCidr: {{ .Values.node_cidr }}
-      dnsNameservers: {{ .Values.dns_nameservers }}
+      dnsNameservers:
+      {{- range .Values.dns_nameservers }}
+        - {{ . }}
+      {{- end }}
+
       externalNetworkId: {{ .Values.external_id }}
