@@ -185,7 +185,7 @@ spec:
            type: string
   patches:
     - name: controller_flavor
-      description: "Sets the openstack instance flavor user for the KubeadmControlPlane."
+      description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: '{{ ne .controller_flavor "" }}'
       definitions:
         - selector:
@@ -198,3 +198,20 @@ spec:
             path: "/spec/template/spec/flavor"
             valueFrom:
               variable: controller_flavor
+    - name: worker_flavor
+      description: "Sets the openstack instance flavor for the worker nodes."
+      enabledIf: '{{ ne .worker_flavor "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass: 
+                names: 
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}-md-0-no1
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: worker_flavor
