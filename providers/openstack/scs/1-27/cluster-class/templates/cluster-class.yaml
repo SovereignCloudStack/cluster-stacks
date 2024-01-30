@@ -183,3 +183,18 @@ spec:
          description: "The names of the security groups to assign to the instance"
          items:
            type: string
+  patches:
+    - name: controller_flavor
+      description: "Sets the openstack instance flavor user for the KubeadmControlPlane."
+      enabledIf: '{{ ne .controller_flavor "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: controller_flavor
