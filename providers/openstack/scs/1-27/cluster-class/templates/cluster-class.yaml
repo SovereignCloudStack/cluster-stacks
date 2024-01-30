@@ -215,3 +215,31 @@ spec:
             path: "/spec/template/spec/flavor"
             valueFrom:
               variable: worker_flavor
+    - name: external_id
+      description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+      enabledIf: '{{ ne .external_id "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/externalNetworkId"
+            valueFrom:
+              variable: external_id
+    - name: node_cidr
+      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      enabledIf: '{{ ne .node_cidr "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/nodeCidr"
+            valueFrom:
+              variable: node_cidr
