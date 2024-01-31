@@ -257,3 +257,21 @@ spec:
             path: "/spec/template/spec/dnsNameservers"
             valueFrom:
               variable: dns_nameservers
+    - name: openstack_security_groups
+      description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
+{{- /*enabledIf: '{{ eq (len .openstack_security_groups) 0 }}' */}}
+      enabledIf: '{{ ne .openstack_security_groups "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}-md-0-no1
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/securityGroups"
+            valueFrom:
+              template: {{ `"[ {{ range .openstack_security_groups  }} { name: {{ . }}}, {{ end }} ]"` }}
