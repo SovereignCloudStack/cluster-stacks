@@ -243,3 +243,17 @@ spec:
             path: "/spec/template/spec/nodeCidr"
             valueFrom:
               variable: node_cidr
+    - name: dns_nameservers
+      description: "Sets the list of nameservers for the OpenStack Subnet being created."
+      enabledIf: '{{ ne .dns_nameservers "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/dnsNameservers"
+            valueFrom:
+              variable: dns_nameservers
