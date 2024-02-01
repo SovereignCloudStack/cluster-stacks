@@ -22,5 +22,7 @@ spec:
         - name: {{ .Values.prefix }}-allow-icmp
         - name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-cilium
 {{- end}}
-      # serverGroupID left blank for now
+{{- if .Values.server_group_id_controller }}
+      serverGroupID: {{ .Values.server_group_id_controller }}
+{{- end}}
       sshKeyName: {{ .Values.prefix }}-keypair
