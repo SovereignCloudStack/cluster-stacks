@@ -2,7 +2,6 @@ apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: {{ .Values.testcluster_name }}-control-plane-{{ .Values.control_plane_machine_gen }}
-  namespace: {{ .Values.testcluster_name }}
 spec:
   template:
     spec:
