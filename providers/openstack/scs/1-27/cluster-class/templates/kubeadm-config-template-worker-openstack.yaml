@@ -13,21 +13,21 @@ spec:
               export HTTPS_PROXY=$PROXY
               export http_proxy=$PROXY
               export https_proxy=$PROXY
-              export NO_PROXY=".svc,.svc.cluster,.svc.cluster.local,127.0.0.0/8,169.254.169.254/32,fd00:ec2::254/128,10.8.0.0/20,192.168.0.0/16,10.96.0.0/12,"
-              export no_proxy=".svc,.svc.cluster,.svc.cluster.local,127.0.0.0/8,169.254.169.254/32,fd00:ec2::254/128,10.8.0.0/20,192.168.0.0/16,10.96.0.0/12,"
+              export NO_PROXY=".svc,.svc.cluster,.svc.cluster.local,127.0.0.0/8,169.254.169.254/32,fd00:ec2::254/128,10.8.0.0/20,192.168.0.0/16,10.96.0.0/12,{{ .Values.no_proxy }}"
+              export no_proxy=".svc,.svc.cluster,.svc.cluster.local,127.0.0.0/8,169.254.169.254/32,fd00:ec2::254/128,10.8.0.0/20,192.168.0.0/16,10.96.0.0/12,{{ .Values.no_proxy }}"
             fi
           owner: root:root
           path: /etc/profile.d/proxy.sh
           permissions: "0644"
 {{- if .Values.http_proxy }}
-     - content: |
-         [Service]
-         Environment={{ .Values.http_proxy }}
-         Environment={{ .Values.http_proxy }}
-         Environment={{ .Values.no_proxy }}
-       path: "/etc/systemd/system/containerd.service.d/http-proxy.conf"
-       owner: "root:root" 
-       permissions: "0644"
+        - content: |
+            [Service]
+            Environment="HTTP_PROXY={{ .Values.http_proxy }}"
+            Environment="HTTPS_PROXY={{ .Values.http_proxy }}"
+            Environment="NO_PROXY={{ .Values.no_proxy }}"
+          path: "/etc/systemd/system/containerd.service.d/http-proxy.conf"
+          owner: "root:root"
+          permissions: "0644"
 {{- end }}
       joinConfiguration:
         nodeRegistration:
