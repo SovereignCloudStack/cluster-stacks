@@ -8,7 +8,7 @@ spec:
       allowAllInClusterTraffic: true
       cloudName: {{ default "openstack" .Values.cloud.name }}
       identityRef:
-        name: {{ .Values.testcluster_name }}-cloud-config
+        name: {{ default "openstack" .Values.secrets.clouds_yaml }}
         kind: Secret
       apiServerLoadBalancer:
         enabled: true

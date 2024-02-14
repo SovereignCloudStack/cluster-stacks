@@ -33,3 +33,5 @@ images:
 
 cloud:
   name: "openstack"
+secrets:
+  clouds_yaml: "openstack"

@@ -9,7 +9,7 @@ spec:
       flavor: {{ .Values.worker_flavor }}
       identityRef:
         kind: Secret
-        name: {{ .Values.testcluster_name }}-cloud-config
+        name: {{ default "openstack" .Values.secrets.clouds_yaml }}
       image: {{ .Values.images.worker.name }}
       securityGroups:
 {{- if .Values.openstack_security_groups }}
