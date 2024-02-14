@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       allowAllInClusterTraffic: true
-      cloudName: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+      cloudName: {{ default "openstack" .Values.cloud.name }}
       identityRef:
         name: {{ .Values.testcluster_name }}-cloud-config
         kind: Secret

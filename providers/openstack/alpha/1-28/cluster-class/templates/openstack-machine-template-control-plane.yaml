@@ -5,7 +5,7 @@ metadata:
 spec:
   template:
     spec:
-      cloudName: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+      cloudName: {{ default "openstack" .Values.cloud.name }}
       flavor: {{ .Values.controller_flavor }}
       identityRef:
         kind: Secret

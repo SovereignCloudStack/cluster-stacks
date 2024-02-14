@@ -30,3 +30,6 @@ images:
     name: ubuntu-capi-image-v1.28.6
   worker:
     name: ubuntu-capi-image-v1.28.6
+
+cloud:
+  name: "openstack"
