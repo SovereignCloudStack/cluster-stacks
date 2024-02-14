@@ -24,4 +24,4 @@ spec:
 {{- if .Values.server_group_id_controller }}
       serverGroupID: {{ .Values.server_group_id_controller }}
 {{- end}}
-      sshKeyName: {{ .Values.prefix }}-keypair
+
