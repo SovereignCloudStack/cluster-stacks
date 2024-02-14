@@ -27,6 +27,6 @@ server_group_id_worker: ""
 # TBD, currently needed:
 images:
   controlPlane:
-    - name: ubuntu-capi-image-v1.27.5
+    name: ubuntu-capi-image-v1.28.6
   worker:
-    - name: ubuntu-capi-image-v1.27.5
+    name: ubuntu-capi-image-v1.28.6

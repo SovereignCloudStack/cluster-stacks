@@ -10,7 +10,7 @@ spec:
       identityRef:
         kind: Secret
         name: {{ .Values.testcluster_name }}-cloud-config
-      image: ubuntu-capi-image-v1.27.5
+      image: {{ .Values.images.worker.name }}
       securityGroups:
 {{- if .Values.openstack_security_groups }}
 {{- range $.Values.openstack_security_groups }}
