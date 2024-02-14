@@ -2,7 +2,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
 kind: OpenStackClusterTemplate
 metadata:
   name: {{ .Values.testcluster_name }}
-  namespace: {{ .Values.testcluster_name }}
 spec:
   template:
     spec:
