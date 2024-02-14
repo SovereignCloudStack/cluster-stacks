@@ -1,0 +1,3 @@
+cp -r cluster-class openstack-scs-1-27-cluster-class ; tar --create --file openstack-scs-1-27-cluster-class-v2.tgz --gzip openstack-scs-1-27-cluster-class ; dragon-drop -x openstack-scs-1-27-cluster-class-v2.tgz ; sleep 5; rm -rf openstack-scs-1-27-cluster-class-v2.tgz ; rm -rf openstack-scs-1-27-cluster-class
+
+cp -r cluster-addon openstack-scs-1-27-cluster-addon ; tar --create --file openstack-scs-1-27-cluster-addon-v2.tgz --gzip openstack-scs-1-27-cluster-addon ; dragon-drop -x openstack-scs-1-27-cluster-addon-v2.tgz ; sleep 5; rm -rf openstack-scs-1-27-cluster-addon-v2.tgz ; rm -rf openstack-scs-1-27-cluster-addon
