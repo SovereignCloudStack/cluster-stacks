@@ -7,7 +7,7 @@ dependencies:
 - alias: cilium
   name: cilium
   repository: https://helm.cilium.io/ 
-  version: 1.14.1
+  version: 1.15.0
 name: openstack-alpha-1-28-cluster-addon
 type: application
 version: v2
