@@ -20,3 +20,8 @@ metrics-server:
 
   args:
     - --kubelet-insecure-tls
+openstack-cloud-controller-manager:
+  secret:
+    enabled: true
+    name: cloud-config
+    create: false

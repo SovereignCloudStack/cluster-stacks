@@ -4,6 +4,9 @@ dependencies:
   version: 3.11.0
 - name: cilium
   repository: https://helm.cilium.io/
-  version: 1.14.1
-digest: sha256:a54df0f49eab93517535244b46b7f2952777941458fe3b9c17603f5e59aac67b
-generated: "2024-02-06T13:22:23.682741493+01:00"
+  version: 1.15.0
+- name: openstack-cloud-controller-manager
+  repository: https://kubernetes.github.io/cloud-provider-openstack
+  version: 2.28.3
+digest: sha256:685455e431acb77a0573da41b2ebc47b01af21d67760771e53263ae9b86c1dd1
+generated: "2024-02-15T16:25:22.134537466+01:00"
