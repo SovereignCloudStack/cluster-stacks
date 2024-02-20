@@ -33,3 +33,16 @@ openstack-cloud-controller-manager:
     effect: NoSchedule
   - key: node-role.kubernetes.io/control-plane
     effect: NoSchedule
+openstack-cinder-csi:
+  secret:
+    enabled: true
+    name: cloud-config
+    create: false
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+  tolerations:
+  - key: node.cloudprovider.kubernetes.io/uninitialized
+    value: "true"
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    effect: NoSchedule
