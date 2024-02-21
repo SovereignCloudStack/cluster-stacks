@@ -1,0 +1,25 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+kind: OpenStackClusterTemplate
+metadata:
+  name: {{ .Values.testcluster_name }}
+spec:
+  template:
+    spec:
+      allowAllInClusterTraffic: true
+      cloudName: {{ default "openstack" .Values.cloud.name }}
+      identityRef:
+        name: {{ default "openstack" .Values.secrets.clouds_yaml }}
+        kind: Secret
+      apiServerLoadBalancer:
+        enabled: true
+{{- if .Values.restrict_kubeapi }}
+        allowedCidrs: {{ .Values.restrict_kubeapi}}
+{{- end }}
+      managedSecurityGroups: true
+      nodeCidr: {{ .Values.node_cidr }}
+      dnsNameservers:
+      {{- range .Values.dns_nameservers }}
+        - {{ . }}
+      {{- end }}
+
+      externalNetworkId: {{ .Values.external_id }}

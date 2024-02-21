@@ -1,0 +1,7 @@
+apiVersion: v2
+description: |
+  This chart installs and configures:
+  * Openstack Dev Cluster Class
+name: openstack-alpha-1-28-cluster-class
+type: application
+version: "v1"

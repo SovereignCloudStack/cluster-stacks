@@ -1,0 +1,260 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Values.testcluster_name }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Values.testcluster_name }}-control-plane
+    namingStrategy:
+      template: '{{"{{"}}.cluster.name{{"}}"}}-control-plane'
+    machineInfrastructure:
+      ref:
+        kind: OpenStackMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+        name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+      kind: OpenStackClusterTemplate
+      name: {{ .Values.testcluster_name }}
+  workers:
+    machineDeployments:
+    - class: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+      namingStrategy:
+        template: '{{"{{"}}.machineDeployment.topologyName{{"}}"}}'
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+  variables:
+   - name: external_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         format: "uuid4"
+         description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+   - name: dns_nameservers
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
+         default: [ "5.1.66.255", "185.150.99.255" ]
+         items:
+           type: string
+   - name: controller_flavor
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "SCS-2V-4-20"
+         example: "SCS-2V-4-20"
+         description: "OpenStack instance flavor for control-plane nodes."
+   - name: worker_flavor
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "SCS-2V-4-20"
+         example: "SCS-2V-4-20"
+         description: "OpenStack instance flavor for worker nodes."
+   - name: prefix
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "capi"
+         example: "capi"
+         description: "A unique prefix that is meant to be trickled down into the name of every openstack resource created by cluster-api-openstack controllers. The idea behind is that every resource can be linked to a cluster in case the controller looses state. In this tragic event a cleanup-script can interate over all openstack resources and bring the openstack project to a clean state again."
+   - name: testcluster_name
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "testcluster"
+         example: "testcluster"
+         description: "kind of similar to prefix"
+   - name: node_cidr
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "cidr"
+         default: "10.8.0.0/20"
+         example: "10.8.0.0/20"
+         description: "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created."
+   - name: etcd_unsafe_fs
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: boolean
+         default: false
+         description: "Enables unsafe filesystem mount options to speed up etcd performance, not recommended."
+   - name: http_proxy
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "http://10.10.10.1:3128"
+         description: "Global setting for HTTP Proxy is set on the control plane and worker nodes. Specify with protocol: e.g http://10.10.10.10:3128"
+   - name: no_proxy
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: ["hostname1.local", "hostname2.local"]
+         example: ["hostname1.local"]
+         description: "Global setting for HTTP Proxy exception list. If http_proxy is not set this setting has no effect. If http_proxy is set, the default value for the NO_PROXY environment variable on all affected components is set to .svc,.svc.cluster,.svc.cluster.local,127.0.0.0/8,169.254.169.254/32,fd00:ec2::254/128,${var.node_cidr},${var.pod_cidr},${var.service_cidr}. The content of no_proxy is appended to this list. This setting has no effect on apt and snap commands that are executed in the pre or postkubeadm commands. the way http_proxy is set for apt and snap does not allow the configuration of proxy exceptions."
+         items:
+           type: string
+   - name: containerd_registry_files
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: object
+         default:
+           hosts: ["./files/containerd/docker.io"]
+           certs: []
+         example:
+           hosts: ["./files/containerd/docker.io"]
+           certs: []
+         description: "Containerd registry hosts config files, see related docs for details."
+         properties:
+           hosts:
+             type: array
+             items:
+               type: string
+           certs:
+             type: array
+             items:
+               type: string
+   - name: etcd_defrag
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: boolean
+         default: true
+         description: "Enables a periodic etcd defragmentation job"
+   - name: tweak_kubeapi_memlimit
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: boolean
+         default: true
+         description: "Sets CPU and memlimits according to the controlplane machines capabilities"
+   - name: openstack_security_groups
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: []
+         example: ["security-group-1"]
+         description: "The names of the security groups to assign to the instance"
+         items:
+           type: string
+  patches:
+    - name: controller_flavor
+      description: "Sets the openstack instance flavor for the KubeadmControlPlane."
+      enabledIf: '{{ ne .controller_flavor "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: controller_flavor
+    - name: worker_flavor
+      description: "Sets the openstack instance flavor for the worker nodes."
+      enabledIf: '{{ ne .worker_flavor "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass: 
+                names: 
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: worker_flavor
+    - name: external_id
+      description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+      enabledIf: '{{ ne .external_id "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/externalNetworkId"
+            valueFrom:
+              variable: external_id
+    - name: node_cidr
+      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      enabledIf: '{{ ne .node_cidr "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/nodeCidr"
+            valueFrom:
+              variable: node_cidr
+    - name: dns_nameservers
+      description: "Sets the list of nameservers for the OpenStack Subnet being created."
+      enabledIf: '{{ ne .dns_nameservers "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/dnsNameservers"
+            valueFrom:
+              variable: dns_nameservers
+    - name: openstack_security_groups
+      description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
+{{- /*enabledIf: '{{ eq (len .openstack_security_groups) 0 }}' */}}
+      enabledIf: '{{ ne .openstack_security_groups "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/securityGroups"
+            valueFrom:
+              template: {{ `"[ {{ range .openstack_security_groups  }} { name: {{ . }}}, {{ end }} ]"` }}
