@@ -167,6 +167,22 @@ spec:
          items:
            type: string
   patches:
+    - name: k8s_version
+      description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/image"
+            valueFrom:
+              template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: '{{ ne .controller_flavor "" }}'
