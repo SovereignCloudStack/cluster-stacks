@@ -23,7 +23,7 @@ control_plane_machine_gen: genc01
 openstack_security_groups: []
 server_group_id_controller: ""
 server_group_id_worker: ""
-openstack_apiserver_loadbalancer: true
+openstack_loadbalancer_apiserver: true
 
 # TBD, currently needed:
 images:
