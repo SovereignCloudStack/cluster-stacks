@@ -105,7 +105,9 @@ To add a node image, please follow the instructions.
 
 ## Versioning
 
-A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. The system includes three key components: cluster addons, node images, and the cluster class. Each of these components can be updated independently, leading to a flexible and maintainable system.
+TODO: Add section about versioning with csctl tool
+
+A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. Each of the components can be updated independently, leading to a flexible and maintainable system.
 
 However, the critical point to understand here is the relationship between these component versions and the cluster stack version. Whenever there's a change or an update to either the cluster addon or the node image, the version of the cluster stack must be bumped. And due to the connection between the cluster class and the cluster stack, the cluster class version must be updated to match the new cluster stack version.
 
