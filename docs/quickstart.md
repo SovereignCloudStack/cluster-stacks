@@ -59,7 +59,7 @@ Get the latest CSO release version and apply CSO manifests to the management clu
 # Get the latest CSO release version
 CSO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-stack-operator/releases/latest -s | jq .name -r)
 # Apply CSO manifests
-curl -sSL https://github.com/sovereignCloudStack/cluster-stack-operator/releases/download/${CSO_VERSION}/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/download/${CSO_VERSION}/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
 Get the latest CSPO release version and apply CSPO manifests to the management cluster.
