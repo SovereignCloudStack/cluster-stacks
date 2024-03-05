@@ -1,7 +1,6 @@
-# Cluster Stacks Repository
-> :warning: This project is in the development stage. DO NOT USE IN PRODUCTION! :warning:
+# Cluster Stacks
 
-:wave: Welcome to the cluster-stacks repository! This repository provides a comprehensive framework and reference implementations for defining and managing cluster stacks in Kubernetes. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
+Cluster Stacks is a comprehensive framework and reference implementations for defining and managing cluster stacks in Kubernetes. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
 
 The cluster-stacks repository transcends the simple gathering of definitions and configurations, aiming to provide a platform that enables declarative management of Kubernetes clusters, reduces operational effort, and ensures consistency and reliability across various cluster environments
 
