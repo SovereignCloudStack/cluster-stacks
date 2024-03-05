@@ -36,13 +36,12 @@ Modify and export the following environment variables if you wish to redirect CS
 Be aware that GitHub enforces limitations on the number of API requests per unit of time. To overcome this,
 it is recommended to configure a [personal access token](https://github.com/settings/personal-access-tokens/new) for authenticated calls. This will significantly increase the rate limit for GitHub API requests.  
 Fine grained PAT with `Public Repositories (read-only)` is enough.  
-Encode with `echo -n <gh PAT> | base64 -w0`
 
 ```bash
 export GIT_PROVIDER_B64=Z2l0aHVi  # github
 export GIT_ORG_NAME_B64=U292ZXJlaWduQ2xvdWRTdGFjaw== # SovereignCloudStack
 export GIT_REPOSITORY_NAME_B64=Y2x1c3Rlci1zdGFja3M=  # cluster-stacks
-export GIT_ACCESS_TOKEN_B64=<my-github-access-token>
+export GIT_ACCESS_TOKEN_B64=$(echo -n '<my-github-access-token>' | base64 -w0)
 ```
 
 ### CSO and CSPO deployment (CSP)
