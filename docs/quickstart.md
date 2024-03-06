@@ -70,17 +70,10 @@ CSPO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-sta
 curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/download/${CSPO_VERSION}/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
-### Create cluster namespace (CSP/per tenant)
-
-```
-kubectl create ns cluster
-```
-
-### Create a secret for OpenStack access (CSP/per tenant)
+### Deploy CSP-helper chart
+The csp-helper chart will create the namespace "cluster" when using appcredentials or a namespace that is named after the openstack project when using a normal clouds.yaml. In addition to that the chart will create the secrets for CAPO and the CCM of the workload cluster.
 
 cloud and secret name default to `openstack`.
-
-Ensure that this secret is located in the identical namespace as the other Custom Resources.
 
 Example `clouds.yaml`
 
@@ -98,28 +91,7 @@ clouds:
 ```
 
 ```bash
-kubectl create secret -n cluster generic openstack --from-file=clouds.yaml=path/to/clouds.yaml
-kubectl patch secret -n cluster openstack -p '{"metadata":{"labels":{"clusterctl.cluster.x-k8s.io/move":""}}}'
-```
-Example `cloud.conf`
-
-```ini
-[Global]
-auth-url=https://api.gx-scs.sovereignit.cloud:5000/v3
-region="RegionOne"
-application-credential-id=""
-application-credential-secret=""
-tenant-id=
-
-[LoadBalancer]
-manage-security-groups=true
-use-octavia=true
-enable-ingress-hostname=true
-create-monitor=true
-```
-
-```bash
-kubectl create secret -n cluster generic openstack-workload-cluster-secret --from-literal=cloud.conf="$(kubectl create secret -n kube-system generic cloud-config --from-file=path/to/cloud.conf --dry-run=client -oyaml)" --type addons.cluster.x-k8s.io/resource-set
+helm upgrade -i csp-helper https://github.com/SovereignCloudStack/cluster-stacks/releases/download/openstack-alpha-1-28-v3/csp-helper-chart.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
@@ -161,29 +133,6 @@ EOF
 ```
 clusterstack.clusterstack.x-k8s.io/clusterstack created
 openstackclusterstackreleasetemplate.infrastructure.clusterstack.x-k8s.io/cspotemplate created
-```
-
-## Create Cluster Resource Set (CSP/per tenant)
-```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
- name: crs-openstack-secret
- namespace: cluster
-spec:
- strategy: "Reconcile"
- clusterSelector:
-   matchLabels:
-     managed-secret: cloud-config
- resources:
-   - name: openstack-workload-cluster-secret
-     kind: Secret
-EOF
-```
-
-```
-clusterresourceset.addons.cluster.x-k8s.io/crs-openstack-secret created
 ```
 
 ## Create the workload cluster resource (SCS-User/customer)
