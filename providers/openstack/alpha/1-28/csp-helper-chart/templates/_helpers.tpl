@@ -12,10 +12,14 @@ true
 
 {{/*
 Creates name of the namespace: appcredxxx in case of an application credential, project_name otherwise
+the old proposal was to use the following when using appcreds:
+
+appcred-{{ substr 0 10 .Values.clouds.openstack.auth.application_credential_id }}
+but for a better drop-in replacement in the current quickstart guide this will be hardcoded to "cluster" for now.
 */}}
 {{- define "namespaceName" -}}
 {{- if include "isAppCredential" . -}}
-appcred-{{ substr 0 10 .Values.clouds.openstack.auth.application_credential_id }}
+cluster
 {{- else -}}
 {{ .Values.clouds.openstack.auth.project_name }}
 {{ end }}
