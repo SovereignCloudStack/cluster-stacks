@@ -166,6 +166,13 @@ spec:
          description: "The names of the security groups to assign to the instance"
          items:
            type: string
+   - name: openstack_loadbalancer_apiserver
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: boolean
+         default: true
+         description: "Enables custom load balancer for OpenStack API server"
   patches:
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
@@ -242,7 +249,6 @@ spec:
               variable: dns_nameservers
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
-{{- /*enabledIf: '{{ eq (len .openstack_security_groups) 0 }}' */}}
       enabledIf: '{{ ne .openstack_security_groups "" }}'
       definitions:
         - selector:
@@ -258,3 +264,16 @@ spec:
             path: "/spec/template/spec/securityGroups"
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups  }} { name: {{ . }}}, {{ end }} ]"` }}
+    - name: openstack_loadbalancer_apiserver
+      description: "Enables custom load balancer for OpenStack API server"
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+            valueFrom:
+              variable: openstack_loadbalancer_apiserver
