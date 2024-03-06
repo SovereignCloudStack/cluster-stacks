@@ -9,12 +9,7 @@
 clouds:
   openstack:
     auth:
-      auth_url: https://demo-api.scs.cloud:5000
-      username: "u1234-test"
-      project_id: e7622c1048ac4520a2d050ae141e826b
       project_name: "p1234-project"
-      user_domain_name: "d1234"
-      password: "test"
     region_name: "RegionTest"
     interface: "public"
     identity_api_version: 3
