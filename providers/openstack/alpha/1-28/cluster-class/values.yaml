@@ -21,9 +21,9 @@ tweak_kubeapi_memlimit: true
 worker_machine_gen: genw01
 control_plane_machine_gen: genc01
 openstack_security_groups: []
+openstack_loadbalancer_apiserver: true
 server_group_id_controller: ""
 server_group_id_worker: ""
-openstack_loadbalancer_apiserver: true
 
 # TBD, currently needed:
 images:

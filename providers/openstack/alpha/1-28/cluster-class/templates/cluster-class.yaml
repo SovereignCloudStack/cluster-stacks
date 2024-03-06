@@ -270,6 +270,8 @@ spec:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"

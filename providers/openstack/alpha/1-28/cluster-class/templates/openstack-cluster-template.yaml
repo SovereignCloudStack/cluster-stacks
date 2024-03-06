@@ -11,7 +11,7 @@ spec:
         name: {{ default "openstack" .Values.secrets.clouds_yaml }}
         kind: Secret
       apiServerLoadBalancer:
-        enabled: {{ default true .Values.openstack_loadbalancer_apiserver }}
+        enabled: {{ .Values.openstack_loadbalancer_apiserver }}
 {{- if .Values.restrict_kubeapi }}
         allowedCidrs: {{ .Values.restrict_kubeapi}}
 {{- end }}
