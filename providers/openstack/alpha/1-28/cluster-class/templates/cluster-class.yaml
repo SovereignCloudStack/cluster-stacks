@@ -264,6 +264,15 @@ spec:
             path: "/spec/template/spec/securityGroups"
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups  }} { name: {{ . }}}, {{ end }} ]"` }}
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/allowAllInClusterTraffic"
+            value: false
     - name: openstack_loadbalancer_apiserver
       description: "Enables custom load balancer for OpenStack API server"
       definitions:
