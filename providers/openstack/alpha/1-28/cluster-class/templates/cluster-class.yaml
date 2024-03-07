@@ -173,6 +173,22 @@ spec:
          type: boolean
          default: true
          description: "Enables custom load balancer for OpenStack API server"
+   - name: cloud_name
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "openstack"
+         description: "The name of the cloud to use from the clouds secret"
+   - name: secret_name
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "openstack"
+         description: "The name of the clouds secret"
   patches:
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
@@ -286,3 +302,57 @@ spec:
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             valueFrom:
               variable: openstack_loadbalancer_apiserver
+    - name: cloud_name
+      description: "Sets the name of the cloud to use from the clouds secret."
+      enabledIf: '{{ ne .cloud_name "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/cloudName"
+            valueFrom:
+              variable: cloud_name
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/cloudName"
+            valueFrom:
+              variable: cloud_name
+    - name: secret_name
+      description: "Sets the name of the clouds secret."
+      enabledIf: '{{ ne .secret_name "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/name"
+            valueFrom:
+              variable: secret_name
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/name"
+            valueFrom:
+              variable: secret_name
