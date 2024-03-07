@@ -52,7 +52,7 @@ spec:
        openAPIV3Schema:
          type: array
          description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
-         default: [ "5.1.66.255", "185.150.99.255" ]
+         default: ["5.1.66.255", "185.150.99.255"]
          items:
            type: string
    - name: controller_flavor
