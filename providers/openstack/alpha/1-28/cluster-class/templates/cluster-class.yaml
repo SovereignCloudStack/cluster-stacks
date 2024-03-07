@@ -205,6 +205,14 @@ spec:
          default: ""
          example: "869fe071-1e56-46a9-9166-47c9f228e297"
          description: "The server group to assign the worker nodes to."
+   - name: ssh_key
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "capi-keypair"
+         description: "The ssh key to inject in the nodes."
   patches:
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
@@ -403,3 +411,20 @@ spec:
             path: "/spec/template/spec/serverGroupID"
             valueFrom:
               variable: worker_server_group_id
+    - name: ssh_key
+      description: "Sets the ssh key to inject in the nodes."
+      enabledIf: '{{ ne .ssh_key "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: ssh_key
