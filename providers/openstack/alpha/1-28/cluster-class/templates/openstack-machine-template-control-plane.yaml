@@ -21,7 +21,3 @@ spec:
         - name: {{ .Values.prefix }}-allow-icmp
         - name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-cilium
 {{- end}}
-{{- if .Values.server_group_id_controller }}
-      serverGroupID: {{ .Values.server_group_id_controller }}
-{{- end}}
-

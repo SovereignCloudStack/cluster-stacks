@@ -189,6 +189,22 @@ spec:
          default: ""
          example: "openstack"
          description: "The name of the clouds secret"
+   - name: controller_server_group_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"
+         description: "The server group to assign the control plane nodes to."
+   - name: worker_server_group_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "869fe071-1e56-46a9-9166-47c9f228e297"
+         description: "The server group to assign the worker nodes to."
   patches:
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
@@ -356,3 +372,34 @@ spec:
             path: "/spec/template/spec/identityRef/name"
             valueFrom:
               variable: secret_name
+    - name: controller_server_group_id
+      description: "Sets the server group to assign the control plane nodes to."
+      enabledIf: '{{ ne .controller_server_group_id "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/serverGroupID"
+            valueFrom:
+              variable: controller_server_group_id
+    - name: worker_server_group_id
+      description: "Sets the server group to assign the worker nodes to."
+      enabledIf: '{{ ne .worker_server_group_id "" }}'
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/serverGroupID"
+            valueFrom:
+              variable: worker_server_group_id
