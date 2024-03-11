@@ -13,8 +13,6 @@ spec:
           controllerManager:
             extraArgs:
               cloud-provider: external
-          dns:
-            imageRepository: registry.k8s.io/coredns
           etcd:
             local:
               dataDir: /var/lib/etcd
@@ -24,16 +22,15 @@ spec:
                 election-timeout: "2500"
                 heartbeat-interval: "250"
                 snapshot-count: "6400"
-          imageRepository: registry.k8s.io
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
               cloud-provider: external
-              provider-id: openstack:///'{{"{{"}}instance_id{{"}}"}}'
-            name: '{{"{{"}}local_hostname{{"}}"}}'
+              provider-id: openstack:///'{{"{{"}} instance_id {{"}}"}}'
+            name: '{{"{{"}} local_hostname {{"}}"}}'
         joinConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
               cloud-provider: external
-              provider-id: openstack:///'{{"{{"}}instance_id{{"}}"}}'
-            name: '{{"{{"}}local_hostname{{"}}"}}'
+              provider-id: openstack:///'{{"{{"}} instance_id {{"}}"}}'
+            name: '{{"{{"}} local_hostname {{"}}"}}'

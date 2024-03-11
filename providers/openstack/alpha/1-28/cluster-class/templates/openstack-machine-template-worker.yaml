@@ -15,9 +15,9 @@ spec:
 {{- if .Values.openstack_security_groups }}
 {{- range $.Values.openstack_security_groups }}
         - name: {{ . }}
-{{- end}}
+{{- end }}
 {{- else }}
         - name: {{ .Values.prefix }}-allow-ssh
         - name: {{ .Values.prefix }}-allow-icmp
         - name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-cilium
-{{- end}}
+{{- end }}
