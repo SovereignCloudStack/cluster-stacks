@@ -1,27 +1,23 @@
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
 kind: OpenStackMachineTemplate
 metadata:
-  name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-control-plane-{{ .Values.control_plane_machine_gen}}
+  name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-control-plane
 spec:
   template:
     spec:
-      cloudName: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+      cloudName: {{ default "openstack" .Values.cloud.name }}
       flavor: {{ .Values.controller_flavor }}
       identityRef:
         kind: Secret
-        name: {{ .Values.testcluster_name }}-cloud-config
-      image: ubuntu-capi-image-v1.27.5
+        name: {{ default "openstack" .Values.secrets.clouds_yaml }}
+      image: {{ .Values.images.controlPlane.name }}
       securityGroups:
 {{- if .Values.openstack_security_groups }}
 {{- range $.Values.openstack_security_groups }}
         - name: {{ . }}
-{{- end}}
+{{- end }}
 {{- else }}
         - name: {{ .Values.prefix }}-allow-ssh
         - name: {{ .Values.prefix }}-allow-icmp
         - name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-cilium
-{{- end}}
-{{- if .Values.server_group_id_controller }}
-      serverGroupID: {{ .Values.server_group_id_controller }}
-{{- end}}
-      sshKeyName: {{ .Values.prefix }}-keypair
+{{- end }}
