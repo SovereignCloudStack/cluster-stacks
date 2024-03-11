@@ -1,0 +1,9 @@
+[Unit]
+Description=Run etcd-defrag.service every day
+After=network.target
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+
+[Install]
+WantedBy=timers.target
