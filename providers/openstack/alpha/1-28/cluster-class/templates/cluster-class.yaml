@@ -68,6 +68,22 @@ spec:
          default: "SCS-2V-4-20"
          example: "SCS-2V-4-20"
          description: "OpenStack instance flavor for worker nodes."
+   - name: controller_root_disk
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: integer
+         minimum: 1
+         example: 20
+         description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+   - name: worker_root_disk
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: integer
+         minimum: 1
+         example: 20
+         description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
    - name: node_cidr
      required: false
      schema:
@@ -166,6 +182,39 @@ spec:
             path: "/spec/template/spec/flavor"
             valueFrom:
               variable: worker_flavor
+    - name: controller_root_disk
+      description: "Sets the root disk size in GiB for control-plane nodes."
+      enabledIf: {{ `"{{ if .controller_root_disk }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/rootVolume"
+            valueFrom:
+              template: |
+                diskSize: {{"{{"}} .controller_root_disk {{"}}"}}
+    - name: worker_root_disk
+      description: "Sets the root disk size in GiB for worker nodes."
+      enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}-md-0-no1
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/rootVolume"
+            valueFrom:
+              template: |
+                diskSize: {{"{{"}} .worker_root_disk {{"}}"}}
     - name: external_id
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
       enabledIf: '{{ ne .external_id "" }}'
