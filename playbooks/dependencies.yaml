@@ -1,0 +1,51 @@
+---
+- name: Ensure cluster stacks dependencies
+  hosts: all
+  vars:
+    kind_version: "0.22.0"
+    kubectl_version: "1.28.7"
+    clusterctl_version: "1.6.3"
+    helm_version: "3.14.3"
+    yq_version: "4.43.1"
+    envsubst_version: "1.4.2"
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  roles:  # https://opendev.org/zuul/zuul-jobs
+    - role: ensure-docker
+    - role: ensure-go
+      vars:
+        go_version: 1.21.1
+  environment:
+    PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
+  tasks:
+    - name: Make sure installation directory exists
+      ansible.builtin.file:
+        path: "{{ install_dir }}"
+        state: directory
+        mode: 0755
+    - name: Install clusterctl
+      ansible.builtin.get_url:
+        url: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v{{ clusterctl_version }}/clusterctl-linux-amd64"
+        dest: "{{ install_dir }}/clusterctl"
+        mode: "+x"
+    - name: Install envsubst
+      ansible.builtin.get_url:
+        url: "https://github.com/a8m/envsubst/releases/download/v{{ envsubst_version }}/envsubst-Linux-x86_64"
+        dest: "{{ install_dir }}/envsubst"
+        mode: "+x"
+    - name: Install yq
+      ansible.builtin.get_url:
+        url: "https://github.com/mikefarah/yq/releases/download/v{{ yq_version }}/yq_linux_amd64"
+        dest: "{{ install_dir }}/yq"
+        mode: "+x"
+    - name: Install KinD
+      ansible.builtin.get_url:
+        url: "https://kind.sigs.k8s.io/dl/v{{ kind_version }}/kind-linux-amd64"
+        dest: "{{ install_dir }}/kind"
+        mode: "+x"
+    - name: Install kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: "{{ install_dir }}/kubectl"
+        mode: "+x"
+    - name: Install csctl and csctl-openstack
+      ansible.builtin.import_tasks: tasks/csctl.yaml
