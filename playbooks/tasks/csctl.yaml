@@ -1,0 +1,36 @@
+---
+- name: Install csctl and csctl-openstack
+  vars:
+    csctl_dir: "{{ ansible_user_dir }}/csctl"
+    csctl_version: "feat/csctl-plugin-openstack"  # FIXME: use stable release
+    csctl_openstack_version: "feat/csctl-plugin-openstack"
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  block:
+    # FIXME: csctl could be installed as a binary once the version with
+    #   feat/csctl-plugin-openstack` is released
+    - name: Clone csctl repository
+      ansible.builtin.git:
+        repo: https://github.com/SovereignCloudStack/csctl.git
+        dest: "{{ csctl_dir }}"
+        single_branch: true
+        version: "{{ csctl_version }}"
+    # FIXME: csctl-openstack will be hosted in the different repository soon
+    - name: Build csctl and csctl-openstack plugin
+      ansible.builtin.command: "make build"
+      args:
+        chdir: "{{ csctl_dir }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
+      changed_when: true
+    - name: Install csctl
+      ansible.builtin.copy:
+        src: "{{ csctl_dir }}/csctl"
+        dest: "{{ install_dir }}/csctl"
+        mode: "+x"
+        remote_src: true
+    - name: Install csctl-openstack
+      ansible.builtin.copy:
+        src: "{{ csctl_dir }}/csctl-openstack"
+        dest: "{{ install_dir }}/csctl-openstack"
+        mode: "+x"
+        remote_src: true

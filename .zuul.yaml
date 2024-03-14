@@ -1,0 +1,53 @@
+---
+- job:
+    name: e2e-abstract
+    abstract: true
+    parent: openstack-access-base
+    description: |
+      An abstract job for e2e testing of cluster stacs project.
+      This job is not intended to be run directly, but instead
+      must be inherited from it.
+    pre-run: playbooks/dependencies.yaml
+#    run: playbooks/e2e.yaml
+#    cleanup-run: playbooks/cleanup.yaml
+#    vars:
+#      wait_for_cluster: 600  # 10min
+#      extra_env: {}
+#      sonobouy:
+#        enabled: false
+#      scs_compliance:
+#        enabled: false
+
+- job:
+    name: e2e-openstack-quick
+    parent: e2e-abstract
+    description: |
+      Run e2e tests of k8s-cluster-api-provider project using
+      [sonobuoy](https://sonobuoy.io/) with mode conformance meaning
+      it will test if the Kubernetes cluster is conformant to the CNCF.
+    run: playbooks/openstack/e2e.yaml
+#    timeout: 10800  # 3h
+#    vars:
+#      sonobouy:
+#        enabled: true
+#        mode: conformance
+#      scs_compliance:
+#        enabled: true
+
+
+- project:
+    name: matofederorg/cluster-stacks
+    default-branch: main
+    merge-mode: "squash-merge"
+    e2e-test:
+      jobs:
+        - e2e-openstack-quick
+    unlabel-on-update-e2e-test:
+      jobs:
+        - noop
+    e2e-quick-test:
+      jobs:
+        - e2e-openstack-quick
+    unlabel-on-update-e2e-quick-test:
+      jobs:
+        - noop
