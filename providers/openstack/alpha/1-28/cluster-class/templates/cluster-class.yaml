@@ -137,7 +137,7 @@ spec:
   patches:
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
-      enabledIf: '{{ ne .controller_flavor "" }}'
+      enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -151,7 +151,7 @@ spec:
               variable: controller_flavor
     - name: worker_flavor
       description: "Sets the openstack instance flavor for the worker nodes."
-      enabledIf: '{{ ne .worker_flavor "" }}'
+      enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -168,7 +168,7 @@ spec:
               variable: worker_flavor
     - name: external_id
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-      enabledIf: '{{ ne .external_id "" }}'
+      enabledIf: {{ `'{{ ne .external_id "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -182,7 +182,7 @@ spec:
               variable: external_id
     - name: node_cidr
       description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
-      enabledIf: '{{ ne .node_cidr "" }}'
+      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -196,7 +196,7 @@ spec:
               variable: node_cidr
     - name: dns_nameservers
       description: "Sets the list of nameservers for the OpenStack Subnet being created."
-      enabledIf: '{{ ne .dns_nameservers "" }}'
+      enabledIf: {{ `'{{ ne .dns_nameservers "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -210,7 +210,7 @@ spec:
               variable: dns_nameservers
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
-      enabledIf: '{{ ne .openstack_security_groups "" }}'
+      enabledIf: {{ `'{{ ne .openstack_security_groups "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -224,7 +224,7 @@ spec:
           - op: replace
             path: "/spec/template/spec/securityGroups"
             valueFrom:
-              template: {{ `"[ {{ range .openstack_security_groups  }} { name: {{ . }}}, {{ end }} ]"` }}
+              template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
@@ -249,7 +249,7 @@ spec:
               variable: openstack_loadbalancer_apiserver
     - name: cloud_name
       description: "Sets the name of the cloud to use from the clouds secret."
-      enabledIf: '{{ ne .cloud_name "" }}'
+      enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -276,7 +276,7 @@ spec:
               variable: cloud_name
     - name: secret_name
       description: "Sets the name of the clouds secret."
-      enabledIf: '{{ ne .secret_name "" }}'
+      enabledIf: {{ `'{{ ne .secret_name "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -303,7 +303,7 @@ spec:
               variable: secret_name
     - name: controller_server_group_id
       description: "Sets the server group to assign the control plane nodes to."
-      enabledIf: '{{ ne .controller_server_group_id "" }}'
+      enabledIf: {{ `'{{ ne .controller_server_group_id "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -317,7 +317,7 @@ spec:
               variable: controller_server_group_id
     - name: worker_server_group_id
       description: "Sets the server group to assign the worker nodes to."
-      enabledIf: '{{ ne .worker_server_group_id "" }}'
+      enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -334,7 +334,7 @@ spec:
               variable: worker_server_group_id
     - name: ssh_key
       description: "Sets the ssh key to inject in the nodes."
-      enabledIf: '{{ ne .ssh_key "" }}'
+      enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
