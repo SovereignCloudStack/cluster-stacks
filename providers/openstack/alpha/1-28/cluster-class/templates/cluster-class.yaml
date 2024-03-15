@@ -1,37 +1,37 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
-  name: {{ .Values.testcluster_name }}
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
 spec:
   controlPlane:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
-      name: {{ .Values.testcluster_name }}-control-plane
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
     machineInfrastructure:
       ref:
         kind: OpenStackMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
-        name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}-control-plane
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
       kind: OpenStackClusterTemplate
-      name: {{ .Values.testcluster_name }}
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
     machineDeployments:
-    - class: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+    - class: {{ .Release.Name }}-{{ .Chart.Version }}
       template:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
-            name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
   variables:
    - name: external_id
      required: false
@@ -160,7 +160,7 @@ spec:
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/flavor"
@@ -196,7 +196,7 @@ spec:
               variable: node_cidr
     - name: dns_nameservers
       description: "Sets the list of nameservers for the OpenStack Subnet being created."
-      enabledIf: {{ `'{{ ne .dns_nameservers "" }}'` }}
+      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -210,7 +210,7 @@ spec:
               variable: dns_nameservers
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
-      enabledIf: {{ `'{{ ne .openstack_security_groups "" }}'` }}
+      enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
@@ -219,7 +219,7 @@ spec:
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/securityGroups"
@@ -268,7 +268,7 @@ spec:
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/cloudName"
@@ -295,7 +295,7 @@ spec:
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/identityRef/name"
@@ -326,7 +326,7 @@ spec:
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: add
             path: "/spec/template/spec/serverGroupID"
@@ -343,7 +343,7 @@ spec:
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: add
             path: "/spec/template/spec/sshKeyName"
