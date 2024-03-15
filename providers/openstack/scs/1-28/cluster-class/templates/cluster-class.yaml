@@ -212,7 +212,7 @@ spec:
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Values.prefix }}-{{ .Values.testcluster_name }}-md-0-no1
+                  - {{ .Release.Name }}-{{ .Chart.Version }}-md-0-no1
           jsonPatches:
           - op: add
             path: "/spec/template/spec/rootVolume"
