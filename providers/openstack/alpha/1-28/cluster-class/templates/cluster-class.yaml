@@ -99,7 +99,7 @@ spec:
      schema:
        openAPIV3Schema:
          type: string
-         default: ""
+         default: "openstack"
          example: "openstack"
          description: "The name of the cloud to use from the clouds secret"
    - name: secret_name
@@ -107,7 +107,7 @@ spec:
      schema:
        openAPIV3Schema:
          type: string
-         default: ""
+         default: "openstack"
          example: "openstack"
          description: "The name of the clouds secret"
    - name: controller_server_group_id
