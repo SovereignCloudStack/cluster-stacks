@@ -1,0 +1,27 @@
+# mirrored from variables.tf
+external_id: ebfe5546-f09f-4f42-ab54-094e457d42ec
+dns_nameservers:
+  - 5.1.66.255
+  - 185.150.99.255
+controller_flavor: SCS-2V-4-20
+worker_flavor: SCS-2V-4-20
+prefix: capi
+testcluster_name: testcluster
+node_cidr: 10.8.0.0/20
+restrict_kubeapi: []
+
+# newly introduced:
+openstack_security_groups: []
+openstack_loadbalancer_apiserver: true
+
+# TBD, currently needed:
+images:
+  controlPlane:
+    name: ubuntu-capi-image-v1.29.2
+  worker:
+    name: ubuntu-capi-image-v1.29.2
+
+cloud:
+  name: "openstack"
+secrets:
+  clouds_yaml: "openstack"
