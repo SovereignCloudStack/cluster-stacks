@@ -1,7 +1,7 @@
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
 kind: OpenStackMachineTemplate
 metadata:
-  name: {{ .Values.prefix }}-{{ .Values.testcluster_name }}
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
 spec:
   template:
     spec:
