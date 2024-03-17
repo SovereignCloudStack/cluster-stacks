@@ -1,0 +1,8 @@
+apiVersion: openstack.infrastructure.clusterstack.x-k8s.io/v1alpha1
+openStackNodeImages:
+  - url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.27/ubuntu-2204-kube-v1.27.12.qcow2
+    createOpts:
+      name: ubuntu-capi-image-v1.27.12
+      disk_format: qcow2
+      container_format: bare
+      visibility: private
