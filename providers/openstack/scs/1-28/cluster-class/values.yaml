@@ -25,9 +25,9 @@ openstack_loadbalancer_apiserver: true
 # TBD, currently needed:
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.27.5
+    name: ubuntu-capi-image-v1.28.7
   worker:
-    name: ubuntu-capi-image-v1.27.5
+    name: ubuntu-capi-image-v1.28.7
 
 cloud:
   name: "openstack"

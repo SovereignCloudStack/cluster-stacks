@@ -3,11 +3,11 @@ dependencies:
 - alias: metrics-server
   name: metrics-server
   repository: https://kubernetes-sigs.github.io/metrics-server/
-  version: 3.11.0
+  version: 3.12.0
 - alias: cilium
   name: cilium
   repository: https://helm.cilium.io/
-  version: 1.14.1
-name: openstack-scs-1-27-cluster-addon
+  version: 1.15.1
+name: openstack-scs-1-28-cluster-addon
 type: application
-version: v2
+version: v1

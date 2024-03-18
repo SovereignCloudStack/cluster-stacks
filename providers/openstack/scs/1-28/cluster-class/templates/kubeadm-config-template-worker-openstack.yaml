@@ -58,7 +58,7 @@ spec:
         - {{ $proxyCmd }}curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
         - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
         - {{ $proxyCmd }}apt-get update -y
-        - TRIMMED_KUBERNETES_VERSION=$(echo v1.27.5 | sed 's/\./\./g' | sed 's/^v//')
+        - TRIMMED_KUBERNETES_VERSION=$(echo v1.28.7 | sed 's/\./\./g' | sed 's/^v//')
         - RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | sed 's/\*\*\*//' | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)
         - {{ $proxyCmd }}apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips containerd kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION}
         - |

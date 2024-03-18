@@ -8,29 +8,18 @@ worker_flavor: SCS-2V-4-20
 prefix: capi
 testcluster_name: testcluster
 node_cidr: 10.8.0.0/20
-etcd_unsafe_fs: false
-http_proxy: ""
-no_proxy: ""
-containerd_registry_files:
-  hosts: ["files/containerd/docker.io"]
-  certs: []
+restrict_kubeapi: []
 
 # newly introduced:
-etcd_defrag: true
-tweak_kubeapi_memlimit: true
-worker_machine_gen: genw01
-control_plane_machine_gen: genc01
 openstack_security_groups: []
 openstack_loadbalancer_apiserver: true
-server_group_id_controller: ""
-server_group_id_worker: ""
 
 # TBD, currently needed:
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.28.6
+    name: ubuntu-capi-image-v1.28.8
   worker:
-    name: ubuntu-capi-image-v1.28.6
+    name: ubuntu-capi-image-v1.28.8
 
 cloud:
   name: "openstack"
