@@ -5,4 +5,4 @@ openStackNodeImages:
       name: ubuntu-capi-image-v1.28.8
       disk_format: qcow2
       container_format: bare
-      visibility: shared
+      visibility: private
