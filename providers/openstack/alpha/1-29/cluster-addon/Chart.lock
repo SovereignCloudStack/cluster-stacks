@@ -1,0 +1,15 @@
+dependencies:
+- name: metrics-server
+  repository: https://kubernetes-sigs.github.io/metrics-server/
+  version: 3.12.0
+- name: cilium
+  repository: https://helm.cilium.io/
+  version: 1.15.2
+- name: openstack-cloud-controller-manager
+  repository: https://kubernetes.github.io/cloud-provider-openstack
+  version: 2.29.1
+- name: openstack-cinder-csi
+  repository: https://kubernetes.github.io/cloud-provider-openstack
+  version: 2.29.0
+digest: sha256:d52da0e42639cbb03af1e3c4e6bba637e5c5adc255be277861ef4adb3639f5b6
+generated: "2024-03-18T17:49:00.867501298+01:00"
