@@ -72,7 +72,7 @@ curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstac
 ```
 
 ### Deploy CSP-helper chart
-The csp-helper chart will create the namespace "cluster" when using appcredentials or a namespace that is named after the openstack project when using a normal clouds.yaml. In addition to that the chart will create the secrets for CAPO and the CCM of the workload cluster.
+The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in. 
 
 cloud and secret name default to `openstack`.
 
@@ -92,7 +92,7 @@ clouds:
 ```
 
 ```bash
-helm upgrade -i csp-helper https://github.com/SovereignCloudStack/cluster-stacks/releases/download/openstack-alpha-1-28-v3/csp-helper-chart.tgz -f path/to/clouds.yaml
+helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/cluster-stacks/releases/download/openstack-alpha-1-28-v3/csp-helper-chart.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
@@ -103,7 +103,7 @@ apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
 metadata:
   name: clusterstack
-  namespace: cluster
+  namespace: my-tenant
 spec:
   provider: openstack
   name: alpha
@@ -121,7 +121,7 @@ apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
 kind: OpenStackClusterStackReleaseTemplate
 metadata:
   name: cspotemplate
-  namespace: cluster
+  namespace: my-tenant
 spec:
   template:
     spec:
@@ -146,7 +146,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: cs-cluster
-  namespace: cluster
+  namespace: my-tenant
   labels:
     managed-secret: cloud-config
 spec:
