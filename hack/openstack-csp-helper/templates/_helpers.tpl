@@ -11,20 +11,6 @@ true
 {{- end }}
 
 {{/*
-Creates name of the namespace: appcredxxx in case of an application credential, project_name otherwise
-*/}}
-{{- define "namespaceName" -}}
-{{- if include "isAppCredential" . -}}
-appcred-{{ substr 0 10 .Values.clouds.openstack.auth.application_credential_id }}
-{{- else -}}
-{{ .Values.clouds.openstack.auth.project_name }}
-{{ end }}
-{{- end }}
-
-
-
-
-{{/*
 Templates the cloud.conf as needed by the openstack CCM
 */}}
 {{- define "cloud.conf" -}}
