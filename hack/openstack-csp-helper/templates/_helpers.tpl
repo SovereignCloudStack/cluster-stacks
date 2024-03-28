@@ -24,12 +24,14 @@ application-credential-secret={{ .Values.clouds.openstack.auth.application_crede
 username={{ .Values.clouds.openstack.auth.username }}
 password={{ .Values.clouds.openstack.auth.password }}
 user-domain-name={{ .Values.clouds.openstack.auth.user_domain_name }}
+domain-name={{ .Values.clouds.openstack.auth.domain_name | default .Values.clouds.openstack.auth.user_domain_name }}
 tenant-id={{ .Values.clouds.openstack.auth.project_id }}
+project-id={{ .Values.clouds.openstack.auth.project_id }}
 {{ end }}
 
 [LoadBalancer]
+enabled={{ not (.Values.yawol | default false) }}
 manage-security-groups=true
-use-octavia=true
 enable-ingress-hostname=true
 create-monitor=true
 {{- end }}
@@ -43,6 +45,9 @@ Templates the secret that contains cloud.conf as needed by the openstack CCM
 apiVersion: v1
 data:
   cloud.conf: {{ include "cloud.conf" . | b64enc }}
+{{- if .Values.yawol }}
+  cloudprovider.conf: {{ include "cloud.conf" . | b64enc }}
+{{- end }}
 kind: Secret
 metadata:
   name: cloud-config

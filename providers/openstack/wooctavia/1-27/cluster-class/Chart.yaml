@@ -1,0 +1,7 @@
+apiVersion: v2
+description: |
+  This chart installs and configures:
+  * Openstack Omega Cluster Class
+name: openstack-omega-1-27-cluster-class
+type: application
+version: << .ClusterClassVersion >>
