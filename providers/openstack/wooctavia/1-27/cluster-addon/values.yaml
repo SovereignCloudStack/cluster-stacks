@@ -1,0 +1,52 @@
+metrics-server:
+  fullnameOverride: metrics-server
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  service:
+    labels:
+      kubernetes.io/cluster-service: "true"
+      kubernetes.io/name: "Metrics-server"
+
+  defaultArgs:
+    - --cert-dir=/tmp
+    - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+    - --kubelet-use-node-status-port
+    - --metric-resolution=15s
+
+  args:
+    - --kubelet-insecure-tls
+openstack-cloud-controller-manager:
+  secret:
+    enabled: true
+    name: cloud-config
+    create: false
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+  tolerations:
+  - key: node.cloudprovider.kubernetes.io/uninitialized
+    value: "true"
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    effect: NoSchedule
+openstack-cinder-csi:
+  secret:
+    enabled: true
+    name: cloud-config
+    create: false
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+  tolerations:
+  - key: node.cloudprovider.kubernetes.io/uninitialized
+    value: "true"
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    effect: NoSchedule
+yawol-controller:
+  yawolOSSecretName: cloud-config
+  yawolFlavorID: 0a79590e-10d7-4c2c-8f69-ca0a2c6208d2 # SCS-1V-2-5
+  yawolImageID: f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060 # yawol-alpine-yawol-controller-0.21.3-5-g2a2b2f9
