@@ -1,27 +1,22 @@
-# Cluster Stacks Repository
-> :warning: This project is in the development stage. DO NOT USE IN PRODUCTION! :warning:
+# Cluster Stacks
 
-:wave: Welcome to the cluster-stacks repository! This repository provides a comprehensive framework and reference implementations for defining and managing cluster stacks in Kubernetes. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
+Cluster Stacks is a comprehensive framework and reference implementations for defining and managing Kubernetes clusters via the Cluster API. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
 
-The cluster-stacks repository transcends the simple gathering of definitions and configurations, aiming to provide a platform that enables declarative management of Kubernetes clusters, reduces operational effort, and ensures consistency and reliability across various cluster environments
+It encapsulates multiple layers, including node configuration, Cluster API setup, and application-level configurations, such as the Container Network Interface (CNI). By packaging these interdependent configurations, the cluster stack allows for efficient management and deployment of Kubernetes clusters, offering standardized, resilient, and self-managed Kubernetes environments.
 
-# :question: Purpose of Cluster Stacks
-The `cluster-stacks` repository serves as a framework for defining Kubernetes cluster stacks via the Cluster API. It encapsulates multiple layers, including node configuration, Cluster API setup, and application-level configurations, such as the Container Network Interface (CNI). By packaging these interdependent configurations, the cluster stack allows for efficient management and deployment of Kubernetes clusters, offering standardized, resilient, and self-managed Kubernetes environments.
-
-# :globe_with_meridians: IaaS Provider, Kubernetes Service Provider, and Cluster API
+## 🌐 IaaS Provider, Kubernetes Service Provider, and Cluster API
 In the context of the `cluster-stacks`, we distinguish between two types of providers:
 
-An IaaS Provider, in general, offers Infrastructure as a Service - providing the fundamental compute, storage, and network resources on which workloads can be run. In the context of cluster-stacks, an IaaS Provider specifically refers to an entity that owns an API for their infrastructure. If an organization uses a common infrastructure API, such as OpenStack, they are not considered an IaaS Provider in this context. However, if the organization owns the API for its infrastructure, it becomes an IaaS Provider for the purposes of cluster-stacks.
+An **IaaS Provider**, in general, offers Infrastructure as a Service - providing the fundamental compute, storage, and network resources on which workloads can be run. In the context of cluster-stacks, an IaaS Provider specifically refers to an entity that owns an API for their infrastructure. If an organization uses a common infrastructure API, such as OpenStack, they are not considered an IaaS Provider in this context. However, if the organization owns the API for its infrastructure, it becomes an IaaS Provider for the purposes of cluster-stacks.
 
-A Kubernetes Service Provider, on the other hand, is an entity that implements a cluster stack. They do so on top of the IaaS Providers, potentially spanning across multiple IaaS Providers. They use the IaaS Provider's infrastructure services and integrate them into their cluster stack implementations.
+A **Kubernetes Service Provider**, on the other hand, is an entity that implements a cluster stack. They do so on top of the IaaS Providers, potentially spanning across multiple IaaS Providers. They use the IaaS Provider's infrastructure services and integrate them into their cluster stack implementations.
 
-The Cluster API (CAPI) is a Kubernetes project aimed at simplifying the process of managing Kubernetes clusters. It offers a declarative API that automates the creation, configuration, and management of clusters, providing a standardized way to interact with Kubernetes. The cluster stack approach leverages CAPI to deliver self-managed Kubernetes clusters.
+The **Cluster API (CAPI)** is a Kubernetes project aimed at simplifying the process of managing Kubernetes clusters. It offers a declarative API that automates the creation, configuration, and management of clusters, providing a standardized way to interact with Kubernetes. The cluster stack approach leverages CAPI to deliver self-managed Kubernetes clusters.
 
-
-# :pushpin: Defining and Adding Providers
+## 📌 Defining and Adding Providers
 The structure of this repository is specifically designed to handle multiple providers, multiple cluster stacks per provider, and multiple Kubernetes versions per cluster stack. This organized structure allows us to effectively manage, develop, and maintain multiple cluster stacks across various Kubernetes versions and providers, all in a single repository.
 
-# :file_folder: Repository Structure
+### 📁 Repository Structure
 The repository maintains a specific structure:
 
 * Each IaaS Provider has a directory under providers.
@@ -34,14 +29,13 @@ providers/
     └── <cluster_stack_name>/
         └── <k8s_major_minor_version>/
 ```
-In this structure, the providers directory contains directories for each provider. Each provider directory, in turn, contains directories for each cluster stack implementation. For each cluster stack, we maintain directories for each major.minor Kubernetes version we support.
 
 The directory structure for adding a new provider would look something like this:
 
 ```
 providers/<provider_name>/<cluster_stack_name>/<k8s_major_minor_version>
 # example
-providers/aws/atlantis/1-26
+providers/openstack/scs/1-28
 ```
 This granular, hierarchical structure allows us to manage different versions of Kubernetes and their associated cluster stacks across different providers.
 
@@ -51,12 +45,11 @@ Instead, we represent Kubernetes patch version updates through changes in our cl
 
 In this way, our versioning system, our directory structure, and our approach to Kubernetes versioning are all interlinked, providing us a comprehensive, manageable, and resilient framework for maintaining various Kubernetes distributions or cluster stacks across multiple providers and versions.
 
-
-:building_construction: Understanding the Layers of a Cluster Stack
+## Understanding the Layers of a Cluster Stack
 
 In essence, a cluster stack is an amalgamation of various components each of which serves a crucial role in setting up, maintaining, and operating a Kubernetes cluster. In the context of our framework, we categorize these components into three core layers: `cluster-class`, `cluster-addons`, and `node-images`. Let's delve deeper into understanding each of these layers:
 
-## :books: Cluster Class
+### 📚 Cluster Class
 
 The Cluster Class serves as a blueprint for creating and configuring Kubernetes clusters consistently. It encapsulates various aspects of a cluster, including:
 
@@ -64,11 +57,13 @@ The Cluster Class serves as a blueprint for creating and configuring Kubernetes 
 * Networking configurations
 * Cluster-class templating
 * Other cluster-specific settings
-Essentially, it defines the desired configuration and properties of a Kubernetes cluster. It leverages the ClusterClass feature of Cluster API, which provides a declarative, Kubernetes-style API for cluster creation, configuration, and management. Any change in this layer or in the node-image or cluster-addon layers triggers a version bump in the cluster class, hence the cluster stack.
+
+Essentially, it defines the desired configuration and properties of a Kubernetes cluster. It leverages the [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/) feature of Cluster API, which provides a declarative, Kubernetes-style API for cluster creation, configuration, and management. Any change in this layer or in the node-image or cluster-addon layers triggers a version bump in the cluster class, hence the cluster stack.
 
 To add a cluster class, please follow the instructions.
 
-## :gift: Cluster Addons
+### 🎁 Cluster Addons
+
 Cluster Addons are core components or services required for the Kubernetes cluster to function correctly and efficiently. These are not user-facing applications but rather foundational services critical to the operation and management of a Kubernetes cluster. They're usually installed and configured after the cluster infrastructure has been provisioned and before the cluster is ready to serve workloads.
 
 Cluster addons encompass a variety of functionalities, including but not limited to:
@@ -84,7 +79,7 @@ Each addon version is independent and can be updated separately. However, a chan
 
 To add a cluster addon, please follow the instructions.
 
-## :film_strip: Node Images
+### 🎞️ Node Images
 
 Node images provide the foundation for the operating system environment on each node of a Kubernetes cluster. They are typically a minimal operating system distribution, like a lightweight Linux distro, which may also include container runtime components such as Docker or containerd.
 
@@ -108,8 +103,11 @@ By allowing flexibility in the release and deployment methods of Node Images, th
 
 To add a node image, please follow the instructions.
 
-# :bookmark_tabs: Versioning
-A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. The system includes three key components: cluster addons, node images, and the cluster class. Each of these components can be updated independently, leading to a flexible and maintainable system.
+## 📑 Versioning
+
+TODO: Add section about versioning with csctl tool
+
+A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. Each of the components can be updated independently, leading to a flexible and maintainable system.
 
 However, the critical point to understand here is the relationship between these component versions and the cluster stack version. Whenever there's a change or an update to either the cluster addon or the node image, the version of the cluster stack must be bumped. And due to the connection between the cluster class and the cluster stack, the cluster class version must be updated to match the new cluster stack version.
 
@@ -149,7 +147,7 @@ Here, the cluster stack and cluster class versions were updated to v4, the node 
 
 This versioning approach allows us to keep track of changes across different components, manage these components effectively, and conduct isolated testing. This ensures that our Kubernetes distribution or cluster stack remains resilient, and we can perform safe and secure upgrades even in the face of rapid update cycles. The metadata.yaml plays a critical role in maintaining this structure and providing an accurate representation of the state of the whole stack at any given time.
 
-# :heavy_check_mark: Advantages of the Cluster Stack Approach
+## ✔️ Advantages of the Cluster Stack Approach
 The `cluster stack` approach offers several advantages for managing and deploying Kubernetes clusters:
 
 1. **Standardization**: The `cluster stack` approach provides a standardized way of managing and configuring Kubernetes clusters across different infrastructure-as-a-service (IaaS) `providers`. It establishes consistent patterns and practices, ensuring a uniform experience regardless of the underlying provider.
@@ -161,11 +159,6 @@ The `cluster stack` approach offers several advantages for managing and deployin
 
 Overall, the cluster stack approach promotes standardization, flexibility, resilience, and simplified operations in managing Kubernetes clusters. It empowers users to efficiently deploy and manage their clusters, while enabling collaboration and continuous improvement within the Kubernetes community.
 
-# :construction_worker: Development
+## 🔧 Usage
 
-See [Development Docs](./docs/development.md) for an introduction to the development of Cluster Stacks.
-
-# :handshake: Contributing
-We welcome and appreciate contributions from the community! Check out our CONTRIBUTING.md guide to get started.
-
-This framework is a stepping stone towards the future of managing and deploying Kubernetes clusters. It strives to streamline operations and offer a unified, scalable, and resilient environment. Happy contributing! :sparkles:
+Follow our [quickstart guide](./docs/quickstart.md) for an introduction on how to deploy cluster stacks.
