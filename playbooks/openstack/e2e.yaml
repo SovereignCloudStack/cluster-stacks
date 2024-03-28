@@ -1,0 +1,105 @@
+---
+- name: Cluster stack OpenStack E2E test
+  hosts: all
+  vars:
+    cloud_provider: "{{ cloud }}"  # inherited from the parent job
+    cluster_stack: "providers/openstack/alpha/1-28"
+    project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
+    cloud_manifest_dir: "{{ ansible_user_dir }}/cloud_manifest"
+    cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
+    cluster_stack_release_container_dir: "/.release"
+
+    k8s_management_name: "management"
+    k8s_management_version: "v1.28.7@sha256:9bc6c451a289cf96ad0bbaf33d416901de6fd632415b076ab05f5fa7e4f65c58"
+    k8s_management_cluster_wait_for: "180"
+
+  environment:
+    PATH: "{{ ansible_user_dir }}/.local/bin:{{ ansible_env.PATH }}"
+  tasks:
+    - name: Determine cluster stack directory
+      block:
+        - name: Make sure directory structure exists
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: 0755
+          loop:
+            - "{{ cloud_manifest_dir }}"
+            - "{{ cluster_manifest_dir }}"
+            - "{{ cluster_stack_release_dir }}"
+        - name: Extract Zuul config
+          ansible.builtin.set_fact:
+            zuul_config: "{{ zuul.change_message | regex_search('(?s)```ZUUL_CONFIG(.+?)```', '\\1', multiline=true) }}"
+          when: zuul.change_message is defined
+        - name: Trim Zuul config
+          ansible.builtin.set_fact:
+            zuul_config: "{{ zuul_config  | first | split('/n') | map('trim') | join('\n') }}"
+          when: zuul_config is defined and zuul_config is not none and zuul_config != ''
+        - name: Print Zuul config  # TODO: Use the config and override `cluster_stack` dir if set
+          ansible.builtin.debug:
+            msg: "{{ zuul_config }}"
+    - name: Create cluster stack
+      ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack }} --output {{ cluster_stack_release_dir }}  --mode hash"
+      args:
+        chdir: "{{ project_dir }}"
+      changed_when: true
+    - name: Ensure management cluster
+      block:
+        - name: Create management cluster config file
+          ansible.builtin.template:
+            src: "mgmt-cluster-config.yaml.j2"
+            dest: "{{ ansible_user_dir }}/mgmt-cluster-config.yaml"
+            mode: "0644"
+        - name: Create management cluster
+          ansible.builtin.command: "kind create cluster --config {{ ansible_user_dir }}/mgmt-cluster-config.yaml"
+          changed_when: true
+        - name: Wait for all system pods in the management cluster to become ready
+          ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ k8s_management_cluster_wait_for }}s pod --all"
+          changed_when: true
+    - name: Install CAPI and CAPO
+      ansible.builtin.command: "clusterctl init --infrastructure openstack"
+      changed_when: true
+      environment:
+        CLUSTER_TOPOLOGY: "true"
+        EXP_CLUSTER_RESOURCE_SET: "true"
+    - name: Install CSO and mount cluster stack release
+      ansible.builtin.import_tasks: ../tasks/cso.yaml
+      vars:
+        release_dir: "{{ cluster_stack_release_container_dir }}"
+    - name: Install CSPO and mount cluster stack release
+      ansible.builtin.import_tasks: ../tasks/cspo.yaml
+      vars:
+        release_dir: "{{ cluster_stack_release_container_dir }}"
+    - name: Read Zuul's clouds.yaml content, base64 encoded
+      ansible.builtin.slurp:
+        src: /etc/openstack/clouds.yaml
+      register: clouds_yaml_b64
+    - name: Read Zuul's secure.yaml content, base64 encoded
+      ansible.builtin.slurp:
+        src: /etc/openstack/secure.yaml
+      register: secure_yaml_b64
+    - name: Combine clouds_yaml_b64 and secure_yaml_b64 to produce full clouds.yaml
+      ansible.builtin.set_fact:
+        clouds_yaml_full: "{{ clouds_yaml_b64.content | b64decode | from_yaml | ansible.builtin.combine(secure_yaml_b64.content | b64decode | from_yaml, recursive=true) }}"
+    - name: Create cloud manifests
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "{{ cloud_manifest_dir }}/{{ item }}"
+        mode: "0644"
+      loop:
+        - "cloud-secret.yaml"
+        - "cloud-config.ini"
+        - "cloud-resource-set.yaml"
+    - name: Read cloud-config.ini content, base64 encoded
+      ansible.builtin.slurp:
+        src: "{{ cloud_manifest_dir }}/cloud-config.ini"
+      register: cloud_config_ini_b64
+    - name: Create openstack-workload-cluster secret
+      ansible.builtin.template:
+        src: "openstack-workload-cluster-secret.yaml.j2"
+        dest: "{{ cloud_manifest_dir }}/openstack-workload-cluster-secret.yaml"
+        mode: "0644"
+    - name: Apply cloud manifests
+      ansible.builtin.command: "kubectl apply -f {{ cloud_manifest_dir }}"
+      changed_when: true
