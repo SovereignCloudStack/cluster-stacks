@@ -4,6 +4,62 @@ Cluster Stacks is a comprehensive framework and reference implementations for de
 
 It encapsulates multiple layers, including node configuration, Cluster API setup, and application-level configurations, such as the Container Network Interface (CNI). By packaging these interdependent configurations, the cluster stack allows for efficient management and deployment of Kubernetes clusters, offering standardized, resilient, and self-managed Kubernetes environments.
 
+## 🔧 Usage
+
+Follow our [quickstart guide](./docs/quickstart.md) for an introduction on how to deploy cluster stacks on openstack.
+
+## Layers of a Cluster Stack
+
+In essence, a cluster stack is an amalgamation of various components each of which serves a crucial role in setting up, maintaining, and operating a Kubernetes cluster. In the context of our framework, we categorize these components into three core layers: `cluster-class`, `cluster-addons`, and `node-images`. Let's delve deeper into understanding each of these layers:
+
+### 📚 Cluster Class
+
+The Cluster Class serves as a blueprint for creating and configuring Kubernetes clusters consistently. It encapsulates various aspects of a cluster, including:
+
+* The infrastructure provider details
+* Networking configurations
+* Cluster-class templating
+* Other cluster-specific settings
+
+Essentially, it defines the desired configuration and properties of a Kubernetes cluster. It leverages the [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/) feature of Cluster API, which provides a declarative, Kubernetes-style API for cluster creation, configuration, and management. Any change in this layer or in the node-image or cluster-addon layers triggers a version bump in the cluster class, hence the cluster stack.
+
+### 🎁 Cluster Addons
+
+Cluster Addons are core components or services required for the Kubernetes cluster to function correctly and efficiently. These are not user-facing applications but rather foundational services critical to the operation and management of a Kubernetes cluster. They're usually installed and configured after the cluster infrastructure has been provisioned and before the cluster is ready to serve workloads.
+
+Cluster addons encompass a variety of functionalities, including but not limited to:
+
+* Container Network Interfaces (CNI): These are plugins that facilitate container networking. A CNI is integral to setting up network connectivity and ensuring communication between pods in a Kubernetes cluster.
+* Cloud Controller Manager (CCM): The CCM is a Kubernetes control plane component that embeds the cloud-specific control logic. Its role is to manage the communication with the underlying cloud services.
+* Konnectivity service: This is a network proxy that enables connectivity from the control plane to nodes and vice versa. It is a critical component that supports Kubernetes API server connectivity.
+* Metrics Server: A cluster-wide aggregator of resource usage data, Metrics Server collects CPU, memory, and other metrics from nodes and pods, enabling features like Horizontal Pod Autoscaling.
+
+It's important to note that cluster addons are not user-provided applications or services that can be installed multiple times, such as ingress controllers, application-level monitoring tools, or user-facing APIs. Those are left to the discretion and responsibility of the users, who install and manage them according to their specific needs and preferences.
+
+Each addon version is independent and can be updated separately. However, a change in this layer also necessitates a version bump in the cluster class and the cluster stack, which is reflected in the metadata.yaml.
+
+### 🎞️ Node Images
+
+Node images provide the foundation for the operating system environment on each node of a Kubernetes cluster. They are typically a minimal operating system distribution, like a lightweight Linux distro, which may also include container runtime components such as Docker or containerd.
+
+Node images are responsible for providing the necessary environment and dependencies to support Kubernetes components and workloads. This includes components like kubelet, kube-proxy, and other necessary system utilities and libraries.
+
+The version of a node image can be different from that of the cluster stack or the cluster class. However, an update to a node image will trigger a version bump in the cluster class and hence the cluster stack.
+
+In the cluster-stacks repository's directory structure, the build instructions for Node Images are always placed within the respective directory. The instructions outline the steps and configurations required to create the Node Image automatically. The specific method for releasing the Node Image may vary based on the provider's capabilities and requirements.
+
+During the development phase, the build instructions serve as a reference within the repository itself. These instructions may utilize tools like Packer or other image-building techniques. This allows for flexibility and customization, enabling users to define their Node Images according to specific needs and requirements.
+
+However, when it comes to the release of the cluster stack, the Node Image can be provided in different ways depending on the capabilities of the provider or the desired deployment method. Here are a few examples:
+
+1. **URL on a remote endpoint**: In some cases, `providers` may support deploying a Node Image directly from a URL. In this scenario, the Node Image referenced in the `cluster stack`, specifically in the `cluster class`, would be provided as a URL pointing to a pre-built image accessible remotely.
+1. **Artifact**: If the provider supports artifacts, the Node Image can be released as an artifact, such as a qcow2 file. The artifact would be uploaded to the provider, and the `cluster stack` references the artifact for node provisioning.
+1. **Build Instructions**: In cases where the provider doesn't support direct URL deployment or artifact-based provisioning, the build instructions defined within the repository become critical. The build instructions serve as a comprehensive guide to build the Node Image, specifying all the necessary steps and configurations.
+
+Regardless of the release method, the cluster stack, specifically the cluster class, references the appropriate Node Image to be used for node provisioning.
+
+By allowing flexibility in the release and deployment methods of Node Images, the cluster stack framework caters to various provider capabilities and user requirements. This adaptability ensures the cluster stack can be deployed in diverse environments while maintaining a consistent and manageable approach to managing Kubernetes clusters.
+
 ## 🌐 IaaS Provider, Kubernetes Service Provider, and Cluster API
 In the context of the `cluster-stacks`, we distinguish between two types of providers:
 
@@ -45,67 +101,9 @@ Instead, we represent Kubernetes patch version updates through changes in our cl
 
 In this way, our versioning system, our directory structure, and our approach to Kubernetes versioning are all interlinked, providing us a comprehensive, manageable, and resilient framework for maintaining various Kubernetes distributions or cluster stacks across multiple providers and versions.
 
-## Understanding the Layers of a Cluster Stack
-
-In essence, a cluster stack is an amalgamation of various components each of which serves a crucial role in setting up, maintaining, and operating a Kubernetes cluster. In the context of our framework, we categorize these components into three core layers: `cluster-class`, `cluster-addons`, and `node-images`. Let's delve deeper into understanding each of these layers:
-
-### 📚 Cluster Class
-
-The Cluster Class serves as a blueprint for creating and configuring Kubernetes clusters consistently. It encapsulates various aspects of a cluster, including:
-
-* The infrastructure provider details
-* Networking configurations
-* Cluster-class templating
-* Other cluster-specific settings
-
-Essentially, it defines the desired configuration and properties of a Kubernetes cluster. It leverages the [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/) feature of Cluster API, which provides a declarative, Kubernetes-style API for cluster creation, configuration, and management. Any change in this layer or in the node-image or cluster-addon layers triggers a version bump in the cluster class, hence the cluster stack.
-
-To add a cluster class, please follow the instructions.
-
-### 🎁 Cluster Addons
-
-Cluster Addons are core components or services required for the Kubernetes cluster to function correctly and efficiently. These are not user-facing applications but rather foundational services critical to the operation and management of a Kubernetes cluster. They're usually installed and configured after the cluster infrastructure has been provisioned and before the cluster is ready to serve workloads.
-
-Cluster addons encompass a variety of functionalities, including but not limited to:
-
-* Container Network Interfaces (CNI): These are plugins that facilitate container networking. A CNI is integral to setting up network connectivity and ensuring communication between pods in a Kubernetes cluster.
-* Cloud Controller Manager (CCM): The CCM is a Kubernetes control plane component that embeds the cloud-specific control logic. Its role is to manage the communication with the underlying cloud services.
-* Konnectivity service: This is a network proxy that enables connectivity from the control plane to nodes and vice versa. It is a critical component that supports Kubernetes API server connectivity.
-* Metrics Server: A cluster-wide aggregator of resource usage data, Metrics Server collects CPU, memory, and other metrics from nodes and pods, enabling features like Horizontal Pod Autoscaling.
-
-It's important to note that cluster addons are not user-provided applications or services that can be installed multiple times, such as ingress controllers, application-level monitoring tools, or user-facing APIs. Those are left to the discretion and responsibility of the users, who install and manage them according to their specific needs and preferences.
-
-Each addon version is independent and can be updated separately. However, a change in this layer also necessitates a version bump in the cluster class and the cluster stack, which is reflected in the metadata.yaml.
-
-To add a cluster addon, please follow the instructions.
-
-### 🎞️ Node Images
-
-Node images provide the foundation for the operating system environment on each node of a Kubernetes cluster. They are typically a minimal operating system distribution, like a lightweight Linux distro, which may also include container runtime components such as Docker or containerd.
-
-Node images are responsible for providing the necessary environment and dependencies to support Kubernetes components and workloads. This includes components like kubelet, kube-proxy, and other necessary system utilities and libraries.
-
-The version of a node image can be different from that of the cluster stack or the cluster class. However, an update to a node image will trigger a version bump in the cluster class and hence the cluster stack.
-
-In the cluster-stacks repository's directory structure, the build instructions for Node Images are always placed within the respective directory. The instructions outline the steps and configurations required to create the Node Image automatically. The specific method for releasing the Node Image may vary based on the provider's capabilities and requirements.
-
-During the development phase, the build instructions serve as a reference within the repository itself. These instructions may utilize tools like Packer or other image-building techniques. This allows for flexibility and customization, enabling users to define their Node Images according to specific needs and requirements.
-
-However, when it comes to the release of the cluster stack, the Node Image can be provided in different ways depending on the capabilities of the provider or the desired deployment method. Here are a few examples:
-
-1. **URL on a remote endpoint**: In some cases, `providers` may support deploying a Node Image directly from a URL. In this scenario, the Node Image referenced in the `cluster stack`, specifically in the `cluster class`, would be provided as a URL pointing to a pre-built image accessible remotely.
-1. **Artifact**: If the provider supports artifacts, the Node Image can be released as an artifact, such as a qcow2 file. The artifact would be uploaded to the provider, and the `cluster stack` references the artifact for node provisioning.
-1. **Build Instructions**: In cases where the provider doesn't support direct URL deployment or artifact-based provisioning, the build instructions defined within the repository become critical. The build instructions serve as a comprehensive guide to build the Node Image, specifying all the necessary steps and configurations.
-
-Regardless of the release method, the cluster stack, specifically the cluster class, references the appropriate Node Image to be used for node provisioning.
-
-By allowing flexibility in the release and deployment methods of Node Images, the cluster stack framework caters to various provider capabilities and user requirements. This adaptability ensures the cluster stack can be deployed in diverse environments while maintaining a consistent and manageable approach to managing Kubernetes clusters.
-
-To add a node image, please follow the instructions.
-
 ## 📑 Versioning
 
-TODO: Add section about versioning with csctl tool
+Note: This section is subject to change, as our new tool [csctl](https://github.com/SovereignCloudStack/csctl) will incorporate future versioning capabilities.
 
 A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. Each of the components can be updated independently, leading to a flexible and maintainable system.
 
@@ -146,19 +144,3 @@ versions:
 Here, the cluster stack and cluster class versions were updated to v4, the node image version was bumped to v2 due to the changes, while the cluster addon remained on v2 as it was not affected by the update.
 
 This versioning approach allows us to keep track of changes across different components, manage these components effectively, and conduct isolated testing. This ensures that our Kubernetes distribution or cluster stack remains resilient, and we can perform safe and secure upgrades even in the face of rapid update cycles. The metadata.yaml plays a critical role in maintaining this structure and providing an accurate representation of the state of the whole stack at any given time.
-
-## ✔️ Advantages of the Cluster Stack Approach
-The `cluster stack` approach offers several advantages for managing and deploying Kubernetes clusters:
-
-1. **Standardization**: The `cluster stack` approach provides a standardized way of managing and configuring Kubernetes clusters across different infrastructure-as-a-service (IaaS) `providers`. It establishes consistent patterns and practices, ensuring a uniform experience regardless of the underlying provider.
-1. **Flexibility**: The framework allows for flexibility in defining and customizing `cluster stacks` to meet specific requirements. It supports multiple `cluster stacks` per provider, enabling the selection of the most suitable stack for different use cases and environments.
-1. **Resilience and Isolated Testing**: By encapsulating components such as cluster addons, node images, and `cluster classes` within a `cluster stack`, the approach enables isolated testing. Each component can be tested independently, ensuring the stability and resilience of the entire Kubernetes distribution. This isolation also facilitates safe upgrades and updates in rapid release cycles, reducing the risk of system-wide failures.
-1. **Self-Managed Clusters**: Leveraging the Cluster API, the `cluster stack` approach enables the delivery of self-managed Kubernetes clusters. The Cluster API provides a Kubernetes-style API for cluster creation, configuration, and management. This empowers users to easily manage and operate their own clusters, abstracting away the underlying complexities of infrastructure provisioning.
-1. **Simplified Operations**: With the `cluster stack` approach, the complexity of managing Kubernetes clusters is significantly reduced. Users can select a `cluster stack` from the available options, benefiting from predefined configurations, best practices, and streamlined operations. This simplification accelerates cluster setup, reduces human errors, and improves overall operational efficiency.
-1. **Enhanced Collaboration**: The `cluster stack` approach fosters collaboration among the Kubernetes community and IaaS `providers`. It establishes a common framework for building and sharing `cluster stacks`, facilitating knowledge exchange and the development of best practices. This collaborative ecosystem accelerates innovation and ensures compatibility across different `providers`.
-
-Overall, the cluster stack approach promotes standardization, flexibility, resilience, and simplified operations in managing Kubernetes clusters. It empowers users to efficiently deploy and manage their clusters, while enabling collaboration and continuous improvement within the Kubernetes community.
-
-## 🔧 Usage
-
-Follow our [quickstart guide](./docs/quickstart.md) for an introduction on how to deploy cluster stacks.
