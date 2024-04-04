@@ -186,14 +186,14 @@ cluster.cluster.x-k8s.io/cs-cluster created
 Utilize a convenient CLI `clusterctl` to investigate the health of the cluster:
 
 ```bash
-clusterctl -n cluster describe cluster cs-cluster
+clusterctl -n my-tenant describe cluster cs-cluster
 ```
 
 Once the cluster is provisioned and in good health, you can retrieve its kubeconfig and establish communication with the newly created workload cluster:
 
 ```bash
 # Get the workload cluster kubeconfig
-clusterctl -n cluster get kubeconfig cs-cluster > kubeconfig.yaml
+clusterctl -n my-tenant get kubeconfig cs-cluster > kubeconfig.yaml
 # Communicate with the workload cluster
 kubectl --kubeconfig kubeconfig.yaml get nodes
 ```
