@@ -20,6 +20,6 @@ dependencies:
   name: yawol-controller
   repository: https://stackitcloud.github.io/yawol
   version: 0.21.3
-name: openstack-omega-1-27-cluster-addon
+name: openstack-wooctavia-1-27-cluster-addon
 type: application
 version: << .ClusterAddonVersion >>
