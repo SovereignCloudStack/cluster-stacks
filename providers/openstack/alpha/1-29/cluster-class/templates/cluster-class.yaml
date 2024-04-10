@@ -278,7 +278,7 @@ spec:
                 names:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/securityGroups"
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}

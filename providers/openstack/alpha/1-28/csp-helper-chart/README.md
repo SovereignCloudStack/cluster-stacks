@@ -1,1 +1,0 @@
-This chart can be used to create a new namespace and two secrets for the clusterstacks approach. It reads clouds.yaml files in its raw form either with username and password or with an application credential. In case of an application credential, a new namespace is created named after the application-credential-id.
