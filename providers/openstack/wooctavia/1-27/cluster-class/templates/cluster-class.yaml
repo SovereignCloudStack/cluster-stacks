@@ -42,16 +42,6 @@ spec:
          example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
          format: "uuid4"
          description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-   - name: dns_nameservers
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
-         default: ["5.1.66.255", "185.150.99.255"]
-         example: ["5.1.66.255", "185.150.99.255"]
-         items:
-           type: string
    - name: controller_flavor
      required: false
      schema:
@@ -348,20 +338,6 @@ spec:
                 owner: "root:root"
                 path: /etc/kubernetes/manifests/kube-vip.yaml
                 permissions: "0644"
-    - name: dns_nameservers
-      description: "Sets the list of nameservers for the OpenStack Subnet being created."
-      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/dnsNameservers"
-            valueFrom:
-              variable: dns_nameservers
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}

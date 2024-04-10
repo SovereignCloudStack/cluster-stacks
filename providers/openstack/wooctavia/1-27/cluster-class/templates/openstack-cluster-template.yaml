@@ -14,8 +14,4 @@ spec:
       apiServerLoadBalancer:
         enabled: false
       managedSecurityGroups: true
-      dnsNameservers:
-      {{- range .Values.dns_nameservers }}
-        - {{ . }}
-      {{- end }}
       externalNetworkId: {{ .Values.external_id }}
