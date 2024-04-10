@@ -1,9 +1,66 @@
 {{/*
 Checks whether we have a regular clouds.yaml or one with application credentials.
 */}}
+
+{{- define "cloud_name" -}}
+{{- if ne
+    ( keys .Values.clouds | len )
+     1
+-}}
+{{ fail "please provide values.yaml/clouds.yaml with exactly one cloud beneath the \".clouds\" key." }}
+{{- end -}}
+{{ keys .Values.clouds | first }}
+{{- end }}
+
+{{- define "auth_auth_url" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "auth_url" }}
+{{- end }}
+
+{{- define "auth_username" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "username" }}
+{{- end }}
+
+{{- define "auth_password" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "password" }}
+{{- end }}
+
+{{- define "auth_project_id" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "project_id" }}
+{{- end }}
+
+{{- define "auth_project_name" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "project_name" }}
+{{- end }}
+
+{{- define "auth_user_domain_name" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "user_domain_name" }}
+{{- end }}
+
+{{- define "auth_domain_name" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "domain_name" }}
+{{- end }}
+
+{{- define "auth_application_credential_id" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "application_credential_id" }}
+{{- end }}
+
+{{- define "auth_application_credential_secret" -}}
+{{ get (get (get .Values.clouds (include "cloud_name" .)) "auth") "application_credential_secret" }}
+{{- end }}
+
+{{- define "region_name" -}}
+{{ get (get .Values.clouds (include "cloud_name" .)) "region_name"  }}
+{{- end }}
+
 {{- define "isAppCredential" -}}
-{{- if and .Values.clouds.openstack.auth.username (not .Values.clouds.openstack.auth.application_credential_id) -}}
-{{- else if and (not .Values.clouds.openstack.auth.username) .Values.clouds.openstack.auth.application_credential_id -}}
+{{- if and
+    ( include "auth_username" .)
+    (not ( include "auth_application_credential_id" . ))
+-}}
+{{- else if and
+    ( not ( include "auth_username" . ))
+    ( include "auth_application_credential_id" . )
+-}}
 true
 {{- else }}
 {{ fail "please provide either username or application_credential_id, not both, not none" }}
@@ -15,18 +72,18 @@ Templates the cloud.conf as needed by the openstack CCM
 */}}
 {{- define "cloud.conf" -}}
 [Global]
-auth-url={{ .Values.clouds.openstack.auth.auth_url }}
-region={{ .Values.clouds.openstack.region_name }}
+auth-url={{ include "auth_auth_url" . }}
+region={{ include "region_name" . }}
 {{ if include "isAppCredential" . }}
-application-credential-id={{ .Values.clouds.openstack.auth.application_credential_id }}
-application-credential-secret={{ .Values.clouds.openstack.auth.application_credential_secret }}
+application-credential-id={{ include "auth_application_credential_id" . }}
+application-credential-secret={{ include "auth_application_credential_secret" . }}
 {{- else -}}
-username={{ .Values.clouds.openstack.auth.username }}
-password={{ .Values.clouds.openstack.auth.password }}
-user-domain-name={{ .Values.clouds.openstack.auth.user_domain_name }}
-domain-name={{ .Values.clouds.openstack.auth.domain_name | default .Values.clouds.openstack.auth.user_domain_name }}
-tenant-id={{ .Values.clouds.openstack.auth.project_id }}
-project-id={{ .Values.clouds.openstack.auth.project_id }}
+username={{ include "auth_username" . }}
+password={{ include "auth_password" . }}
+user-domain-name={{ include "auth_user_domain_name" . }}
+domain-name={{ default (include "auth_user_domain_name" .) (include "auth_domain_name" .) }}
+tenant-id={{ include "auth_project_id" . }}
+project-id={{ include "auth_project_id" . }}
 {{ end }}
 
 [LoadBalancer]
