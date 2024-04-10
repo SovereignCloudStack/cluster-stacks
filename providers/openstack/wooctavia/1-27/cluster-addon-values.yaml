@@ -7,3 +7,10 @@ values: |
     yawolFloatingID: "{{ .InfraCluster.status.externalNetwork.id }}"
     yawolNetworkID: "{{ .InfraCluster.status.network.id }}"
     yawolAPIHost: "{{ printf "https://%s:%d" .Cluster.spec.controlPlaneEndpoint.host .Cluster.spec.controlPlaneEndpoint.port }}"
+    {{- range .Cluster.spec.topology.variables }}
+    {{- if eq .name "yawol_flavor_id" }}
+    yawolFlavorID: {{ .value }}
+    {{- else if eq .name "yawol_image_id" }}
+    yawolImageID: {{ .value }}
+    {{- end }}
+    {{- end }}

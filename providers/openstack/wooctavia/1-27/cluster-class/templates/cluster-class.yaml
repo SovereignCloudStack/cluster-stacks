@@ -74,6 +74,22 @@ spec:
          minimum: 1
          example: 20
          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+   - name: yawol_flavor_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "uuid4"
+         example: "0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"
+         description: "ID of the existing flavor used as a default yawol flavor."
+   - name: yawol_image_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "uuid4"
+         example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
+         description: "ID of the existing imaged used as a default yawol image."
    - name: network_id
      required: true
      schema:

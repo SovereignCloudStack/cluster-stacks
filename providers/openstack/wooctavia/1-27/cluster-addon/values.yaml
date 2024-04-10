@@ -48,5 +48,3 @@ openstack-cinder-csi:
     effect: NoSchedule
 yawol-controller:
   yawolOSSecretName: cloud-config
-  yawolFlavorID: 0a79590e-10d7-4c2c-8f69-ca0a2c6208d2 # SCS-1V-2-5
-  yawolImageID: f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060 # yawol-alpine-yawol-controller-0.21.3-5-g2a2b2f9
