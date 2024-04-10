@@ -1,6 +1,6 @@
 # Cluster Stacks
 
-Cluster Stacks is a framework and for defining and managing Kubernetes clusters via the Cluster API. It spans 3 layers: node images, Cluster API cluster-classes and cluster addons. A bundle of those 3 layers is called a Cluster Stack. In this repo you can find several cluster-stacks with different addons bundled together.The components of a cluster-stack are tested to work well with each other, including Kubernetes version, operating system, cloud provider and the shipped addons.
+Cluster Stacks is a framework for defining and managing Kubernetes clusters via the Cluster API. It spans 3 layers: node images, Cluster API cluster-classes and cluster addons. A bundle of those 3 layers is called a Cluster Stack. In this repo you can find several cluster-stacks with different addons bundled together. The components of a cluster-stack are tested to work well with each other, including Kubernetes version, operating system, cloud provider and the shipped addons.
 More in-depth information about the concept of cluster-stacks can be found [here](docs/cluster-stacks.md).
 
 ## Quickstart
