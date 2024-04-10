@@ -1,5 +1,5 @@
 apiVersion: v2
 name: csp-helper-chart
 description: A Helm chart to deploy SCS cluster-api-provider-v2 per-tenant resources
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
