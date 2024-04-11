@@ -110,6 +110,14 @@ spec:
          type: boolean
          default: true
          description: "Enables custom load balancer for OpenStack API server"
+   - name: openstack_loadbalancer_apiserver_provider
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "amphora"
+         example: "ovn"
+         description: "The name of the load balancer provider (amphora or ovn) to use (defaults to amphora)"
    - name: cloud_name
      required: false
      schema:
@@ -270,7 +278,7 @@ spec:
                 names:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/securityGroups"
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
@@ -296,6 +304,20 @@ spec:
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             valueFrom:
               variable: openstack_loadbalancer_apiserver
+    - name: openstack_loadbalancer_apiserver_provider
+      description: "Sets the name of the load balancer provider."
+      enabledIf: {{ `'{{ ne .openstack_loadbalancer_apiserver_provider "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/provider"
+            valueFrom:
+              variable: openstack_loadbalancer_apiserver_provider
     - name: cloud_name
       description: "Sets the name of the cloud to use from the clouds secret."
       enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
