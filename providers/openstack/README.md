@@ -92,7 +92,7 @@ clouds:
 ```
 
 ```bash
-helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/cluster-stacks/releases/download/openstack-csp-helper-v0.2.0/openstack-csp-helper.tgz -f path/to/clouds.yaml
+helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/v0.3.0/v0.3.0.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
