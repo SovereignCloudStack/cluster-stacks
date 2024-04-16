@@ -11,13 +11,6 @@ restrict_kubeapi: []
 # newly introduced:
 openstack_loadbalancer_apiserver: true
 
-# TBD, currently needed:
-images:
-  controlPlane:
-    name: ubuntu-capi-image-v1.29.3
-  worker:
-    name: ubuntu-capi-image-v1.29.3
-
 cloud:
   name: "openstack"
 secrets:

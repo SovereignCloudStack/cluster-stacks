@@ -6,3 +6,9 @@ openStackNodeImages:
     disk_format: qcow2
     container_format: bare
     visibility: private
+- url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.29/ubuntu-2204-kube-v1.29.2.qcow2
+  createOpts:
+    name: ubuntu-capi-image-v1.29.2
+    disk_format: qcow2
+    container_format: bare
+    visibility: private
