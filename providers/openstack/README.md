@@ -42,7 +42,7 @@ Fine grained PAT with `Public Repositories (read-only)` is enough.
 export GIT_PROVIDER_B64=Z2l0aHVi  # github
 export GIT_ORG_NAME_B64=U292ZXJlaWduQ2xvdWRTdGFjaw== # SovereignCloudStack
 export GIT_REPOSITORY_NAME_B64=Y2x1c3Rlci1zdGFja3M=  # cluster-stacks
-export GIT_ACCESS_TOKEN_B64=$(echo -n '<my-github-access-token>' | base64 -w0)
+export GIT_ACCESS_TOKEN_B64=$(echo -n '<my-personal-access-token>' | base64 -w0)
 ```
 
 ### CSO and CSPO deployment (CSP)
@@ -92,7 +92,7 @@ clouds:
 ```
 
 ```bash
-helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/cluster-stacks/releases/download/openstack-csp-helper-v0.2.0/openstack-csp-helper.tgz -f path/to/clouds.yaml
+helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/v0.3.0/v0.3.0.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
@@ -107,7 +107,7 @@ metadata:
 spec:
   provider: openstack
   name: alpha
-  kubernetesVersion: "1.28"
+  kubernetesVersion: "1.29"
   channel: stable
   autoSubscribe: false
   providerRef:
@@ -115,7 +115,7 @@ spec:
     kind: OpenStackClusterStackReleaseTemplate
     name: cspotemplate
   versions:
-    - v3
+    - v2
 ---
 apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
 kind: OpenStackClusterStackReleaseTemplate
@@ -166,15 +166,15 @@ spec:
         value: "SCS-2V-4-50"
       - name: external_id
         value: "ebfe5546-f09f-4f42-ab54-094e457d42ec" # gx-scs
-    class: openstack-alpha-1-28-v3
+    class: openstack-alpha-1-29-v2
     controlPlane:
       replicas: 1
-    version: v1.28.6
+    version: v1.29.3
     workers:
       machineDeployments:
-        - class: capi-openstack-alpha-1-28
+        - class: openstack-alpha-1-29-v2
           failureDomain: nova
-          name: capi-openstack-alpha-1-28
+          name: openstack-alpha-1-29-v2
           replicas: 3
 EOF
 ```
