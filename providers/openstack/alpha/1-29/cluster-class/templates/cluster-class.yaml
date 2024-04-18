@@ -159,6 +159,22 @@ spec:
          example: "capi-keypair"
          description: "The ssh key to inject in the nodes."
   patches:
+    - name: k8s_version
+      description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/image"
+            valueFrom:
+              template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}

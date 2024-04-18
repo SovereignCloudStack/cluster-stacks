@@ -10,4 +10,3 @@ spec:
       identityRef:
         kind: Secret
         name: {{ default "openstack" .Values.secrets.clouds_yaml }}
-      image: {{ .Values.images.controlPlane.name }}
