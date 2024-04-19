@@ -1,0 +1,12 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+kind: OpenStackMachineTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  template:
+    spec:
+      cloudName: {{ default "openstack" .Values.cloud.name }}
+      flavor: {{ .Values.worker_flavor }}
+      identityRef:
+        kind: Secret
+        name: {{ default "openstack" .Values.secrets.clouds_yaml }}

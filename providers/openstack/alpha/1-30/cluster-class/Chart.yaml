@@ -1,0 +1,7 @@
+apiVersion: v2
+description: |
+  This chart installs and configures:
+  * Openstack Alpha Cluster Class
+name: openstack-alpha-1-30-cluster-class
+type: application
+version: << .ClusterClassVersion >>
