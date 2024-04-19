@@ -11,11 +11,11 @@ spec:
     machineInfrastructure:
       ref:
         kind: OpenStackMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: OpenStackClusterTemplate
       name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
@@ -29,7 +29,7 @@ spec:
             name: {{ .Release.Name }}-{{ .Chart.Version }}
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             name: {{ .Release.Name }}-{{ .Chart.Version }}
   variables:
@@ -163,7 +163,7 @@ spec:
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -180,7 +180,7 @@ spec:
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -194,7 +194,7 @@ spec:
       enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -211,7 +211,7 @@ spec:
       enabledIf: {{ `"{{ if .controller_root_disk }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -226,7 +226,7 @@ spec:
       enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -244,7 +244,7 @@ spec:
       enabledIf: {{ `'{{ ne .external_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -258,7 +258,7 @@ spec:
       enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -272,7 +272,7 @@ spec:
       enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -286,7 +286,7 @@ spec:
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -299,7 +299,7 @@ spec:
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -311,7 +311,7 @@ spec:
       description: "Enables custom load balancer for OpenStack API server"
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -325,7 +325,7 @@ spec:
       enabledIf: {{ `'{{ ne .openstack_loadbalancer_apiserver_provider "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -339,7 +339,7 @@ spec:
       enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -349,7 +349,7 @@ spec:
             valueFrom:
               variable: cloud_name
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -366,7 +366,7 @@ spec:
       enabledIf: {{ `'{{ ne .secret_name "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -376,7 +376,7 @@ spec:
             valueFrom:
               variable: secret_name
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -393,7 +393,7 @@ spec:
       enabledIf: {{ `'{{ ne .controller_server_group_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -407,7 +407,7 @@ spec:
       enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -424,7 +424,7 @@ spec:
       enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
