@@ -1,5 +1,7 @@
 ## Quickstart
 
+This quickstart guide contains steps to install the [Cluster Stack Operator][CSO] (CSO) utilizing the [Cluster Stack Provider OpenStack][CSPO] (CSPO) to provide [ClusterClasses][ClusterClass] which can be used with the [Kubernetes Cluster API][CAPI] to create Kubernetes Clusters.
+
 This section guides you through all the necessary steps to create a workload Kubernetes cluster on top of the OpenStack infrastructure. The guide describes a path that utilizes the `clusterctl` CLI tool to manage the lifecycle of a CAPI management cluster and employs `kind` to create a local non-production managemnt cluster.
 
 Note that it is a common practice to create a temporary, local [bootstrap cluster](https://cluster-api.sigs.k8s.io/reference/glossary#bootstrap-cluster) which is then used to provision a target [management cluster](https://cluster-api.sigs.k8s.io/reference/glossary#management-cluster) on the selected infrastructure.
@@ -227,3 +229,8 @@ kube-system   openstack-cinder-csi-nodeplugin-d7rzz                    3/3     R
 kube-system   openstack-cinder-csi-nodeplugin-nkgq6                    3/3     Running   0          6m44s
 kube-system   openstack-cloud-controller-manager-hp2n2                 1/1     Running   0          7m9s
 ```
+
+[CAPI]: https://cluster-api.sigs.k8s.io/
+[CSO]: https://github.com/sovereignCloudStack/cluster-stack-operator/
+[CSPO]: https://github.com/SovereignCloudStack/cluster-stacks/tree/main/providers/openstack
+[ClusterClass]: https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210526-cluster-class-and-managed-topologies.md
