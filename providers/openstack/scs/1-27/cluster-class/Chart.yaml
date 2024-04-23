@@ -1,7 +1,0 @@
-apiVersion: v2
-description: |
-  This chart installs and configures:
-  * Openstack SCS Cluster Class
-name: openstack-scs-1-27-cluster-class
-type: application
-version: "v3"
