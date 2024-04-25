@@ -49,3 +49,12 @@
         mode: "+x"
     - name: Install csctl and csctl-openstack
       ansible.builtin.import_tasks: tasks/csctl.yaml
+    - name: Install helm
+      ansible.builtin.unarchive:
+        src: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+        dest: "{{ install_dir }}"
+        extra_opts: "--strip-components=1"
+        mode: "+x"
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/helm"
