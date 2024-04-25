@@ -163,6 +163,65 @@ spec:
          default: ""
          example: "capi-keypair"
          description: "The ssh key to inject in the nodes."
+   - name: apiserver_loadbalancer
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "octavia-amphora"
+         example: "none, octavia-amphora, octavia-ovn, kube-vip"
+         description: | 
+            "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
+            To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
+            You can choose from 4 options:
+
+            none:
+              No loadbalancer solution will be deployed (todo: what this do)
+
+            octavia-amphora:
+              (default) Uses openstack's loadbalancer service (provider:amphora)
+            
+            octavia-ovn:
+              Uses openstack's loadbalancer service (provider:ovn)
+
+            kube-vip:
+              Uses kube-vip as loadbalancer.
+              You have to provide the following additional variables: 
+                kube_vip_network_id
+                kube_vip_apiserver_virtual_ip
+                kube_vip_apiserver_public_ip 
+
+              Also the settings node_cidr and dns_nameservers will no longer have an effect.
+      
+            (insert openstack instructions to create networks and IPs here https://github.com/SovereignCloudStack/cluster-stacks/pull/54)"
+   - name: workload_loadbalancer
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "octavia-amphora"
+         example: "none, octavia-amphora, octavia-ovn, yawol"
+         description: |
+            This setting here is to configure the loadbalancer solution for your services inside your cluster.
+            If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
+            You can choose from 4 options:
+
+            none:
+              No loadbalancer solution will be deployed (todo: what this do)
+
+            octavia-amphora:
+              (default) Uses openstack's loadbalancer service (provider:amphora)
+            
+            octavia-ovn:
+              Uses openstack's loadbalancer service (provider:ovn)
+
+            yawol:
+              Uses kube-vip as loadbalancer.
+              You have to provide the following additional variables: 
+                yawol_flavor_id
+                yawol_image_id
+              
+              Also note this setting does not work with application credentials (only username/password)
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
