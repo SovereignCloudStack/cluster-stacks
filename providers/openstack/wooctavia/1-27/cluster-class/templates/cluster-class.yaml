@@ -90,7 +90,7 @@ spec:
          format: "uuid4"
          example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
          description: "ID of the existing imaged used as a default yawol image."
-   - name: network_id
+   - name: kube_vip_network_id
      required: true
      schema:
        openAPIV3Schema:
@@ -98,21 +98,21 @@ spec:
          format: "uuid4"
          example: "40a51f6c-9e4b-4b24-9187-49851a410c97"
          description: "ID of the existing network. The network should have one subnet with one port reserved as virtual IP."
-   - name: apiserver_virtual_ip
+   - name: kube_vip_apiserver_virtual_ip
      required: true
      schema:
        openAPIV3Schema:
          type: string
          format: "ipv4"
          example: "10.0.0.197"
-         description: "Virtual IP address reserved in network_id."
-   - name: apiserver_public_ip
+         description: "Virtual IP address reserved in kube_vip_network_id."
+   - name: kube_vip_apiserver_public_ip
      required: false
      schema:
        openAPIV3Schema:
          type: string
          format: "ipv4"
-         description: "Public IP address associated with apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
+         description: "Public IP address associated with kube_vip_apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
    - name: openstack_security_groups
      required: false
      schema:
@@ -271,11 +271,11 @@ spec:
             path: "/spec/template/spec/network"
             valueFrom:
               template: |
-                id: {{"{{"}} .network_id {{"}}"}}
+                id: {{"{{"}} .kube_vip_network_id {{"}}"}}
           - op: add
             path: "/spec/template/spec/apiServerFixedIP"
             valueFrom:
-              template: {{ `"{{ if .apiserver_public_ip }}{{.apiserver_public_ip}}{{else}}{{.apiserver_virtual_ip}}{{end}}"` }}
+              template: {{ `"{{ if .kube_vip_apiserver_public_ip }}{{.kube_vip_apiserver_public_ip}}{{else}}{{.kube_vip_apiserver_virtual_ip}}{{end}}"` }}
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
@@ -287,9 +287,9 @@ spec:
             valueFrom:
               template: |
                 - network:
-                    id: {{"{{"}} .network_id {{"}}"}}
+                    id: {{"{{"}} .kube_vip_network_id {{"}}"}}
                   allowedAddressPairs:
-                  - ipAddress: {{"{{"}} .apiserver_virtual_ip {{"}}"}}
+                  - ipAddress: {{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}
         - selector:
             apiVersion: controlplane.cluster.x-k8s.io/v1beta1
             kind: KubeadmControlPlaneTemplate
@@ -301,7 +301,7 @@ spec:
             valueFrom:
               template: |
                 content: |
-                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
+                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
                   apiVersion: v1
                   kind: Pod
                   metadata:
@@ -342,7 +342,7 @@ spec:
                       - name: lb_fwdmethod
                         value: local
                       - name: address
-                        value: '{{"{{"}} .apiserver_virtual_ip {{"}}"}}'
+                        value: '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}'
                       - name: prometheus_server
                         value: :2112
                       image: ghcr.io/kube-vip/kube-vip:v0.7.2
