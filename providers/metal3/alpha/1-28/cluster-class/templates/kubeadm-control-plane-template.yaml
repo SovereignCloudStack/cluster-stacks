@@ -1,0 +1,14 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        initConfiguration:
+          nodeRegistration:
+            name: '{{"{{"}} ds.meta_data.local_hostname {{"}}"}}'
+        joinConfiguration:
+          nodeRegistration:
+            name: '{{"{{"}} ds.meta_data.local_hostname {{"}}"}}'

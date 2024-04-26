@@ -1,0 +1,9 @@
+apiVersion: v2
+dependencies:
+- alias: metrics-server
+  name: metrics-server
+  repository: https://kubernetes-sigs.github.io/metrics-server/
+  version: 3.11.0
+name: metal3-alpha-1-28-cluster-addon
+type: application
+version: << .ClusterAddonVersion >>

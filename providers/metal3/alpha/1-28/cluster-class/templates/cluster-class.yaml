@@ -1,0 +1,166 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+    machineInfrastructure:
+      ref:
+        kind: Metal3MachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: Metal3ClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: {{ .Release.Name }}-{{ .Chart.Version }}
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: Metal3MachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
+  variables:
+  - name: controlPlaneEndpoint
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          host:
+            type: string
+          port:
+            type: integer
+  - name: image
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          checksum:
+            type: string
+          checksumType:
+            type: string
+          format:
+            type: string
+          url:
+            type: string
+  - name: workerDataTemplate
+    schema:
+      openAPIV3Schema:
+        type: string
+  - name: controlPlaneDataTemplate
+    schema:
+      openAPIV3Schema:
+        type: string
+  patches:
+  - name: controlPlaneEndpointSub
+    description: Adds controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3ClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/controlPlaneEndpoint
+        valueFrom:
+          variable: controlPlaneEndpoint
+  - name: workerImageSub
+    description: Overrides image data for worker nodes
+    enabledIf: {{ `"{{ if .image }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - {{ .Release.Name }}-{{ .Chart.Version }}
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/image/checksum
+        valueFrom:
+          variable: image.checksum
+      - op: replace
+        path: /spec/template/spec/image/checksumType
+        valueFrom:
+          variable: image.checksumType
+      - op: replace
+        path: /spec/template/spec/image/format
+        valueFrom:
+          variable: image.format
+      - op: replace
+        path: /spec/template/spec/image/url
+        valueFrom:
+          variable: image.url
+  - name: workerDataTemplateSub
+    description: Adds data-template for worker nodes
+    enabledIf: {{ `"{{ if .workerDataTemplate }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - {{ .Release.Name }}-{{ .Chart.Version }}
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/dataTemplate/name
+        valueFrom:
+          template: |
+            name: {{"{{"}} .workerDataTemplate {{"}}"}}
+  - name: controlPlaneImageSub
+    description: Overrides image data for worker nodes of control plane node
+    enabledIf: {{ `"{{ if .image }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/image/checksum
+        valueFrom:
+          variable: image.checksum
+      - op: replace
+        path: /spec/template/spec/image/checksumType
+        valueFrom:
+          variable: image.checksumType
+      - op: replace
+        path: /spec/template/spec/image/format
+        valueFrom:
+          variable: image.format
+      - op: replace
+        path: /spec/template/spec/image/url
+        valueFrom:
+          variable: image.url
+  - name: controlPlaneDataTemplateSub
+    description: Adds data-template for control plane nodes
+    enabledIf: {{ `"{{ if .controlPlaneDataTemplate }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/dataTemplate
+        valueFrom:
+          template: |
+            name: {{"{{"}} .controlPlaneDataTemplate {{"}}"}}
