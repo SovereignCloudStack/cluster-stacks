@@ -9,7 +9,7 @@
     cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
     cluster_stack_release_container_dir: "/.release"
     openstack_csp_helper_chart_version: v0.5.0
-    openstack_csp_helper_chart_url: https://github.com/SovereignCloudStack/openstack-csp-helper/releases/{{ openstack_csp_helper_chart_version }}/download/openstack-csp-helper.tgz
+    openstack_csp_helper_chart_url: "https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/{{ openstack_csp_helper_chart_version }}/openstack-csp-helper.tgz"
 
     k8s_management_name: "management"
     k8s_management_version: "v1.28.7@sha256:9bc6c451a289cf96ad0bbaf33d416901de6fd632415b076ab05f5fa7e4f65c58"
@@ -93,4 +93,31 @@
           set -o pipefail
           helm template {{ openstack_csp_helper_chart_url }} -f {{ ansible_user_dir }}/clouds.yaml | kubectl apply -f -
         executable: /bin/bash
+      changed_when: true
+    - name: Find the directory containing metadata.yaml
+      ansible.builtin.find:
+        paths: "{{ cluster_stack_release_dir }}"
+        patterns: "metadata.yaml"
+        recurse: true
+      register: found_files
+    - name: Read metadata.yaml
+      ansible.builtin.slurp:
+        src: "{{ found_files.files[0].path }}"
+      register: metadata_content
+      when: found_files.matched > 0
+    - name: Parse metadata.yaml
+      ansible.builtin.set_fact:
+        cluster_stack_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['clusterStack'] }}"
+      when: metadata_content is defined
+    - name: Extract cloud name from clouds_yaml_full
+      ansible.builtin.set_fact:
+        cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"
+      when: clouds_yaml_full.clouds is defined and clouds_yaml_full.clouds | dict2items | length == 1
+    - name: Generate clusterstack YAML
+      ansible.builtin.template:
+        src: "cluster-stack-template.yaml.j2"
+        dest: "{{ ansible_user_dir }}/clusterstack.yaml"
+        mode: "0644"
+    - name: Apply cluster-stack template
+      ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
       changed_when: true
