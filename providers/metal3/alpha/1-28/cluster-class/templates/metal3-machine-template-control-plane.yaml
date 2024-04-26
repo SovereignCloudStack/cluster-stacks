@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3MachineTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  nodeReuse: false
+  template:
+    spec:
+      automatedCleaningMode: metadata
+      image:
+        url: "http://192.168.222.1/CENTOS_9_NODE_IMAGE_K8S_v1.29.0.qcow2"
+        checksum: "ab54897a1bcae83581512cdeeda787f009846cfd7a63b298e472c1bd6c522d23"
+        checksumType: "sha256"
+        format: "qcow2"
