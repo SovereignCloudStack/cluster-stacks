@@ -456,6 +456,6 @@ spec:
               controlPlane: true
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/clusterConfiguration/apiServer/certSANs"
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
             valueFrom:
               variable: certSANs
