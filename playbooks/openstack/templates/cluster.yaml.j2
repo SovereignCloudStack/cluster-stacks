@@ -1,0 +1,37 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: test-cluster
+  labels:
+    managed-secret: cloud-config
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    variables:
+      - name: controller_flavor
+        value: "SCS-2V-4-50"
+      - name: worker_flavor
+        value: "SCS-2V-4-50"
+      - name: external_id
+        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec" # gx-scs
+      - name: cloud_name
+        value: {{ cloud_name }}
+      - name: secret_name
+        value: {{ cloud_name }}
+    class: openstack-alpha-1-29-{{ cluster_stack_version }}
+    controlPlane:
+      replicas: 1
+    version: v1.29.3
+    workers:
+      machineDeployments:
+        - class: openstack-alpha-1-29-{{ cluster_stack_version }}
+          failureDomain: nova
+          name: openstack-alpha-1-29-{{ cluster_stack_version }}
+          replicas: 3

@@ -27,7 +27,8 @@
       it will test if the Kubernetes cluster is conformant to the CNCF.
     run: playbooks/openstack/e2e.yaml
 #    timeout: 10800  # 3h
-#    vars:
+    vars:
+      wait_for_cluster: 600  # 10min
 #      sonobouy:
 #        enabled: true
 #        mode: conformance

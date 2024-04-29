@@ -3,9 +3,9 @@ kind: ClusterStack
 metadata:
   name: clusterstack
 spec:
-  provider: {{ cloud_provider }}
+  provider: openstack
   name: alpha
-  kubernetesVersion: "1.28"
+  kubernetesVersion: "1.29"
   channel: custom
   autoSubscribe: false
   providerRef:

@@ -3,7 +3,7 @@
   hosts: all
   vars:
     cloud_provider: "{{ cloud }}"  # inherited from the parent job
-    cluster_stack: "providers/openstack/alpha/1-28"
+    cluster_stack: "providers/openstack/alpha/1-29"
     project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
     cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
@@ -12,7 +12,7 @@
     openstack_csp_helper_chart_url: "https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/{{ openstack_csp_helper_chart_version }}/openstack-csp-helper.tgz"
 
     k8s_management_name: "management"
-    k8s_management_version: "v1.28.7@sha256:9bc6c451a289cf96ad0bbaf33d416901de6fd632415b076ab05f5fa7e4f65c58"
+    k8s_management_version: "v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245"
     k8s_management_cluster_wait_for: "180"
 
   environment:
@@ -109,15 +109,69 @@
       ansible.builtin.set_fact:
         cluster_stack_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['clusterStack'] }}"
       when: metadata_content is defined
+
+    - name: Output cluster stack version
+      ansible.builtin.debug:
+        msg: "The cluster stack version is {{ cluster_stack_version }}"
+
     - name: Extract cloud name from clouds_yaml_full
       ansible.builtin.set_fact:
         cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"
       when: clouds_yaml_full.clouds is defined and clouds_yaml_full.clouds | dict2items | length == 1
+
     - name: Generate clusterstack YAML
       ansible.builtin.template:
         src: "cluster-stack-template.yaml.j2"
         dest: "{{ ansible_user_dir }}/clusterstack.yaml"
         mode: "0644"
+
     - name: Apply cluster-stack template
       ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
+      changed_when: true
+
+    - name: Get clusterstack information
+      ansible.builtin.command: "kubectl get clusterstack"
+      changed_when: true
+
+    - name: Pause for 5 minutes
+      ansible.builtin.pause:
+        minutes: 1
+
+    - name: Get ocscr information
+      ansible.builtin.command: "kubectl get oscsr"
+      changed_when: true
+
+    - name: Wait for cluster-stack to be ready
+      ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout=1440s"
+      changed_when: true
+
+    - name: Generate cluster YAML
+      ansible.builtin.template:
+        src: "cluster.yaml.j2"
+        dest: "{{ ansible_user_dir }}/cluster.yaml"
+        mode: "0644"
+    - name: Apply cluster template
+      ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/cluster.yaml"
+      changed_when: true
+    - name: Get kubeadmcontrolplane name
+      ansible.builtin.command: "kubectl get kubeadmcontrolplane -o=jsonpath='{.items[0].metadata.name}'"
+      register: kcp_name
+      changed_when: true
+    - name: Get kubeadmcontrolplane status
+      ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
+      changed_when: true
+    - name: Get kubeconfig of the workload k8s cluster
+      ansible.builtin.command: "clusterctl get kubeconfig test-cluster"
+      changed_when: true
+      register: kubeconfig_output
+    - name: Write kubeconfig to file
+      ansible.builtin.copy:
+        content: "{{ kubeconfig_output.stdout }}"
+        dest: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+        mode: "0644"
+      changed_when: true
+    - name: Wait for all system pods in the workload k8s cluster to become ready
+      ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
+      environment:
+        KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
       changed_when: true
