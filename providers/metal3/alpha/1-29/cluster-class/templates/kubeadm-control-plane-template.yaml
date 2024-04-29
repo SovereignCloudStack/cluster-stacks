@@ -8,7 +8,11 @@ spec:
       kubeadmConfigSpec:
         initConfiguration:
           nodeRegistration:
+            kubeletExtraArgs:
+              node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
             name: '{{"{{"}} ds.meta_data.local_hostname {{"}}"}}'
         joinConfiguration:
           nodeRegistration:
+            kubeletExtraArgs:
+              node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
             name: '{{"{{"}} ds.meta_data.local_hostname {{"}}"}}'
