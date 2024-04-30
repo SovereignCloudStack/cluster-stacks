@@ -247,6 +247,16 @@ spec:
            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
            However you can set the node_cidr when creating the subnet for kube-vip."
+   - name: certSANs
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: []
+         example: ["mydomain.example"]
+         description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+         items:
+           type: string
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -582,3 +592,17 @@ spec:
             path: "/spec/template/spec/sshKeyName"
             valueFrom:
               variable: ssh_key
+    - name: certSANs
+      description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+      enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+            valueFrom:
+              variable: certSANs
