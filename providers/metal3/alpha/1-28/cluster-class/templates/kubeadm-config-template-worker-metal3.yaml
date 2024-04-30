@@ -9,4 +9,4 @@ spec:
         nodeRegistration:
           kubeletExtraArgs:
             node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
-          name: '{{"{{"}} ds.meta_data.hostname {{"}}"}}'
+          name: '{{"{{"}} ds.meta_data.name {{"}}"}}'
