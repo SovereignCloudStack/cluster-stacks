@@ -274,19 +274,6 @@ spec:
             path: "/spec/template/spec/image"
             valueFrom:
               template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
-    - name: apiserver_loadbalancer_none
-      description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to none."
-      enabledIf: {{ `'{{ eq .apiserver_loadbalancer "none" }}'` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
-            value: false
     - name: apiserver_loadbalancer_octavia-amphora
       description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to octavia-amphora."
       enabledIf: {{ `'{{ eq .apiserver_loadbalancer "octavia-amphora" }}'` }}
@@ -335,9 +322,6 @@ spec:
               template: |
                 id: {{"{{"}} .kube_vip_network_id {{"}}"}}
           - op: add
-            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
-            value: false
-          - op: add
             path: "/spec/template/spec/disableAPIServerFloatingIP"
             value: true
           - op: add
@@ -365,19 +349,21 @@ spec:
               controlPlane: true
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-"
-            value: "modprobe --all ip_vs ip_vs_rr nf_conntrack"
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands"
             valueFrom:
               template: |
-                content: |
-                  ip_vs
-                  ip_vs_rr
-                  nf_conntrack
-                owner: "root:root"
-                path: /etc/modules-load.d/kube-vip.conf
-                permissions: "0644"
+                - modprobe --all ip_vs ip_vs_rr nf_conntrack
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/files"
+            valueFrom:
+              template: |
+                - content: |
+                    ip_vs
+                    ip_vs_rr
+                    nf_conntrack
+                  owner: "root:root"
+                  path: /etc/modules-load.d/kube-vip.conf
+                  permissions: "0644"
           - op: add
             path: "/spec/template/spec/kubeadmConfigSpec/files/-"
             valueFrom:
