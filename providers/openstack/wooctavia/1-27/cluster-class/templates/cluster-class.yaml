@@ -287,6 +287,22 @@ spec:
           - op: add
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             value: false
+    - name: apiserver_loadbalancer_octavia-amphora
+      description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to octavia-amphora."
+      enabledIf: {{ `'{{ eq .apiserver_loadbalancer "octavia-amphora" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+            value: true
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/provider"
+            value: "amphora"
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
