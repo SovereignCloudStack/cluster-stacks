@@ -171,29 +171,29 @@ spec:
          default: "octavia-amphora"
          example: "none, octavia-amphora, octavia-ovn, kube-vip"
          description: | 
-            "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
-            To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
-            You can choose from 4 options:
+           "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
+           To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
+           You can choose from 4 options:
 
-            none:
-              No loadbalancer solution will be deployed (todo: what this do)
+           none:
+             No loadbalancer solution will be deployed (todo: what this do)
 
-            octavia-amphora:
-              (default) Uses openstack's loadbalancer service (provider:amphora)
-            
-            octavia-ovn:
-              Uses openstack's loadbalancer service (provider:ovn)
+           octavia-amphora:
+             (default) Uses openstack's loadbalancer service (provider:amphora)
+           
+           octavia-ovn:
+             Uses openstack's loadbalancer service (provider:ovn)
 
-            kube-vip:
-              Uses kube-vip as loadbalancer.
-              You have to provide the following additional variables: 
-                kube_vip_network_id
-                kube_vip_apiserver_virtual_ip
-                kube_vip_apiserver_public_ip 
+           kube-vip:
+             Uses kube-vip as loadbalancer.
+             You have to provide the following additional variables: 
+               kube_vip_network_id
+               kube_vip_apiserver_virtual_ip
+               kube_vip_apiserver_public_ip 
 
-              Also the settings node_cidr and dns_nameservers will no longer have an effect.
+             Also the settings node_cidr and dns_nameservers will no longer have an effect.
       
-            (insert openstack instructions to create networks and IPs here https://github.com/SovereignCloudStack/cluster-stacks/pull/54)"
+           (insert openstack instructions to create networks and IPs here https://github.com/SovereignCloudStack/cluster-stacks/pull/54)"
    - name: workload_loadbalancer
      required: false
      schema:
@@ -202,40 +202,40 @@ spec:
          default: "octavia-amphora"
          example: "none, octavia-amphora, octavia-ovn, yawol"
          description: |
-            This setting here is to configure the loadbalancer solution for your services inside your cluster.
-            If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
-            You can choose from 4 options:
+           "This setting here is to configure the loadbalancer solution for your services inside your cluster.
+           If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
+           You can choose from 4 options:
 
-            none:
-              No loadbalancer solution will be deployed (todo: what this do)
+           none:
+             No loadbalancer solution will be deployed (todo: what this do)
 
-            octavia-amphora:
-              (default) Uses openstack's loadbalancer service (provider:amphora)
-            
-            octavia-ovn:
-              Uses openstack's loadbalancer service (provider:ovn)
+           octavia-amphora:
+             (default) Uses openstack's loadbalancer service (provider:amphora)
+           
+           octavia-ovn:
+             Uses openstack's loadbalancer service (provider:ovn)
 
-            yawol:
-              Uses yawol as loadbalancer.
-              You have to provide the following additional variables: 
-                yawol_flavor_id
-                yawol_image_id
-              
-              Also note this setting does not work with application credentials (only username/password)
+           yawol:
+             Uses yawol as loadbalancer.
+             You have to provide the following additional variables: 
+               yawol_flavor_id
+               yawol_image_id
+             
+             Also note this setting does not work with application credentials (only username/password)"
    - name: dns_nameservers
      required: false
      schema:
        openAPIV3Schema:
          type: array
          description: |
-            "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required.
-            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-            However you can set the dns server when creating the subnet for kube-vip."
+           "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required.
+           This setting has no effect when apiserver_loadbalancer is set to kube-vip.
+           However you can set the dns server when creating the subnet for kube-vip."
          default: ["5.1.66.255", "185.150.99.255"]
          example: ["5.1.66.255", "185.150.99.255"]
          items:
            type: string
-  - name: node_cidr
+   - name: node_cidr
      required: false
      schema:
        openAPIV3Schema:
@@ -244,9 +244,9 @@ spec:
          default: "10.8.0.0/20"
          example: "10.8.0.0/20"
          description: |
-            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
-            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-            However you can set the node_cidr when creating the subnet for kube-vip."
+           "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
+           This setting has no effect when apiserver_loadbalancer is set to kube-vip.
+           However you can set the node_cidr when creating the subnet for kube-vip."
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
