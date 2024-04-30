@@ -164,6 +164,7 @@ spec:
        openAPIV3Schema:
          type: array
          default: []
+         example: ["mydomain.example"]
          description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
          items:
            type: string
