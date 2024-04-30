@@ -682,7 +682,7 @@ spec:
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/nodeCidr"
             valueFrom:
               variable: node_cidr
