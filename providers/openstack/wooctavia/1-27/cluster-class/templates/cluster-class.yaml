@@ -319,6 +319,139 @@ spec:
           - op: add
             path: "/spec/template/spec/apiServerLoadBalancer/provider"
             value: "ovn"
+    - name: apiserver_loadbalancer_kube-vip
+      description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to kube-vip."
+      enabledIf: {{ `'{{ eq .apiserver_loadbalancer "kube-vip" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/network"
+            valueFrom:
+              template: |
+                id: {{"{{"}} .kube_vip_network_id {{"}}"}}
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+            value: false
+          - op: add
+            path: "/spec/template/spec/disableAPIServerFloatingIP"
+            value: true
+          - op: add
+            path: "/spec/template/spec/apiServerFixedIP"
+            valueFrom:
+              template: {{ `"{{ if .kube_vip_apiserver_public_ip }}{{.kube_vip_apiserver_public_ip}}{{else}}{{.kube_vip_apiserver_virtual_ip}}{{end}}"` }}
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/ports"
+            valueFrom:
+              template: |
+                - network:
+                    id: {{"{{"}} .kube_vip_network_id {{"}}"}}
+                  allowedAddressPairs:
+                  - ipAddress: {{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-"
+            value: "modprobe --all ip_vs ip_vs_rr nf_conntrack"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+            valueFrom:
+              template: |
+                content: |
+                  ip_vs
+                  ip_vs_rr
+                  nf_conntrack
+                owner: "root:root"
+                path: /etc/modules-load.d/kube-vip.conf
+                permissions: "0644"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+            valueFrom:
+              template: |
+                content: |
+                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
+                  apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    creationTimestamp: null
+                    name: kube-vip
+                    namespace: kube-system
+                  spec:
+                    containers:
+                    - args:
+                      - manager
+                      env:
+                      - name: vip_arp
+                        value: "true"
+                      - name: port
+                        value: "6443"
+                      - name: vip_cidr
+                        value: "32"
+                      - name: dns_mode
+                        value: first
+                      - name: cp_enable
+                        value: "true"
+                      - name: cp_namespace
+                        value: kube-system
+                      - name: vip_leaderelection
+                        value: "true"
+                      - name: vip_leasename
+                        value: plndr-cp-lock
+                      - name: vip_leaseduration
+                        value: "5"
+                      - name: vip_renewdeadline
+                        value: "3"
+                      - name: vip_retryperiod
+                        value: "1"
+                      - name: lb_enable
+                        value: "true"
+                      - name: lb_port
+                        value: "6443"
+                      - name: lb_fwdmethod
+                        value: local
+                      - name: address
+                        value: '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}'
+                      - name: prometheus_server
+                        value: :2112
+                      image: ghcr.io/kube-vip/kube-vip:v0.7.2
+                      imagePullPolicy: IfNotPresent # Always
+                      name: kube-vip
+                      resources: {}
+                      securityContext:
+                        capabilities:
+                          add:
+                          - NET_ADMIN
+                          - NET_RAW
+                      volumeMounts:
+                      - mountPath: /etc/kubernetes/admin.conf
+                        name: kubeconfig
+                    hostAliases:
+                    - hostnames:
+                      - kubernetes
+                      ip: 127.0.0.1
+                    hostNetwork: true
+                    volumes:
+                    - hostPath:
+                        path: /etc/kubernetes/admin.conf
+                      name: kubeconfig
+                  status: {}
+                owner: "root:root"
+                path: /etc/kubernetes/manifests/kube-vip.yaml
+                permissions: "0644"
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
@@ -397,118 +530,6 @@ spec:
             path: "/spec/template/spec/externalNetworkId"
             valueFrom:
               variable: external_id
-    - name: kube_vip
-      description: "Prepares kube-vip."
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/network"
-            valueFrom:
-              template: |
-                id: {{"{{"}} .kube_vip_network_id {{"}}"}}
-          - op: add
-            path: "/spec/template/spec/apiServerFixedIP"
-            valueFrom:
-              template: {{ `"{{ if .kube_vip_apiserver_public_ip }}{{.kube_vip_apiserver_public_ip}}{{else}}{{.kube_vip_apiserver_virtual_ip}}{{end}}"` }}
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
-            kind: OpenStackMachineTemplate
-            matchResources:
-              controlPlane: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/ports"
-            valueFrom:
-              template: |
-                - network:
-                    id: {{"{{"}} .kube_vip_network_id {{"}}"}}
-                  allowedAddressPairs:
-                  - ipAddress: {{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}
-        - selector:
-            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-            kind: KubeadmControlPlaneTemplate
-            matchResources:
-              controlPlane: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
-            valueFrom:
-              template: |
-                content: |
-                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
-                  apiVersion: v1
-                  kind: Pod
-                  metadata:
-                    creationTimestamp: null
-                    name: kube-vip
-                    namespace: kube-system
-                  spec:
-                    containers:
-                    - args:
-                      - manager
-                      env:
-                      - name: vip_arp
-                        value: "true"
-                      - name: port
-                        value: "6443"
-                      - name: vip_cidr
-                        value: "32"
-                      - name: dns_mode
-                        value: first
-                      - name: cp_enable
-                        value: "true"
-                      - name: cp_namespace
-                        value: kube-system
-                      - name: vip_leaderelection
-                        value: "true"
-                      - name: vip_leasename
-                        value: plndr-cp-lock
-                      - name: vip_leaseduration
-                        value: "5"
-                      - name: vip_renewdeadline
-                        value: "3"
-                      - name: vip_retryperiod
-                        value: "1"
-                      - name: lb_enable
-                        value: "true"
-                      - name: lb_port
-                        value: "6443"
-                      - name: lb_fwdmethod
-                        value: local
-                      - name: address
-                        value: '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}'
-                      - name: prometheus_server
-                        value: :2112
-                      image: ghcr.io/kube-vip/kube-vip:v0.7.2
-                      imagePullPolicy: IfNotPresent # Always
-                      name: kube-vip
-                      resources: {}
-                      securityContext:
-                        capabilities:
-                          add:
-                          - NET_ADMIN
-                          - NET_RAW
-                      volumeMounts:
-                      - mountPath: /etc/kubernetes/admin.conf
-                        name: kubeconfig
-                    hostAliases:
-                    - hostnames:
-                      - kubernetes
-                      ip: 127.0.0.1
-                    hostNetwork: true
-                    volumes:
-                    - hostPath:
-                        path: /etc/kubernetes/admin.conf
-                      name: kubeconfig
-                  status: {}
-                owner: "root:root"
-                path: /etc/kubernetes/manifests/kube-vip.yaml
-                permissions: "0644"
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
@@ -651,3 +672,31 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
             valueFrom:
               variable: certSANs
+    - name: dns_nameservers
+      description: "Sets the list of nameservers for the OpenStack Subnet being created."
+      enabledIf: {{ `"{{ if and .dns_nameservers (ne .apiserver_loadbalancer \"kube-vip\")}}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/dnsNameservers"
+            valueFrom:
+              variable: dns_nameservers
+    - name: node_cidr
+      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      enabledIf: {{ `"{{ if and .node_cidr (ne .apiserver_loadbalancer \"kube-vip\")}}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/nodeCidr"
+            valueFrom:
+              variable: node_cidr
