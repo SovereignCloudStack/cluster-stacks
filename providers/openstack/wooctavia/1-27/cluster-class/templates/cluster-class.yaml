@@ -274,6 +274,19 @@ spec:
             path: "/spec/template/spec/image"
             valueFrom:
               template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
+    - name: apiserver_loadbalancer_none
+      description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to none."
+      enabledIf: {{ `'{{ eq .apiserver_loadbalancer "none" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+            value: false
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
