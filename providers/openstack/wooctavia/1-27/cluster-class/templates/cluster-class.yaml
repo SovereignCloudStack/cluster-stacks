@@ -176,7 +176,7 @@ spec:
            You can choose from 4 options:
 
            none:
-             No loadbalancer solution will be deployed (todo: what this do)
+             No loadbalancer solution will be deployed
 
            octavia-amphora:
              (default) Uses openstack's loadbalancer service (provider:amphora)
@@ -207,7 +207,7 @@ spec:
            You can choose from 4 options:
 
            none:
-             No loadbalancer solution will be deployed (todo: what this do)
+             No loadbalancer solution will be deployed
 
            octavia-amphora:
              (default) Uses openstack's loadbalancer service (provider:amphora)

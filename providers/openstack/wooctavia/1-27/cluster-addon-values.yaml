@@ -14,3 +14,15 @@ values: |
     yawolImageID: {{ .value }}
     {{- end }}
     {{- end }}
+  openstack-cloud-controller-manager:
+    cloudConfig:
+      loadBalancer:
+      {{- if or (eq .workload_loadbalancer "none") (eq .workload_loadbalancer "yawol") }}
+        enabled: false
+      {{ else if eq .workload_loadbalancer "octavia-amphora" }}
+        enabled: true
+        lb-provider: amphora
+      {{ else if eq .workload_loadbalancer "octavia-ovn" }}
+        enabled: true
+        lb-provider: ovn
+      {{- end }}
