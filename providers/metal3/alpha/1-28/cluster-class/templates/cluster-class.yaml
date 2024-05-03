@@ -202,7 +202,7 @@ spec:
             - {{ .Release.Name }}-{{ .Chart.Version }}
       jsonPatches:
       - op: add
-        path: /spec/template/spec/dataTemplate/name
+        path: /spec/template/spec/dataTemplate
         valueFrom:
           template: |
             name: {{"{{"}} .workerDataTemplate {{"}}"}}
