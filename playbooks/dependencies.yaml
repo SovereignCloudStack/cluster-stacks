@@ -4,7 +4,7 @@
   vars:
     kind_version: "0.22.0"
     kubectl_version: "1.28.7"
-    clusterctl_version: "1.6.3"
+    clusterctl_version: "1.7.1"
     helm_version: "3.14.3"
     yq_version: "4.43.1"
     envsubst_version: "1.4.2"
