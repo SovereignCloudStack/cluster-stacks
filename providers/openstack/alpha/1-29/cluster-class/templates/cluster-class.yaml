@@ -168,6 +168,40 @@ spec:
          description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
          items:
            type: string
+   - name: oidc_config
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: object
+         properties:
+           client_id:
+             type: string
+             example: "kubectl"
+             description: "TODO"
+           issuer_url:
+             type: string
+             example: "https://dex.k8s.scs.community"
+             description: "TODO"
+           username_claim:
+             type: string
+             example: "preferred_username"
+             default: "sub"
+             description: "TODO"
+           groups_claim:
+             type: string
+             example: "groups"
+             default: "groups"
+             description: "TODO"
+           username_prefix:
+             type: string
+             example: "oidc:"
+             default: "oidc:"
+             description: "TODO"
+           groups_prefix:
+             type: string
+             example: "oidc:"
+             default: "oidc:"
+             description: "TODO"
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -460,3 +494,37 @@ spec:
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
             valueFrom:
               variable: certSANs
+    - name: oidc_config
+      description: "TODO"
+      enabledIf: {{ `"{{ if and .oidc_config .oidc_config.client_id .oidc_config.issuer_url }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-client-id"
+            valueFrom:
+              variable: oidc_config.client_id
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-issuer-url"
+            valueFrom:
+              variable: oidc_config.issuer_url
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-claim"
+            valueFrom:
+              variable: oidc_config.username_claim
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-claim"
+            valueFrom:
+              variable: oidc_config.groups_claim
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-prefix"
+            valueFrom:
+              variable: oidc_config.username_prefix
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-prefix"
+            valueFrom:
+              variable: oidc_config.groups_prefix
