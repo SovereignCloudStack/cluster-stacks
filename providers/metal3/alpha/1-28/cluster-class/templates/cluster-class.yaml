@@ -81,7 +81,7 @@ spec:
       openAPIV3Schema:
         type: string
   patches:
-  - name: controlPlaneEndpointSub
+  - name: controlPlaneEndpoint
     description: Adds controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
     definitions:
     - selector:
@@ -176,7 +176,7 @@ spec:
             owner: "root:root"
             path: /etc/kubernetes/manifests/kube-vip.yaml
             permissions: "0644"
-  - name: imageSub
+  - name: image
     description: Overrides image data for worker and control plane nodes
     enabledIf: {{ `"{{ if .image }}true{{end}}"` }}
     definitions:
@@ -205,7 +205,7 @@ spec:
         path: /spec/template/spec/image/url
         valueFrom:
           variable: image.url
-  - name: workerDataTemplateSub
+  - name: workerDataTemplate
     description: Adds data-template for worker nodes
     enabledIf: {{ `"{{ if .workerDataTemplate }}true{{end}}"` }}
     definitions:
@@ -222,7 +222,7 @@ spec:
         valueFrom:
           template: |
             name: {{"{{"}} .workerDataTemplate {{"}}"}}
-  - name: controlPlaneDataTemplateSub
+  - name: controlPlaneDataTemplate
     description: Adds data-template for control plane nodes
     enabledIf: {{ `"{{ if .controlPlaneDataTemplate }}true{{end}}"` }}
     definitions:
