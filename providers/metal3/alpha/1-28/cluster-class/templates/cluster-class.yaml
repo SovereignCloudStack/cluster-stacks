@@ -80,6 +80,58 @@ spec:
     schema:
       openAPIV3Schema:
         type: string
+  - name: workerHostSelector
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          matchLabels:
+            type: object
+            additionalProperties:
+              type: string
+          matchExpressions:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                operator:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+              required:
+              - key
+              - operator
+              - values
+  - name: controlPlaneHostSelector
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          matchLabels:
+            type: object
+            additionalProperties:
+              type: string
+          matchExpressions:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                operator:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+              required:
+              - key
+              - operator
+              - values
   patches:
   - name: controlPlaneEndpoint
     description: Adds controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
@@ -237,3 +289,33 @@ spec:
         valueFrom:
           template: |
             name: {{"{{"}} .controlPlaneDataTemplate {{"}}"}}
+  - name: workerHostSelector
+    description: Adds baremetal host selector for worker nodes
+    enabledIf: {{ `"{{ if .workerHostSelector }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - {{ .Release.Name }}-{{ .Chart.Version }}
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/hostSelector
+        valueFrom:
+          variable: workerHostSelector
+  - name: controlPlaneHostSelector
+    description: Adds baremetal host selector for control plane nodes
+    enabledIf: {{ `"{{ if .controlPlaneHostSelector }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/hostSelector
+        valueFrom:
+          variable: controlPlaneHostSelector
