@@ -178,6 +178,9 @@
           environment:
             KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
           changed_when: true
+        - name: Import sonobouy tasks
+          ansible.builtin.import_tasks: ../tasks/sonobouy.yaml
+          when: sonobouy.enabled
       always:
         - name: Cleanup workload cluster
           ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"

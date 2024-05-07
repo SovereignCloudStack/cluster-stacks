@@ -9,6 +9,7 @@
     yq_version: "4.43.1"
     envsubst_version: "1.4.2"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
+    sonobuoy_version: "0.57.1"
   roles:  # https://opendev.org/zuul/zuul-jobs
     - role: ensure-docker
     - role: ensure-go
@@ -58,3 +59,11 @@
         remote_src: true
       args:
         creates: "{{ install_dir }}/helm"
+    - name: Install Sonobuoy
+      ansible.builtin.unarchive:
+        src: "https://github.com/vmware-tanzu/sonobuoy/releases/download/v{{ sonobuoy_version }}/sonobuoy_{{ sonobuoy_version }}_linux_amd64.tar.gz"
+        dest: "{{ install_dir }}"
+        mode: '+x'
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/sonobuoy"
