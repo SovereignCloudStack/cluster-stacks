@@ -176,14 +176,15 @@ spec:
             owner: "root:root"
             path: /etc/kubernetes/manifests/kube-vip.yaml
             permissions: "0644"
-  - name: workerImageSub
-    description: Overrides image data for worker nodes
+  - name: imageSub
+    description: Overrides image data for worker and control plane nodes
     enabledIf: {{ `"{{ if .image }}true{{end}}"` }}
     definitions:
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
         matchResources:
+          controlPlane: true
           machineDeploymentClass:
             names:
             - {{ .Release.Name }}-{{ .Chart.Version }}
@@ -221,32 +222,6 @@ spec:
         valueFrom:
           template: |
             name: {{"{{"}} .workerDataTemplate {{"}}"}}
-  - name: controlPlaneImageSub
-    description: Overrides image data for worker nodes of control plane node
-    enabledIf: {{ `"{{ if .image }}true{{end}}"` }}
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: Metal3MachineTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: replace
-        path: /spec/template/spec/image/checksum
-        valueFrom:
-          variable: image.checksum
-      - op: replace
-        path: /spec/template/spec/image/checksumType
-        valueFrom:
-          variable: image.checksumType
-      - op: replace
-        path: /spec/template/spec/image/format
-        valueFrom:
-          variable: image.format
-      - op: replace
-        path: /spec/template/spec/image/url
-        valueFrom:
-          variable: image.url
   - name: controlPlaneDataTemplateSub
     description: Adds data-template for control plane nodes
     enabledIf: {{ `"{{ if .controlPlaneDataTemplate }}true{{end}}"` }}
