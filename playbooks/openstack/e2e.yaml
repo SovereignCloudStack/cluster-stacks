@@ -165,6 +165,7 @@
       ansible.builtin.command: "clusterctl get kubeconfig test-cluster"
       changed_when: true
       register: kubeconfig_output
+      no_log: true
     - name: Write kubeconfig to file
       ansible.builtin.copy:
         content: "{{ kubeconfig_output.stdout }}"
@@ -176,6 +177,7 @@
       environment:
         KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
       changed_when: true
+  always:
     - name: Cleanup workload cluster
       ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
       changed_when: true

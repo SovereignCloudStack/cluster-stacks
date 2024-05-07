@@ -4,7 +4,7 @@
     csctl_dir: "{{ ansible_user_dir }}/csctl"
     csctl_openstack_dir: "{{ ansible_user_dir }}/csctl-openstack"
     csctl_version: "main"
-    csctl_openstack_version: "feat/add-openstack-plugin-logic"  # FIXME: use stable release
+    csctl_openstack_version: "main"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
     - name: Clone csctl repository
@@ -13,8 +13,6 @@
         dest: "{{ csctl_dir }}"
         single_branch: true
         version: "{{ csctl_version }}"
-    # FIXME: csctl-openstack could be installed as a binary once the version with
-    #   feat/add-openstack-plugin-logic` is released
     - name: Clone csctl-openstack repository
       ansible.builtin.git:
         repo: https://github.com/SovereignCloudStack/csctl-plugin-openstack.git
