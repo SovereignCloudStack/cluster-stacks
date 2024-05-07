@@ -72,6 +72,18 @@ spec:
         required:
         - checksum
         - url
+  - name: user
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          name:
+            type: string
+          sshKey:
+            type: string
+        required:
+        - name
+        - sshKey
   - name: workerDataTemplate
     schema:
       openAPIV3Schema:
@@ -257,6 +269,40 @@ spec:
         path: /spec/template/spec/image/url
         valueFrom:
           variable: image.url
+  - name: user
+    description: Adds user with ssh access to worker and control plane nodes
+    enabledIf: {{ `"{{ if .user }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/users"
+        valueFrom:
+          template: |
+            - name: '{{"{{"}} .user.name {{"}}"}}'
+              sshAuthorizedKeys:
+              - '{{"{{"}} .user.sshKey {{"}}"}}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - {{ .Release.Name }}-{{ .Chart.Version }}
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/users"
+        valueFrom:
+          template: |
+            - name: '{{"{{"}} .user.name {{"}}"}}'
+              sshAuthorizedKeys:
+              - '{{"{{"}} .user.sshKey {{"}}"}}'
+              sudo: ALL=(ALL) NOPASSWD:ALL
   - name: workerDataTemplate
     description: Adds data-template for worker nodes
     enabledIf: {{ `"{{ if .workerDataTemplate }}true{{end}}"` }}
