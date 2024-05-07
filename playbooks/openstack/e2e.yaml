@@ -134,9 +134,9 @@
       ansible.builtin.command: "kubectl get clusterstack"
       changed_when: true
 
-    - name: Pause for 5 minutes
+    - name: Pause for 2 minutes
       ansible.builtin.pause:
-        minutes: 1
+        minutes: 2
 
     - name: Get ocscr information
       ansible.builtin.command: "kubectl get oscsr"
@@ -146,46 +146,39 @@
       ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout=1440s"
       changed_when: true
 
-    - name: Generate cluster YAML
-      ansible.builtin.template:
-        src: "cluster.yaml.j2"
-        dest: "{{ ansible_user_dir }}/cluster.yaml"
-        mode: "0644"
-    - name: Apply cluster template
-      ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/cluster.yaml"
-      changed_when: true
-    - name: Get kubeadmcontrolplane name
-      ansible.builtin.command: "kubectl get kubeadmcontrolplane -o=jsonpath='{.items[0].metadata.name}'"
-      register: kcp_name
-      changed_when: true
-    - name: Get kubeadmcontrolplane status
-      ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
-      changed_when: true
-    - name: Get kubeconfig of the workload k8s cluster
-      ansible.builtin.command: "clusterctl get kubeconfig test-cluster"
-      changed_when: true
-      register: kubeconfig_output
-      no_log: true
-    - name: Write kubeconfig to file
-      ansible.builtin.copy:
-        content: "{{ kubeconfig_output.stdout }}"
-        dest: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
-        mode: "0644"
-      changed_when: true
-    - name: Wait for all system pods in the workload k8s cluster to become ready
-      ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
-      environment:
-        KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
-      changed_when: true
-  always:
-    - name: Cleanup workload cluster
-      ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
-      changed_when: true
-    - name: Wait for the cluster to be deleted
-      ansible.builtin.command: kubectl get cluster/test-cluster
-      register: cluster_status
-      until: cluster_status.rc != 0
-      retries: 60
-      delay: 10
-      ignore_errors: true
-      changed_when: true
+    - name: Create k8s workload cluster and execute checks
+      block:
+        - name: Generate cluster YAML
+          ansible.builtin.template:
+            src: "cluster.yaml.j2"
+            dest: "{{ ansible_user_dir }}/cluster.yaml"
+            mode: "0644"
+        - name: Apply cluster template
+          ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/cluster.yaml"
+          changed_when: true
+        - name: Get kubeadmcontrolplane name
+          ansible.builtin.command: "kubectl get kubeadmcontrolplane -o=jsonpath='{.items[0].metadata.name}'"
+          register: kcp_name
+          changed_when: true
+        - name: Get kubeadmcontrolplane status
+          ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
+          changed_when: true
+        - name: Get kubeconfig of the workload k8s cluster
+          ansible.builtin.command: "clusterctl get kubeconfig test-cluster"
+          changed_when: true
+          register: kubeconfig_output
+        - name: Write kubeconfig to file
+          ansible.builtin.copy:
+            content: "{{ kubeconfig_output.stdout }}"
+            dest: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+            mode: "0644"
+          changed_when: true
+        - name: Wait for all system pods in the workload k8s cluster to become ready
+          ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
+          environment:
+            KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          changed_when: true
+      always:
+        - name: Cleanup workload cluster
+          ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
+          changed_when: true
