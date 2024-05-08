@@ -4,6 +4,8 @@ values: |
       domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
       clusterAddonVersion: "v2"
   yawol-controller:
+  {{- if eq .workload_loadbalancer "yawol") }}
+    enabled: true
     yawolFloatingID: "{{ .InfraCluster.status.externalNetwork.id }}"
     yawolNetworkID: "{{ .InfraCluster.status.network.id }}"
     yawolAPIHost: "{{ printf "https://%s:%d" .Cluster.spec.controlPlaneEndpoint.host .Cluster.spec.controlPlaneEndpoint.port }}"
@@ -14,6 +16,7 @@ values: |
     yawolImageID: {{ .value }}
     {{- end }}
     {{- end }}
+  {{- end }}
   openstack-cloud-controller-manager:
     cloudConfig:
       loadBalancer:
