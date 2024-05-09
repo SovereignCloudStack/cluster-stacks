@@ -16,6 +16,10 @@ dependencies:
   name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
   version: 2.27.3
-name: openstack-alpha-1-27-cluster-addon
+- alias: yawol-controller
+  name: yawol-controller
+  repository: https://stackitcloud.github.io/yawol
+  version: 0.21.3
+name: openstack-wooctavia-1-27-cluster-addon
 type: application
 version: v1

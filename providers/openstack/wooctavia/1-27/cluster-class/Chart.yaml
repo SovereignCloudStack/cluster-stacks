@@ -1,7 +1,7 @@
 apiVersion: v2
 description: |
   This chart installs and configures:
-  * Openstack Alpha Cluster Class
-name: openstack-alpha-1-27-cluster-class
+  * Openstack Wooctavia Cluster Class
+name: openstack-wooctavia-1-27-cluster-class
 type: application
 version: v1

@@ -11,11 +11,11 @@ spec:
     machineInfrastructure:
       ref:
         kind: OpenStackMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
         name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
   infrastructure:
     ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
       kind: OpenStackClusterTemplate
       name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
@@ -29,7 +29,7 @@ spec:
             name: {{ .Release.Name }}-{{ .Chart.Version }}
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             name: {{ .Release.Name }}-{{ .Chart.Version }}
   variables:
@@ -42,16 +42,6 @@ spec:
          example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
          format: "uuid4"
          description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-   - name: dns_nameservers
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
-         default: ["5.1.66.255", "185.150.99.255"]
-         example: ["5.1.66.255", "185.150.99.255"]
-         items:
-           type: string
    - name: controller_flavor
      required: false
      schema:
@@ -84,15 +74,45 @@ spec:
          minimum: 1
          example: 20
          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
-   - name: node_cidr
+   - name: yawol_flavor_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "uuid4"
+         example: "0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"
+         description: "ID of the existing flavor used as a default yawol flavor."
+   - name: yawol_image_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "uuid4"
+         example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
+         description: "ID of the existing imaged used as a default yawol image."
+   - name: network_id
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "uuid4"
+         example: "40a51f6c-9e4b-4b24-9187-49851a410c97"
+         description: "ID of the existing network. The network should have one subnet with one port reserved as virtual IP."
+   - name: apiserver_virtual_ip
+     required: true
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "ipv4"
+         example: "10.0.0.197"
+         description: "Virtual IP address reserved in network_id."
+   - name: apiserver_public_ip
      required: false
      schema:
        openAPIV3Schema:
          type: string
-         format: "cidr"
-         default: "10.8.0.0/20"
-         example: "10.8.0.0/20"
-         description: "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created."
+         format: "ipv4"
+         description: "Public IP address associated with apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
    - name: openstack_security_groups
      required: false
      schema:
@@ -103,21 +123,6 @@ spec:
          description: "The names of the security groups to assign to the instance"
          items:
            type: string
-   - name: openstack_loadbalancer_apiserver
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: boolean
-         default: true
-         description: "Enables custom load balancer for OpenStack API server"
-   - name: openstack_loadbalancer_apiserver_provider
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "amphora"
-         example: "ovn"
-         description: "The name of the load balancer provider (amphora or ovn) to use (defaults to amphora)"
    - name: cloud_name
      required: false
      schema:
@@ -158,39 +163,13 @@ spec:
          default: ""
          example: "capi-keypair"
          description: "The ssh key to inject in the nodes."
-   - name: certSANs
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         default: []
-         example: ["mydomain.example"]
-         description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
-         items:
-           type: string
   patches:
-    - name: k8s_version
-      description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackMachineTemplate
-            matchResources:
-              controlPlane: true
-              machineDeploymentClass:
-                names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/image"
-            valueFrom:
-              template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -204,7 +183,7 @@ spec:
       enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -221,7 +200,7 @@ spec:
       enabledIf: {{ `"{{ if .controller_root_disk }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -236,7 +215,7 @@ spec:
       enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -254,7 +233,7 @@ spec:
       enabledIf: {{ `'{{ ne .external_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -263,40 +242,124 @@ spec:
             path: "/spec/template/spec/externalNetworkId"
             valueFrom:
               variable: external_id
-    - name: node_cidr
-      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
-      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
+    - name: kube_vip
+      description: "Prepares kube-vip."
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/nodeCidr"
+          - op: add
+            path: "/spec/template/spec/network"
             valueFrom:
-              variable: node_cidr
-    - name: dns_nameservers
-      description: "Sets the list of nameservers for the OpenStack Subnet being created."
-      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
-      definitions:
+              template: |
+                id: {{"{{"}} .network_id {{"}}"}}
+          - op: add
+            path: "/spec/template/spec/apiServerFixedIP"
+            valueFrom:
+              template: {{ `"{{ if .apiserver_public_ip }}{{.apiserver_public_ip}}{{else}}{{.apiserver_virtual_ip}}{{end}}"` }}
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+            kind: OpenStackMachineTemplate
             matchResources:
-              infrastructureCluster: true
+              controlPlane: true
           jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/dnsNameservers"
+          - op: add
+            path: "/spec/template/spec/ports"
             valueFrom:
-              variable: dns_nameservers
+              template: |
+                - network:
+                    id: {{"{{"}} .network_id {{"}}"}}
+                  allowedAddressPairs:
+                  - ipAddress: {{"{{"}} .apiserver_virtual_ip {{"}}"}}
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+            valueFrom:
+              template: |
+                content: |
+                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
+                  apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    creationTimestamp: null
+                    name: kube-vip
+                    namespace: kube-system
+                  spec:
+                    containers:
+                    - args:
+                      - manager
+                      env:
+                      - name: vip_arp
+                        value: "true"
+                      - name: port
+                        value: "6443"
+                      - name: vip_cidr
+                        value: "32"
+                      - name: dns_mode
+                        value: first
+                      - name: cp_enable
+                        value: "true"
+                      - name: cp_namespace
+                        value: kube-system
+                      - name: vip_leaderelection
+                        value: "true"
+                      - name: vip_leasename
+                        value: plndr-cp-lock
+                      - name: vip_leaseduration
+                        value: "5"
+                      - name: vip_renewdeadline
+                        value: "3"
+                      - name: vip_retryperiod
+                        value: "1"
+                      - name: lb_enable
+                        value: "true"
+                      - name: lb_port
+                        value: "6443"
+                      - name: lb_fwdmethod
+                        value: local
+                      - name: address
+                        value: '{{"{{"}} .apiserver_virtual_ip {{"}}"}}'
+                      - name: prometheus_server
+                        value: :2112
+                      image: ghcr.io/kube-vip/kube-vip:v0.7.2
+                      imagePullPolicy: IfNotPresent # Always
+                      name: kube-vip
+                      resources: {}
+                      securityContext:
+                        capabilities:
+                          add:
+                          - NET_ADMIN
+                          - NET_RAW
+                      volumeMounts:
+                      - mountPath: /etc/kubernetes/admin.conf
+                        name: kubeconfig
+                    hostAliases:
+                    - hostnames:
+                      - kubernetes
+                      ip: 127.0.0.1
+                    hostNetwork: true
+                    volumes:
+                    - hostPath:
+                        path: /etc/kubernetes/admin.conf
+                      name: kubeconfig
+                  status: {}
+                owner: "root:root"
+                path: /etc/kubernetes/manifests/kube-vip.yaml
+                permissions: "0644"
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -309,7 +372,7 @@ spec:
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -317,39 +380,12 @@ spec:
           - op: replace
             path: "/spec/template/spec/allowAllInClusterTraffic"
             value: false
-    - name: openstack_loadbalancer_apiserver
-      description: "Enables custom load balancer for OpenStack API server"
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
-            valueFrom:
-              variable: openstack_loadbalancer_apiserver
-    - name: openstack_loadbalancer_apiserver_provider
-      description: "Sets the name of the load balancer provider."
-      enabledIf: {{ `'{{ ne .openstack_loadbalancer_apiserver_provider "" }}'` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/apiServerLoadBalancer/provider"
-            valueFrom:
-              variable: openstack_loadbalancer_apiserver_provider
     - name: cloud_name
       description: "Sets the name of the cloud to use from the clouds secret."
       enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -359,7 +395,7 @@ spec:
             valueFrom:
               variable: cloud_name
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -376,7 +412,7 @@ spec:
       enabledIf: {{ `'{{ ne .secret_name "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackClusterTemplate
             matchResources:
               infrastructureCluster: true
@@ -386,7 +422,7 @@ spec:
             valueFrom:
               variable: secret_name
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -403,7 +439,7 @@ spec:
       enabledIf: {{ `'{{ ne .controller_server_group_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -417,7 +453,7 @@ spec:
       enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: false
@@ -434,7 +470,7 @@ spec:
       enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
       definitions:
         - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
             kind: OpenStackMachineTemplate
             matchResources:
               controlPlane: true
@@ -446,17 +482,3 @@ spec:
             path: "/spec/template/spec/sshKeyName"
             valueFrom:
               variable: ssh_key
-    - name: certSANs
-      description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
-      enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
-      definitions:
-        - selector:
-            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-            kind: KubeadmControlPlaneTemplate
-            matchResources:
-              controlPlane: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
-            valueFrom:
-              variable: certSANs
