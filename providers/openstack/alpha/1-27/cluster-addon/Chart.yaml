@@ -18,4 +18,4 @@ dependencies:
   version: 2.27.3
 name: openstack-alpha-1-27-cluster-addon
 type: application
-version: << .ClusterAddonVersion >>
+version: v1
