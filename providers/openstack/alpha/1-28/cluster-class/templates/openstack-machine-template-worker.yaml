@@ -5,9 +5,10 @@ metadata:
 spec:
   template:
     spec:
-      cloudName: {{ default "openstack" .Values.cloud.name }}
-      flavor: {{ .Values.worker_flavor }}
+      flavor: {{ .Values.controller_flavor }}
       identityRef:
-        kind: Secret
-        name: {{ default "openstack" .Values.secrets.clouds_yaml }}
-      image: {{ .Values.images.worker.name }}
+        cloudName: {{ default "openstack" .Values.identityRef.cloudName }}
+        name: {{ default "openstack" .Values.identityRef.name }}
+      image:
+        filter:
+          name: {{ .Values.images.worker.name }}
