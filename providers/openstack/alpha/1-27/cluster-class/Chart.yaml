@@ -4,4 +4,4 @@ description: |
   * Openstack Alpha Cluster Class
 name: openstack-alpha-1-27-cluster-class
 type: application
-version: << .ClusterClassVersion >>
+version: v1

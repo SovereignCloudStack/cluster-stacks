@@ -4,4 +4,4 @@ description: |
   * Openstack Wooctavia Cluster Class
 name: openstack-wooctavia-1-27-cluster-class
 type: application
-version: << .ClusterClassVersion >>
+version: v1
