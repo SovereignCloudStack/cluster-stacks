@@ -329,7 +329,7 @@ spec:
               infrastructureCluster: true
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/cloudName"
+            path: "/spec/template/spec/identityRef/cloudName"
             valueFrom:
               variable: cloud_name
         - selector:
@@ -342,7 +342,7 @@ spec:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/cloudName"
+            path: "/spec/template/spec/identityRef/cloudName"
             valueFrom:
               variable: cloud_name
     - name: secret_name
