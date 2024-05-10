@@ -181,6 +181,17 @@
         - name: Import sonobouy tasks
           ansible.builtin.import_tasks: ../tasks/sonobouy.yaml
           when: sonobouy.enabled
+        - name: Import scs_compliance pre-tasks
+          ansible.builtin.import_tasks: ../tasks/label_nodes.yaml
+          vars:
+            os_cloud: "{{ cloud_name }}"
+            kubeconfig_path: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          when: scs_compliance.enabled
+        - name: Import scs_compliance tasks
+          ansible.builtin.import_tasks: ../tasks/scs_compliance.yaml
+          vars:
+            kubeconfig_path: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          when: scs_compliance.enabled
       always:
         - name: Cleanup workload cluster
           ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
