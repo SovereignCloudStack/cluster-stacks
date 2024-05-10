@@ -20,3 +20,6 @@ metrics-server:
 
   args:
     - --kubelet-insecure-tls
+
+rook-ceph:
+  enableDiscoveryDaemon: true

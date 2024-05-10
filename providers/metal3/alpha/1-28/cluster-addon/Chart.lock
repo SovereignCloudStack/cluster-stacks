@@ -5,5 +5,8 @@ dependencies:
 - name: cilium
   repository: https://helm.cilium.io/
   version: 1.15.4
-digest: sha256:0f2643fe4bad1a49d555cc630f24ee9582d82f5807b7ca832a0791fcc35495e1
-generated: "2024-05-02T16:17:33.085023258+02:00"
+- name: rook-ceph
+  repository: https://charts.rook.io/release
+  version: v1.14.3
+digest: sha256:cd6e26c69968e66168ae034afc9927c2ff307816fd7704f8683a22acf438ea2d
+generated: "2024-05-10T12:46:34.984909171+02:00"
