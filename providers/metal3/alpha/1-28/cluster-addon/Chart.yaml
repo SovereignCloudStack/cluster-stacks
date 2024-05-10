@@ -8,6 +8,10 @@ dependencies:
   name: cilium
   repository: https://helm.cilium.io/
   version: 1.15.4
+- alias: rook-ceph
+  name: rook-ceph
+  repository: https://charts.rook.io/release
+  version: v1.14.3
 name: metal3-alpha-1-28-cluster-addon
 type: application
 version: << .ClusterAddonVersion >>
