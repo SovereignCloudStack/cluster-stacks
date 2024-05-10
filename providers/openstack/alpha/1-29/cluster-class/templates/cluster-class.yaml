@@ -182,7 +182,7 @@ spec:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/image"
+            path: "/spec/template/spec/image/filter/name"
             valueFrom:
               template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
     - name: controller_flavor
@@ -260,37 +260,37 @@ spec:
               infrastructureCluster: true
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/externalNetworkId"
+            path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
-    - name: node_cidr
-      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
-      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/nodeCidr"
-            valueFrom:
-              variable: node_cidr
-    - name: dns_nameservers
-      description: "Sets the list of nameservers for the OpenStack Subnet being created."
-      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/dnsNameservers"
-            valueFrom:
-              variable: dns_nameservers
+#    - name: node_cidr
+#      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+#      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
+#      definitions:
+#        - selector:
+#            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+#            kind: OpenStackClusterTemplate
+#            matchResources:
+#              infrastructureCluster: true
+#          jsonPatches:
+#          - op: replace
+#            path: "/spec/template/spec/managedSubnets/cidr"
+#            valueFrom:
+#              variable: node_cidr
+#    - name: dns_nameservers
+#      description: "Sets the list of nameservers for the OpenStack Subnet being created."
+#      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
+#      definitions:
+#        - selector:
+#            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+#            kind: OpenStackClusterTemplate
+#            matchResources:
+#              infrastructureCluster: true
+#          jsonPatches:
+#          - op: replace
+#            path: "/spec/template/spec/managedSubnets/dnsNameservers"
+#            valueFrom:
+#              variable: dns_nameservers
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
@@ -355,7 +355,7 @@ spec:
               infrastructureCluster: true
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/cloudName"
+            path: "/spec/template/spec/identityRef/cloudName"
             valueFrom:
               variable: cloud_name
         - selector:
@@ -368,7 +368,7 @@ spec:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/cloudName"
+            path: "/spec/template/spec/identityRef/cloudName"
             valueFrom:
               variable: cloud_name
     - name: secret_name
