@@ -234,7 +234,7 @@ spec:
               infrastructureCluster: true
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/externalNetworkId"
+            path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
     - name: node_cidr
