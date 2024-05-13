@@ -32,8 +32,8 @@
       sonobouy:
         enabled: true
         mode: quick
-#      scs_compliance:
-#        enabled: true
+      scs_compliance:
+        enabled: true
 
 
 - project:
