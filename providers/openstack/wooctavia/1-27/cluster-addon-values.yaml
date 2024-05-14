@@ -21,17 +21,13 @@ values: |
   {{- if and (eq .name "workload_loadbalancer") (eq .value "yawol") }}
   yawol-controller:
     enabled: true
-    yawolFloatingID: "{{ .InfraCluster.status.externalNetwork.id }}"
-    yawolNetworkID: "{{ .InfraCluster.status.network.id }}"
-    yawolAPIHost: "{{ printf "https://%s:%d" .Cluster.spec.controlPlaneEndpoint.host .Cluster.spec.controlPlaneEndpoint.port }}"
+    yawolFloatingID: "{{ $.InfraCluster.status.externalNetwork.id }}"
+    yawolNetworkID: "{{ $.InfraCluster.status.network.id }}"
+    yawolAPIHost: "{{ printf "https://%s:%d" $.Cluster.spec.controlPlaneEndpoint.host $.Cluster.spec.controlPlaneEndpoint.port }}"
     yawolFlavorID: {{ template "yawol_flavor_id" $}}
     yawolImageID: {{ template "yawol_image_id" $}}
   {{- end }}
   {{- end }}
-
-
-
-
 
   openstack-cloud-controller-manager:
     cloudConfig:
