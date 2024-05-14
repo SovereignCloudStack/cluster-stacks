@@ -29,6 +29,7 @@ rook-ceph-cluster:
   # based on cluster-test.yaml
   cephClusterSpec:
     cephVersion:
+      image: quay.io/ceph/ceph:v18
       allowUnsupported: true
     mon:
       count: 1
