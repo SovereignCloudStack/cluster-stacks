@@ -3,3 +3,12 @@ values: |
     commonLabels:
       domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
       clusterAddonVersion: "v2"
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if and (eq .name "rook_ceph_values") .value }}
+  rook-ceph:
+  {{ .value | indent 2 }}
+  {{- else if and (eq .name "rook_ceph_cluster_values") .value }}
+  rook-ceph-cluster:
+  {{ .value | indent 2 }}
+  {{- end }}
+  {{- end }}

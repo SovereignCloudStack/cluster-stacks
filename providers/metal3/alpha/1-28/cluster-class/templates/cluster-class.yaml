@@ -144,6 +144,25 @@ spec:
               - key
               - operator
               - values
+  - name: rook_ceph_values
+    schema:
+      openAPIV3Schema:
+        type: string
+        example: |
+          enabled: true
+          currentNamespaceOnly: false
+        description: "Helm values for Ceph Operator."
+  - name: rook_ceph_cluster_values
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "enabled: false"
+        example: |
+          cephClusterSpec:
+            cephVersion:
+              image: quay.io/ceph/ceph:v18.2.2
+              allowUnsupported: false
+        description: "Helm values for Ceph Cluster."
   patches:
   - name: controlPlaneEndpoint
     description: Adds controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
