@@ -48,3 +48,4 @@ openstack-cinder-csi:
     effect: NoSchedule
 yawol-controller:
   yawolOSSecretName: cloud-config
+  enabled: false

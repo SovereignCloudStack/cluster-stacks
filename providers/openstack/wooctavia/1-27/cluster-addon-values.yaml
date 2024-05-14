@@ -1,47 +1,16 @@
 values: |
-  {{- define "yawol_image_id" -}}
-    {{- range .Cluster.spec.topology.variables -}}
-      {{- if eq .name "yawol_image_id" -}}
-        {{ .value }}
-      {{- end -}}
-    {{- end -}}
-  {{- end }}
-  {{- define "yawol_flavor_id" -}}
-    {{- range .Cluster.spec.topology.variables -}}
-      {{- if eq .name "yawol_flavor_id" -}}
-        {{ .value }}
-      {{- end -}}
-    {{- end -}}
-  {{- end }}
   metrics-server:
     commonLabels:
       domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
       clusterAddonVersion: "v2"
-  {{ range .Cluster.spec.topology.variables }}
-  {{- if and (eq .name "workload_loadbalancer") (eq .value "yawol") }}
   yawol-controller:
-    enabled: true
-    yawolFloatingID: "{{ $.InfraCluster.status.externalNetwork.id }}"
-    yawolNetworkID: "{{ $.InfraCluster.status.network.id }}"
-    yawolAPIHost: "{{ printf "https://%s:%d" $.Cluster.spec.controlPlaneEndpoint.host $.Cluster.spec.controlPlaneEndpoint.port }}"
-    yawolFlavorID: {{ template "yawol_flavor_id" $}}
-    yawolImageID: {{ template "yawol_image_id" $}}
-  {{- end }}
-  {{- end }}
-
-  openstack-cloud-controller-manager:
-    cloudConfig:
-      loadBalancer:
-      {{- range .Cluster.spec.topology.variables }}
-      {{- if eq .name "workload_loadbalancer" }}
-      {{- if or (eq .value "none") (eq .value "yawol") }}
-        enabled: false
-      {{ else if eq .value "octavia-amphora" }}
-        enabled: true
-        lb-provider: amphora
-      {{ else if eq .value "octavia-ovn" }}
-        enabled: true
-        lb-provider: ovn
-      {{- end }}
-      {{- end }}
-      {{- end }}
+    yawolFloatingID: "{{ .InfraCluster.status.externalNetwork.id }}"
+    yawolNetworkID: "{{ .InfraCluster.status.network.id }}"
+    yawolAPIHost: "{{ printf "https://%s:%d" .Cluster.spec.controlPlaneEndpoint.host .Cluster.spec.controlPlaneEndpoint.port }}"
+    {{- range .Cluster.spec.topology.variables }}
+    {{- if eq .name "yawol_flavor_id" }}
+    yawolFlavorID: {{ .value }}
+    {{- else if eq .name "yawol_image_id" }}
+    yawolImageID: {{ .value }}
+    {{- end }}
+    {{- end }}

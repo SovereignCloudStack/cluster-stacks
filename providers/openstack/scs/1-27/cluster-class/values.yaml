@@ -3,13 +3,6 @@ external_id: ebfe5546-f09f-4f42-ab54-094e457d42ec
 controller_flavor: SCS-2V-4-20
 worker_flavor: SCS-2V-4-20
 
-# TBD, currently needed:
-images:
-  controlPlane:
-    name: ubuntu-capi-image-v1.27.12
-  worker:
-    name: ubuntu-capi-image-v1.27.12
-
 cloud:
   name: "openstack"
 secrets:

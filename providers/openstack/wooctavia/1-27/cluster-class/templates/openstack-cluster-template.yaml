@@ -10,5 +10,8 @@ spec:
       identityRef:
         name: {{ default "openstack" .Values.secrets.clouds_yaml }}
         kind: Secret
+      disableAPIServerFloatingIP: true
+      apiServerLoadBalancer:
+        enabled: false
       managedSecurityGroups: true
       externalNetworkId: {{ .Values.external_id }}
