@@ -110,42 +110,30 @@
       ansible.builtin.set_fact:
         cluster_stack_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['clusterStack'] }}"
       when: metadata_content is defined
-
-    - name: Output cluster stack version
-      ansible.builtin.debug:
-        msg: "The cluster stack version is {{ cluster_stack_version }}"
-
     - name: Extract cloud name from clouds_yaml_full
       ansible.builtin.set_fact:
         cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"
       when: clouds_yaml_full.clouds is defined and clouds_yaml_full.clouds | dict2items | length == 1
-
     - name: Generate clusterstack YAML
       ansible.builtin.template:
         src: "cluster-stack-template.yaml.j2"
         dest: "{{ ansible_user_dir }}/clusterstack.yaml"
         mode: "0644"
-
     - name: Apply cluster-stack template
       ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
       changed_when: true
-
     - name: Get clusterstack information
       ansible.builtin.command: "kubectl get clusterstack"
       changed_when: true
-
     - name: Pause for 2 minutes
       ansible.builtin.pause:
         minutes: 2
-
     - name: Get ocscr information
       ansible.builtin.command: "kubectl get oscsr"
       changed_when: true
-
     - name: Wait for cluster-stack to be ready
       ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout=1440s"
       changed_when: true
-
     - name: Create k8s workload cluster and execute checks
       block:
         - name: Generate cluster YAML

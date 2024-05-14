@@ -26,9 +26,9 @@
       [sonobuoy](https://sonobuoy.io/) with mode conformance meaning
       it will test if the Kubernetes cluster is conformant to the CNCF.
     run: playbooks/openstack/e2e.yaml
-    # timeout: 10800  # 3h
+    timeout: 7200  # 3h
     vars:
-      wait_for_cluster: 900  # 10min
+      wait_for_cluster: 900  # 15min
       sonobouy:
         enabled: true
         mode: quick
