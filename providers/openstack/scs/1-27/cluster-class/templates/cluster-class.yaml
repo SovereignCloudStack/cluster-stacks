@@ -190,10 +190,10 @@ spec:
                kube_vip_network_id
                kube_vip_apiserver_virtual_ip
                kube_vip_apiserver_public_ip 
-
+            
+             Requires Kubernetes version < 1.29
              Also the settings node_cidr and dns_nameservers will no longer have an effect.
       
-           (insert openstack instructions to create networks and IPs here https://github.com/SovereignCloudStack/cluster-stacks/pull/54)"
    - name: workload_loadbalancer
      required: false
      schema:
