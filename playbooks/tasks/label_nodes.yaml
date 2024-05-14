@@ -8,7 +8,6 @@
     label_key: "topology.scs.community/host-id"
     openstackclient_version: "6.5.0"
     jq_version: "1.7.1"
-    kubectl_version: "1.28.7"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
     - name: Check if `os_cloud` variable is defined
@@ -25,12 +24,10 @@
         dest: "{{ install_dir }}/jq"
         mode: "+x"
         # TODO: use `checksum` attr here to verify the digest of the destination file, if available
-    - name: Install kubectl
-      ansible.builtin.get_url:
-        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
-        dest: "{{ install_dir }}/kubectl"
-        mode: "+x"
-        # TODO: use `checksum` attr here to verify the digest of the destination file, if available
+    - name: Ensure pip is installed
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
     - name: Install openstack cli
       ansible.builtin.pip:
         name:
