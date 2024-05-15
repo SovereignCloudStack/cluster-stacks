@@ -152,14 +152,7 @@
           ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
           changed_when: true
         - name: Get kubeconfig of the workload k8s cluster
-          ansible.builtin.command: "clusterctl get kubeconfig test-cluster"
-          changed_when: true
-          register: kubeconfig_output
-        - name: Write kubeconfig to file
-          ansible.builtin.copy:
-            content: "{{ kubeconfig_output.stdout }}"
-            dest: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
-            mode: "0644"
+          ansible.builtin.shell: "clusterctl get kubeconfig test-cluster > {{ cluster_manifest_dir }}/kubeconfig-test-cluster"
           changed_when: true
         - name: Wait for all system pods in the workload k8s cluster to become ready
           ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
