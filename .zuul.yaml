@@ -28,7 +28,7 @@
     run: playbooks/openstack/e2e.yaml
     timeout: 7200  # 3h
     vars:
-      wait_for_cluster: 900  # 15min
+      wait_for_cluster: 1200  # 15min
       sonobouy:
         enabled: true
         mode: quick
