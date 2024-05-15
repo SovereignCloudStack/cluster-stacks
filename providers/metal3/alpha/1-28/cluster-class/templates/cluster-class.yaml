@@ -20,18 +20,18 @@ spec:
       name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
     machineDeployments:
-    - class: {{ .Release.Name }}-{{ .Chart.Version }}
+    - class: default-worker
       template:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: Metal3MachineTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
   variables:
   - name: controlPlaneEndpoint
     required: true
@@ -276,7 +276,7 @@ spec:
           controlPlane: true
           machineDeploymentClass:
             names:
-            - {{ .Release.Name }}-{{ .Chart.Version }}
+            - default-worker
       jsonPatches:
       - op: replace
         path: /spec/template/spec/image/checksum
@@ -318,7 +318,7 @@ spec:
         matchResources:
           machineDeploymentClass:
             names:
-            - {{ .Release.Name }}-{{ .Chart.Version }}
+            - default-worker
       jsonPatches:
       - op: add
         path: "/spec/template/spec/users"
@@ -338,7 +338,7 @@ spec:
         matchResources:
           machineDeploymentClass:
             names:
-            - {{ .Release.Name }}-{{ .Chart.Version }}
+            - default-worker
       jsonPatches:
       - op: add
         path: /spec/template/spec/dataTemplate
@@ -370,7 +370,7 @@ spec:
         matchResources:
           machineDeploymentClass:
             names:
-            - {{ .Release.Name }}-{{ .Chart.Version }}
+            - default-worker
       jsonPatches:
       - op: add
         path: /spec/template/spec/hostSelector
