@@ -37,9 +37,19 @@
           ansible.builtin.set_fact:
             zuul_config: "{{ zuul_config  | first | split('/n') | map('trim') | join('\n') }}"
           when: zuul_config is defined and zuul_config is not none and zuul_config != ''
-        - name: Print Zuul config  # TODO: Use the config and override `cluster_stack` dir if set
+        - name: Print Zuul config
           ansible.builtin.debug:
             msg: "{{ zuul_config }}"
+        - name: Extract cluster stack from Zuul config
+          ansible.builtin.set_fact:
+            extracted_cluster_stack: "{{ zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
+          when:
+            - zuul_config is defined
+            - zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"') is defined
+        - name: Override cluster stack if extracted
+          ansible.builtin.set_fact:
+            cluster_stack: "{{ extracted_cluster_stack | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', 'providers/openstack/\\1/\\2') }}"
+          when: extracted_cluster_stack is defined
     - name: Create cluster stack
       ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack }} --output {{ cluster_stack_release_dir }}  --mode hash"
       args:

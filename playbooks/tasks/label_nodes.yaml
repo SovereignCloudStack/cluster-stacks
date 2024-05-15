@@ -28,6 +28,7 @@
       ansible.builtin.package:
         name: python3-pip
         state: present
+      become: true
     - name: Install openstack cli
       ansible.builtin.pip:
         name:
