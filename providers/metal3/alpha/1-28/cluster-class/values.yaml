@@ -1,5 +1,5 @@
 image:
-  url: "http://192.168.222.1/UBUNTU_22.04_NODE_IMAGE_K8S_v1.28.1.qcow2"
-  checksum: "a3e9bd15aa9d1fd57b1c1c59b040ed9107831a8377ab656d3eca6f8046ed390a"
+  url: "https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.9.qcow2"
+  checksum: "https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.28/ubuntu-2204-kube-v1.28.9.qcow2.CHECKSUM"
   checksumType: "sha256"
   format: "qcow2"
