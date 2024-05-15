@@ -4,4 +4,4 @@ description: |
   * Metal3 Alpha Cluster Class
 name: metal3-alpha-1-28-cluster-class
 type: application
-version: << .ClusterClassVersion >>
+version: v1

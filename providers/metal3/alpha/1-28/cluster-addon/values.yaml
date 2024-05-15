@@ -13,13 +13,13 @@ metrics-server:
       kubernetes.io/name: "Metrics-server"
 
   defaultArgs:
-    - --cert-dir=/tmp
-    - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-    - --kubelet-use-node-status-port
-    - --metric-resolution=15s
+  - --cert-dir=/tmp
+  - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+  - --kubelet-use-node-status-port
+  - --metric-resolution=15s
 
   args:
-    - --kubelet-insecure-tls
+  - --kubelet-insecure-tls
 
 rook-ceph:
   enableDiscoveryDaemon: true
@@ -38,8 +38,8 @@ rook-ceph-cluster:
       count: 1
       allowMultiplePerNode: true
       modules:
-        - name: rook
-          enabled: true
+      - name: rook
+        enabled: true
     dashboard:
       ssl: false
     crashCollector:
@@ -64,30 +64,30 @@ rook-ceph-cluster:
     mon_data_avail_warn = 10
   # based on storageclass-test.yaml
   cephBlockPools:
-    - name: ceph-blockpool
-      spec:
-        failureDomain: osd
-        replicated:
-          size: 1
-          requireSafeReplicaSize: false
-      storageClass:
-        enabled: true
-        name: ceph-block
-        isDefault: true
-        reclaimPolicy: Delete
-        allowVolumeExpansion: true
-        volumeBindingMode: "Immediate"
-        mountOptions: []
-        allowedTopologies: []
-        parameters:
-          imageFormat: "2"
-          imageFeatures: layering
-          csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
-          csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
-          csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
-          csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
-          csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
-          csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
-          csi.storage.k8s.io/fstype: ext4
+  - name: ceph-blockpool
+    spec:
+      failureDomain: osd
+      replicated:
+        size: 1
+        requireSafeReplicaSize: false
+    storageClass:
+      enabled: true
+      name: ceph-block
+      isDefault: true
+      reclaimPolicy: Delete
+      allowVolumeExpansion: true
+      volumeBindingMode: "Immediate"
+      mountOptions: []
+      allowedTopologies: []
+      parameters:
+        imageFormat: "2"
+        imageFeatures: layering
+        csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
+        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
+        csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
+        csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
+        csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
+        csi.storage.k8s.io/fstype: ext4
   cephFileSystems: []
   cephObjectStores: []
