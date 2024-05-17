@@ -252,7 +252,10 @@ spec:
             valueFrom:
               template: |
                 - cidr: '{{"{{"}} .node_cidr {{"}}"}}'
-                  dnsNameservers: {{ `"[ {{ range .dns_nameservers }} {{ . }}, {{ end }} ]"` }}
+                  dnsNameservers:
+                  {{`{{- range .dns_nameservers }}`}}
+                                  - {{`{{ . }}`}}
+                  {{`{{- end }}`}}
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
