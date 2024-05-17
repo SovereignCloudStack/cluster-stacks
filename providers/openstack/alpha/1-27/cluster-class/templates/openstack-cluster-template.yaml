@@ -11,7 +11,7 @@ spec:
       apiServerLoadBalancer:
         enabled: {{ .Values.openstack_loadbalancer_apiserver }}
 {{- if .Values.restrict_kubeapi }}
-        allowedCidrs: {{ .Values.restrict_kubeapi }}
+        allowedCIDRs: {{ .Values.restrict_kubeapi }}
 {{- end }}
       managedSecurityGroups:
         allowAllInClusterTraffic: true

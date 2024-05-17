@@ -181,7 +181,7 @@ spec:
                 names:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/image/filter/name"
             valueFrom:
               template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
@@ -230,7 +230,7 @@ spec:
             path: "/spec/template/spec/rootVolume"
             valueFrom:
               template: |
-                diskSize: {{"{{"}} .controller_root_disk {{"}}"}}
+                sizeGiB: {{"{{"}} .controller_root_disk {{"}}"}}
     - name: worker_root_disk
       description: "Sets the root disk size in GiB for worker nodes."
       enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
@@ -248,7 +248,7 @@ spec:
             path: "/spec/template/spec/rootVolume"
             valueFrom:
               template: |
-                diskSize: {{"{{"}} .worker_root_disk {{"}}"}}
+                sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
     - name: external_id
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
       enabledIf: {{ `'{{ ne .external_id "" }}'` }}
@@ -263,34 +263,22 @@ spec:
             path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
-#    - name: node_cidr
-#      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
-#      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
-#      definitions:
-#        - selector:
-#            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-#            kind: OpenStackClusterTemplate
-#            matchResources:
-#              infrastructureCluster: true
-#          jsonPatches:
-#          - op: replace
-#            path: "/spec/template/spec/managedSubnets/cidr"
-#            valueFrom:
-#              variable: node_cidr
-#    - name: dns_nameservers
-#      description: "Sets the list of nameservers for the OpenStack Subnet being created."
-#      enabledIf: {{ `"{{ if .dns_nameservers }}true{{end}}"` }}
-#      definitions:
-#        - selector:
-#            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-#            kind: OpenStackClusterTemplate
-#            matchResources:
-#              infrastructureCluster: true
-#          jsonPatches:
-#          - op: replace
-#            path: "/spec/template/spec/managedSubnets/dnsNameservers"
-#            valueFrom:
-#              variable: dns_nameservers
+    - name: subnet
+      description: "Sets the NodeCIDR and optional nameservers for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/managedSubnets"
+            valueFrom:
+              template: |
+                - cidr: '{{"{{"}} .node_cidr {{"}}"}}'
+                  dnsNameservers: {{ `"[ {{ range .dns_nameservers }} {{ . }}, {{ end }} ]"` }}
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
@@ -307,7 +295,7 @@ spec:
           - op: add
             path: "/spec/template/spec/securityGroups"
             valueFrom:
-              template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
+              template: {{ `"[ {{ range .openstack_security_groups }} { filter: { name: {{ . }}}}, {{ end }} ]"` }}
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackClusterTemplate
@@ -315,7 +303,7 @@ spec:
               infrastructureCluster: true
           jsonPatches:
           - op: replace
-            path: "/spec/template/spec/allowAllInClusterTraffic"
+            path: "/spec/template/spec/managedSecurityGroups/allowAllInClusterTraffic"
             value: false
     - name: openstack_loadbalancer_apiserver
       description: "Enables custom load balancer for OpenStack API server"
@@ -409,9 +397,10 @@ spec:
               controlPlane: true
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/serverGroupID"
+            path: "/spec/template/spec/serverGroup"
             valueFrom:
-              variable: controller_server_group_id
+              template: |
+                id: {{"{{"}} .controller_server_group_id {{"}}"}}
     - name: worker_server_group_id
       description: "Sets the server group to assign the worker nodes to."
       enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
@@ -426,9 +415,10 @@ spec:
                   - {{ .Release.Name }}-{{ .Chart.Version }}
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/serverGroupID"
+            path: "/spec/template/spec/serverGroup"
             valueFrom:
-              variable: worker_server_group_id
+              template: |
+                id: {{"{{"}} .worker_server_group_id {{"}}"}}
     - name: ssh_key
       description: "Sets the ssh key to inject in the nodes."
       enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
