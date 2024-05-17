@@ -6,7 +6,6 @@
     #  within the Kubernetes cluster.
     #  refer to: https://github.com/SovereignCloudStack/issues/issues/540
     label_key: "topology.scs.community/host-id"
-    openstackclient_version: "6.5.0"
     jq_version: "1.7.1"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
@@ -24,16 +23,6 @@
         dest: "{{ install_dir }}/jq"
         mode: "+x"
         # TODO: use `checksum` attr here to verify the digest of the destination file, if available
-    - name: Ensure pip is installed
-      ansible.builtin.package:
-        name: python3-pip
-        state: present
-      become: true
-    - name: Install openstack cli
-      ansible.builtin.pip:
-        name:
-        - "python-openstackclient=={{ openstackclient_version }}"
-        extra_args: --user
     - name: Get list of OpenStack server details
       ansible.builtin.shell:
         cmd: |

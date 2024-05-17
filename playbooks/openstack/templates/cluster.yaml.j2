@@ -25,13 +25,17 @@ spec:
         value: {{ cloud_name }}
       - name: secret_name
         value: {{ cloud_name }}
-    class: openstack-alpha-1-29-{{ cluster_stack_version }}
+      - name: controller_server_group_id
+        value: {{ controller_server_group_id_value }}
+      - name: worker_server_group_id
+        value: {{ worker_server_group_id_value }}
+    class: {{ cluster_stack_name }}-{{ cluster_stack_version }}
     controlPlane:
-      replicas: 1
-    version: v1.29.3
+      replicas: 3
+    version: {{ k8s_version }}
     workers:
       machineDeployments:
-        - class: openstack-alpha-1-29-{{ cluster_stack_version }}
+        - class: {{ cluster_stack_name }}-{{ cluster_stack_version }}
           failureDomain: nova
-          name: openstack-alpha-1-29
+          name: {{ cluster_stack_name }}
           replicas: 3
