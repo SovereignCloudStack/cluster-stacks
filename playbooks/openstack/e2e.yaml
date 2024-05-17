@@ -141,31 +141,8 @@
       changed_when: true
     - name: Create k8s workload cluster and execute checks
       block:
-        - name: Ensure pip is installed
-          ansible.builtin.package:
-            name: python3-pip
-            state: present
-          become: true
-          when: scs_compliance.enabled
-        - name: Install openstack cli
-          ansible.builtin.pip:
-            name:
-            - "python-openstackclient=={{ openstackclient_version }}"
-            extra_args: --user
-          when: scs_compliance.enabled
-        - name: Create Server Group for contole-plane nodes
-          ansible.builtin.command: "openstack --os-compute-api-version 2.15 server group create --policy anti-affinity -f value -c id test-cluster-controller"
-          register: srvgrp_controller
-          environment:
-            OS_CLOUD: "{{ cloud_name }}"
-          changed_when: true
-          when: scs_compliance.enabled
-        - name: Create Server Group for worker nodes
-          ansible.builtin.command: "openstack --os-compute-api-version 2.15 server group create --policy soft-anti-affinity -f value -c id test-cluster-worker"
-          register: srvgrp_worker
-          environment:
-            OS_CLOUD: "{{ cloud_name }}"
-          changed_when: true
+        - name: Create Server Groups for nodes when scs_compliance tests are enabled
+          ansible.builtin.import_tasks: ../tasks/create_server_groups.yaml
           when: scs_compliance.enabled
         - name: Generate cluster YAML
           ansible.builtin.template:
