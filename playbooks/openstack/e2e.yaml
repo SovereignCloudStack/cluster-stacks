@@ -39,9 +39,6 @@
           ansible.builtin.set_fact:
             zuul_config: "{{ zuul_config  | first | split('/n') | map('trim') | join('\n') }}"
           when: zuul_config is defined and zuul_config is not none and zuul_config != ''
-        - name: Print Zuul config
-          ansible.builtin.debug:
-            msg: "{{ zuul_config }}"
         - name: Extract cluster stack from Zuul config
           ansible.builtin.set_fact:
             cluster_stack_name: "{{ zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
@@ -101,11 +98,12 @@
         dest: "{{ ansible_user_dir }}/clouds.yaml"
         mode: "0644"
     - name: Create secrets and ClusterResourceSet for the clusterstacks approach
-      ansible.builtin.shell:
-        cmd: |
-          set -o pipefail
-          helm template {{ openstack_csp_helper_chart_url }} -f {{ ansible_user_dir }}/clouds.yaml | kubectl apply -f -
-        executable: /bin/bash
+      kubernetes.core.helm:
+        name: "clusterstacks-credentials"
+        chart_ref: "{{ openstack_csp_helper_chart_url }}"
+        release_namespace: default
+        values_files:
+          - "{{ ansible_user_dir }}/clouds.yaml"
       changed_when: true
     - name: Find the directory containing metadata.yaml
       ansible.builtin.find:
@@ -135,15 +133,9 @@
     - name: Apply cluster-stack template
       ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
       changed_when: true
-    - name: Get clusterstack information
-      ansible.builtin.command: "kubectl get clusterstack"
-      changed_when: true
     - name: Pause for 2 minutes
       ansible.builtin.pause:
         minutes: 2
-    - name: Get ocscr information
-      ansible.builtin.command: "kubectl get oscsr"
-      changed_when: true
     - name: Wait for cluster-stack to be ready
       ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout=1440s"
       changed_when: true

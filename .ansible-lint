@@ -10,3 +10,4 @@ mock_roles:
   - ensure-packer
 mock_modules:
   - zuul_return
+  - kubernetes.core.helm
