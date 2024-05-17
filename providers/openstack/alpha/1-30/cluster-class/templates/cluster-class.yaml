@@ -1,0 +1,455 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+    machineInfrastructure:
+      ref:
+        kind: OpenStackMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: OpenStackClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: {{ .Release.Name }}-{{ .Chart.Version }}
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}
+  variables:
+   - name: external_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+         format: "uuid4"
+         description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+   - name: dns_nameservers
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
+         default: ["5.1.66.255", "185.150.99.255"]
+         example: ["5.1.66.255", "185.150.99.255"]
+         items:
+           type: string
+   - name: controller_flavor
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "SCS-2V-4-20"
+         example: "SCS-2V-4-20"
+         description: "OpenStack instance flavor for control-plane nodes."
+   - name: worker_flavor
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "SCS-2V-4-20"
+         example: "SCS-2V-4-20"
+         description: "OpenStack instance flavor for worker nodes."
+   - name: controller_root_disk
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: integer
+         minimum: 1
+         example: 20
+         description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+   - name: worker_root_disk
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: integer
+         minimum: 1
+         example: 20
+         description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+   - name: node_cidr
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         format: "cidr"
+         default: "10.8.0.0/20"
+         example: "10.8.0.0/20"
+         description: "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created."
+   - name: openstack_security_groups
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: []
+         example: ["security-group-1"]
+         description: "The names of the security groups to assign to the instance"
+         items:
+           type: string
+   - name: openstack_loadbalancer_apiserver
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: boolean
+         default: true
+         description: "Enables custom load balancer for OpenStack API server"
+   - name: openstack_loadbalancer_apiserver_provider
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "amphora"
+         example: "ovn"
+         description: "The name of the load balancer provider (amphora or ovn) to use (defaults to amphora)"
+   - name: cloud_name
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "openstack"
+         example: "openstack"
+         description: "The name of the cloud to use from the clouds secret"
+   - name: secret_name
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: "openstack"
+         example: "openstack"
+         description: "The name of the clouds secret"
+   - name: controller_server_group_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"
+         description: "The server group to assign the control plane nodes to."
+   - name: worker_server_group_id
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "869fe071-1e56-46a9-9166-47c9f228e297"
+         description: "The server group to assign the worker nodes to."
+   - name: ssh_key
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: string
+         default: ""
+         example: "capi-keypair"
+         description: "The ssh key to inject in the nodes."
+   - name: certSANs
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: []
+         example: ["mydomain.example"]
+         description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+         items:
+           type: string
+  patches:
+    - name: k8s_version
+      description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/image/filter/name"
+            valueFrom:
+              template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
+    - name: controller_flavor
+      description: "Sets the openstack instance flavor for the KubeadmControlPlane."
+      enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: controller_flavor
+    - name: worker_flavor
+      description: "Sets the openstack instance flavor for the worker nodes."
+      enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/flavor"
+            valueFrom:
+              variable: worker_flavor
+    - name: controller_root_disk
+      description: "Sets the root disk size in GiB for control-plane nodes."
+      enabledIf: {{ `"{{ if .controller_root_disk }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/rootVolume"
+            valueFrom:
+              template: |
+                sizeGiB: {{"{{"}} .controller_root_disk {{"}}"}}
+    - name: worker_root_disk
+      description: "Sets the root disk size in GiB for worker nodes."
+      enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/rootVolume"
+            valueFrom:
+              template: |
+                sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
+    - name: external_id
+      description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+      enabledIf: {{ `'{{ ne .external_id "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/externalNetwork/id"
+            valueFrom:
+              variable: external_id
+    - name: subnet
+      description: "Sets the NodeCIDR and optional nameservers for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/managedSubnets"
+            valueFrom:
+              template: |
+                - cidr: '{{"{{"}} .node_cidr {{"}}"}}'
+                  dnsNameservers:
+                  {{`{{- range .dns_nameservers }}`}}
+                                  - {{`{{ . }}`}}
+                  {{`{{- end }}`}}
+    - name: openstack_security_groups
+      description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
+      enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/securityGroups"
+            valueFrom:
+              template: {{ `"[ {{ range .openstack_security_groups }} { filter: { name: {{ . }}}}, {{ end }} ]"` }}
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/managedSecurityGroups/allowAllInClusterTraffic"
+            value: false
+    - name: openstack_loadbalancer_apiserver
+      description: "Enables custom load balancer for OpenStack API server"
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+            valueFrom:
+              variable: openstack_loadbalancer_apiserver
+    - name: openstack_loadbalancer_apiserver_provider
+      description: "Sets the name of the load balancer provider."
+      enabledIf: {{ `'{{ ne .openstack_loadbalancer_apiserver_provider "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/apiServerLoadBalancer/provider"
+            valueFrom:
+              variable: openstack_loadbalancer_apiserver_provider
+    - name: cloud_name
+      description: "Sets the name of the cloud to use from the clouds secret."
+      enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/cloudName"
+            valueFrom:
+              variable: cloud_name
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/cloudName"
+            valueFrom:
+              variable: cloud_name
+    - name: secret_name
+      description: "Sets the name of the clouds secret."
+      enabledIf: {{ `'{{ ne .secret_name "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/name"
+            valueFrom:
+              variable: secret_name
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/identityRef/name"
+            valueFrom:
+              variable: secret_name
+    - name: controller_server_group_id
+      description: "Sets the server group to assign the control plane nodes to."
+      enabledIf: {{ `'{{ ne .controller_server_group_id "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/serverGroup"
+            valueFrom:
+              template: |
+                id: {{"{{"}} .controller_server_group_id {{"}}"}}
+    - name: worker_server_group_id
+      description: "Sets the server group to assign the worker nodes to."
+      enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/serverGroup"
+            valueFrom:
+              template: |
+                id: {{"{{"}} .worker_server_group_id {{"}}"}}
+    - name: ssh_key
+      description: "Sets the ssh key to inject in the nodes."
+      enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+              machineDeploymentClass:
+                names:
+                  - {{ .Release.Name }}-{{ .Chart.Version }}
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/sshKeyName"
+            valueFrom:
+              variable: ssh_key
+    - name: certSANs
+      description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+      enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+            valueFrom:
+              variable: certSANs
