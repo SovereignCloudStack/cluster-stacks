@@ -98,12 +98,11 @@
         dest: "{{ ansible_user_dir }}/clouds.yaml"
         mode: "0644"
     - name: Create secrets and ClusterResourceSet for the clusterstacks approach
-      kubernetes.core.helm:
-        name: "clusterstacks-credentials"
-        chart_ref: "{{ openstack_csp_helper_chart_url }}"
-        release_namespace: default
-        values_files:
-          - "{{ ansible_user_dir }}/clouds.yaml"
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          helm upgrade -i clusterstacks-credentials {{ openstack_csp_helper_chart_url }} -f {{ ansible_user_dir }}/clouds.yaml
+        executable: /bin/bash
       changed_when: true
     - name: Find the directory containing metadata.yaml
       ansible.builtin.find:

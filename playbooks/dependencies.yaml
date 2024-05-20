@@ -58,7 +58,3 @@
         remote_src: true
       args:
         creates: "{{ install_dir }}/helm"
-    - name: Install kubernetes.core collection
-      ansible.builtin.command:
-        cmd: "ansible-galaxy collection install kubernetes.core"
-      changed_when: true
