@@ -3,7 +3,7 @@
   hosts: all
   vars:
     kind_version: "0.22.0"
-    kubectl_version: "1.28.7"
+    kubectl_version: "1.29.3"
     clusterctl_version: "1.7.1"
     helm_version: "3.14.3"
     yq_version: "4.44.1"
