@@ -8,7 +8,7 @@
       This job is not intended to be run directly, but instead
       must be inherited from it.
     pre-run: playbooks/dependencies.yaml
-    run: playbooks/e2e.yaml
+    run: playbooks/openstack/e2e.yaml
     vars:
       wait_for_cluster: 600  # 10min
       sonobouy:
