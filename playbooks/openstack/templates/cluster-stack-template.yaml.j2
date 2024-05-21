@@ -5,7 +5,7 @@ metadata:
 spec:
   provider: openstack
   name: alpha
-  kubernetesVersion: "1.29"
+  kubernetesVersion: "{{ k8s_version_major_minor }}"
   channel: custom
   autoSubscribe: false
   providerRef:

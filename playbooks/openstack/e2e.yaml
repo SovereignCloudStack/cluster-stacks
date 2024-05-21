@@ -120,6 +120,10 @@
         cluster_stack_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['clusterStack'] }}"
         k8s_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['kubernetes'] }}"
       when: metadata_content is defined
+    - name: Parse k8s version to major.minor
+      ansible.builtin.set_fact:
+        k8s_version_major_minor: "{{ k8s_version | regex_replace('^v?([0-9]+\\.[0-9]+)\\..*', '\\1') }}"
+      when: k8s_version is defined
     - name: Extract cloud name from clouds_yaml_full
       ansible.builtin.set_fact:
         cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"
