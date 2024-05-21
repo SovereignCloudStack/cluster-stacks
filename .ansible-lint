@@ -6,8 +6,5 @@ skip_list:
 mock_roles:
   - ensure-docker
   - ensure-go
-  - ensure-helm
-  - ensure-packer
 mock_modules:
   - zuul_return
-  - kubernetes.core.helm
