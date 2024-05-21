@@ -11,7 +11,7 @@
         name:
         - "python-openstackclient=={{ openstackclient_version }}"
         extra_args: --user
-    - name: Create Server Group for contole-plane nodes
+    - name: Create Server Group for control-plane nodes
       ansible.builtin.command: "openstack --os-compute-api-version 2.15 server group create --policy anti-affinity -f value -c id test-cluster-controller"
       register: srvgrp_controller
       environment:
