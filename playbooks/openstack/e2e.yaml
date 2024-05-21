@@ -11,7 +11,7 @@
     cluster_stack_release_container_dir: "/.release"
     openstack_csp_helper_chart_version: v0.6.0
     openstack_csp_helper_chart_url: "https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/{{ openstack_csp_helper_chart_version }}/openstack-csp-helper.tgz"
-    capo_version: "v0.10.1"
+    capo_version: "v0.10.3"
     openstackclient_version: "6.6.0"
 
     k8s_management_name: "management"
