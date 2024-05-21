@@ -13,7 +13,7 @@
     - role: ensure-docker
     - role: ensure-go
       vars:
-        go_version: 1.21.1
+        go_version: 1.21.6
   environment:
     PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
   tasks:
