@@ -37,7 +37,7 @@
     name: e2e-openstack-quick
     parent: openstack-e2e-abstract
     description: |
-      Run e2e tests of cluster-stack project using
+      Run e2e tests of cluster-stacks project using
       [sonobuoy](https://sonobuoy.io/) with mode quick and
       SCS compliance checks.
     timeout: 7200  # 2h
