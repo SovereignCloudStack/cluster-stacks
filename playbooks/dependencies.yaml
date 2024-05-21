@@ -5,7 +5,7 @@
     kind_version: "0.22.0"
     kubectl_version: "1.29.3"
     clusterctl_version: "1.7.1"
-    helm_version: "3.14.3"
+    helm_version: "3.14.4"
     yq_version: "4.44.1"
     envsubst_version: "1.4.2"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
