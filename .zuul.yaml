@@ -4,7 +4,7 @@
     abstract: true
     parent: openstack-access-base
     description: |
-      An abstract job for e2e testing of cluster stacs project.
+      An abstract job for e2e testing of cluster stacks project.
       This job is not intended to be run directly, but instead
       must be inherited from it.
     pre-run: playbooks/dependencies.yaml
