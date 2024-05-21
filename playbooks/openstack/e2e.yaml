@@ -132,11 +132,11 @@
     - name: Apply cluster-stack template
       ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
       changed_when: true
-    - name: Pause for 2 minutes
+    - name: Necessary pause for the clusterstack resource to exist (default is 2 minutes)
       ansible.builtin.pause:
-        minutes: 2
+        seconds: "{{ wait_for_cluster_stack_resource }}"
     - name: Wait for cluster-stack to be ready
-      ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout=1440s"
+      ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout={{ wait_for_cluster_stack }}s"
       changed_when: true
     - name: Create k8s workload cluster and execute checks
       block:
