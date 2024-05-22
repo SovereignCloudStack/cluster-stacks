@@ -44,7 +44,7 @@
           ansible.builtin.set_fact:
             cluster_stack_name: "{{ zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
           when:
-            - zuul_config is defined
+            - zuul_config is defined and zuul_config is not none and zuul_config != ''
             - zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"') is defined
         - name: Override cluster stack if extracted
           ansible.builtin.set_fact:
@@ -176,6 +176,9 @@
           ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
           environment:
             KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          changed_when: true
+        - name: Wait for clusteraddons resource to become ready
+          ansible.builtin.command: "kubectl wait clusteraddons/cluster-addon-test-cluster --for=condition=Ready --timeout={{ wait_for_clusteraddons }}s"
           changed_when: true
         - name: Import sonobouy tasks
           ansible.builtin.import_tasks: ../tasks/sonobouy.yaml

@@ -11,6 +11,7 @@
     run: playbooks/openstack/e2e.yaml
     vars:
       wait_for_cluster_stack_resource: 120 # 2min
+      wait_for_clusteraddons: 120 # 2min
       wait_for_cluster_stack: 1440 # 24min
       wait_for_cluster: 600  # 10min
       sonobouy:
