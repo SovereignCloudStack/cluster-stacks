@@ -4,7 +4,7 @@ metadata:
   name: clusterstack
 spec:
   provider: openstack
-  name: alpha
+  name: {{ cluster_stack_version_name }}
   kubernetesVersion: "{{ k8s_version_major_minor }}"
   channel: custom
   autoSubscribe: false

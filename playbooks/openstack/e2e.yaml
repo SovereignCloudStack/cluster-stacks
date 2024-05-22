@@ -5,6 +5,7 @@
     cloud_provider: "{{ cloud }}"  # inherited from the parent job
     cluster_stack: "providers/openstack/alpha/1-29"
     cluster_stack_name: "openstack-alpha-1-29"
+    cluster_stack_version_name: alpha
     project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
     cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
@@ -48,6 +49,7 @@
         - name: Override cluster stack if extracted
           ansible.builtin.set_fact:
             cluster_stack: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', 'providers/openstack/\\1/\\2') }}"
+            cluster_stack_version_name: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', '\\1') }}"
           when: cluster_stack_name is defined
     - name: Create cluster stack
       ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack }} --output {{ cluster_stack_release_dir }}  --mode hash"
