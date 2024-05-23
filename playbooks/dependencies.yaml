@@ -47,6 +47,7 @@
         url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
         dest: "{{ install_dir }}/kubectl"
         mode: "+x"
+    # TODO: Install csctl and csctl-openstack from the release when it will be available
     - name: Install csctl and csctl-openstack
       ansible.builtin.import_tasks: tasks/csctl.yaml
     - name: Install helm

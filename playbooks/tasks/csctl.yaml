@@ -3,7 +3,8 @@
   vars:
     csctl_dir: "{{ ansible_user_dir }}/csctl"
     csctl_openstack_dir: "{{ ansible_user_dir }}/csctl-openstack"
-    csctl_version: "main"
+    # FIXME: Workaround until the csctl binary can be built from the main branch again
+    csctl_version: "8549aad57a30b3ea82a0c32f586bd213de60dfa6"
     csctl_openstack_version: "main"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
