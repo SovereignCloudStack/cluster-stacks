@@ -49,7 +49,7 @@ def parse_variable(tmpl: dict) -> list:
     var_desc = var_schema.get("description", "TODO")
 
     row = []
-    row.append(var_name)
+    row.append(f"`{var_name}`")
     row.append(var_type)
 
     # Make sure that example and default values are quoted in the table
@@ -87,7 +87,7 @@ def parse_object(tmpl: dict) -> list:
     object_list = []
     for prop in props:
         row = []
-        row.append(f"{var_name}.{prop}")
+        row.append(f"`{var_name}.{prop}`")
         row.append(props[prop]["type"])
         row.append(props[prop].get("default", ""))
         row.append(props[prop].get("example", ""))
