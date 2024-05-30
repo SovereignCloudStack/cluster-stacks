@@ -46,6 +46,13 @@ spec:
             default: 6443
         required:
         - host
+  - name: controlPlaneEndpoint_private_ip
+    schema:
+      openAPIV3Schema:
+        type: string
+        format: "ipv4"
+        example: "192.168.222.150"
+        description: "Private IP address used by kube-vip. Defaults to .controlPlaneEndpoint.host."
   - name: image
     schema:
       openAPIV3Schema:
@@ -237,7 +244,7 @@ spec:
                   - name: lb_fwdmethod
                     value: local
                   - name: address
-                    value: '{{"{{"}} .controlPlaneEndpoint.host {{"}}"}}'
+                    value: {{ `"{{ if .controlPlaneEndpoint_private_ip }}{{.controlPlaneEndpoint_private_ip}}{{else}}{{.controlPlaneEndpoint.host}}{{end}}"` }}
                   - name: prometheus_server
                     value: :2112
                   image: ghcr.io/kube-vip/kube-vip:v0.7.2
