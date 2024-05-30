@@ -128,6 +128,9 @@ To achieve this, include the following text in the body of the PR:
     ```
 ```
 
+> [!NOTE]
+> Please note that only cluster-stacks for OpenStack are currently supported.
+
 ### FAQ
 
 #### How do developers/reviewers should proceed if they want to CI test this project?
