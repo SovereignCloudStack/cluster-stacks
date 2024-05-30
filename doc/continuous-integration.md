@@ -77,7 +77,7 @@ This section describes Zuul jobs defined within the cluster-stacks project and l
   - It runs a sonobuoy conformance test against Kubernetes cluster spawned by a specific cluster-stack
   - This job is a child job of `openstack-access-base` that ensures OpenStack credentials
     availability in Zuul worker node. Parent job also defines a Zuul semaphore `semaphore-openstack-access`,
-    that ensures that only one `openstack-access-base` job (or its children) can run at a time
+    that ensures that a maximum of three `openstack-access-base` jobs (or their children) can run at a time
   - See a high level `e2e-openstack-conformance` job steps:
     - Pre-run playbook `dependencies.yaml` installs project prerequisites, e.g. clusterctl, KinD, csctl, etc.
     - Main playbook `e2e.yaml` spawns a k8s workload cluster using a specific cluster-stack in OpenStack, runs sonobuoy conformance test, SCS compliance test, and cleans created k8s workload cluster
