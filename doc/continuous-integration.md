@@ -80,7 +80,7 @@ This section describes Zuul jobs defined within the cluster-stacks project and l
     that ensures that only one `openstack-access-base` job (or its children) can run at a time
   - See a high level `e2e-openstack-conformance` job steps:
     - Pre-run playbook `dependencies.yaml` installs project prerequisites, e.g. clusterctl, KinD, csctl, etc.
-    - Main playbook `e2e.yaml` spawns a k8s workload cluster using a specific cluster-stack, runs sonobuoy conformance test, SCS compliance test, and cleans created k8s workload cluster
+    - Main playbook `e2e.yaml` spawns a k8s workload cluster using a specific cluster-stack in OpenStack, runs sonobuoy conformance test, SCS compliance test, and cleans created k8s workload cluster
 
 - `e2e-openstack-quick`
   - It runs a sonobuoy quick test against Kubernetes cluster spawned by a specific cluster-stack
