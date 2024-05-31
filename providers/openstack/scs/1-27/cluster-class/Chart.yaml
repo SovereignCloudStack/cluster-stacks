@@ -1,7 +1,7 @@
 apiVersion: v2
 description: |
   This chart installs and configures:
-  * Openstack Wooctavia Cluster Class
-name: openstack-wooctavia-1-27-cluster-class
+  * Openstack scs Cluster Class
+name: openstack-scs-1-27-cluster-class
 type: application
-version: v3
+version: v1
