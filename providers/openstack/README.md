@@ -37,8 +37,8 @@ The CSO and CSPO must be directed to the Cluster Stacks repository housing relea
 Modify and export the following environment variables if you wish to redirect CSO and CSPO to an alternative Git repository
 
 Be aware that GitHub enforces limitations on the number of API requests per unit of time. To overcome this,
-it is recommended to configure a [personal access token](https://github.com/settings/personal-access-tokens/new) for authenticated calls. This will significantly increase the rate limit for GitHub API requests.  
-Fine grained PAT with `Public Repositories (read-only)` is enough.  
+it is recommended to configure a [personal access token](https://github.com/settings/personal-access-tokens/new) for authenticated calls. This will significantly increase the rate limit for GitHub API requests.
+Fine grained PAT with `Public Repositories (read-only)` is enough.
 
 ```bash
 export GIT_PROVIDER_B64=Z2l0aHVi  # github
@@ -74,9 +74,10 @@ curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstac
 ```
 
 ### Deploy CSP-helper chart
-The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in. 
 
-cloud and secret name default to `openstack`.
+The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in.
+
+Cloud and secret name default to `openstack`.
 
 Example `clouds.yaml`
 
@@ -200,10 +201,10 @@ clusterctl -n my-tenant get kubeconfig cs-cluster > kubeconfig.yaml
 kubectl --kubeconfig kubeconfig.yaml get nodes
 ```
 
-## Check the workload cluster health 
+## Check the workload cluster health
 
 ```bash
-$ kubectl --kubeconfig kubeconfig.yaml get po -A
+$ kubectl --kubeconfig kubeconfig.yaml get pods -A
 NAMESPACE     NAME                                                     READY   STATUS    RESTARTS   AGE
 kube-system   cilium-8mzrx                                             1/1     Running   0          7m58s
 kube-system   cilium-jdxqm                                             1/1     Running   0          6m43s
