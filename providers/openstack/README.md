@@ -12,7 +12,7 @@ Note that it is a common practice to create a temporary, local [bootstrap cluste
 - Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - Install [Helm](https://helm.sh/docs/intro/install/)
 - Install [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start.html#install-clusterctl)
-- Install [go](https://go.dev/doc/install) and the package [envsubst](https://github.com/drone/envsubst) is required to enable the expansion of variables specified in CSPO and CSO manifests.
+- Install [go](https://go.dev/doc/install)
 - Install [jq](https://jqlang.github.io/jq/)
 
 ## Initialize the management cluster
