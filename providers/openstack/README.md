@@ -69,6 +69,12 @@ Get the latest CSPO release version and apply CSPO manifests to the management c
 curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/latest/download/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
+## Define a namespace for a tenant (CSP/per tenant)
+
+```sh
+export CS_NAMESPACE=my-tenant
+```
+
 ### Deploy CSP-helper chart
 
 The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in.
@@ -96,37 +102,57 @@ helm upgrade -i csp-helper-"${CS_NAMESPACE}" -n "${CS_NAMESPACE}" --create-names
 
 ## Create Cluster Stack definition (CSP/per tenant)
 
+Configure the Cluster Stack you want to use:
+
+```sh
+# the name of the cluster stack (must match a name of a directory in https://github.com/SovereignCloudStack/cluster-stacks/tree/main/providers/openstack)
+export CS_NAME=alpha
+
+# the kubernetes version of the cluster stack (must match a tag for the kubernetes version and the stack version)
+export CS_K8S_VERSION=1.29
+
+# the version of the cluster stack (must match a tag for the kubernetes version and the stack version)
+export CS_VERSION=v2
+export CS_CHANNEL=stable
+
+# must match a cloud section name in the used clouds.yaml
+export CS_CLOUDNAME=openstack
+export CS_SECRETNAME="${CS_CLOUDNAME}"
+```
+
+This will use the cluster-stack as defined in the `providers/openstack/alpha` directory.
+
 ```bash
 cat >clusterstack.yaml <<EOF
 apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
 metadata:
   name: clusterstack
-  namespace: my-tenant
+  namespace: ${CS_NAMESPACE}
 spec:
   provider: openstack
-  name: alpha
-  kubernetesVersion: "1.29"
-  channel: stable
+  name: ${CS_NAME}
+  kubernetesVersion: ${CS_K8S_VERSION}
+  channel: ${CS_CHANNEL}
   autoSubscribe: false
   providerRef:
     apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
     kind: OpenStackClusterStackReleaseTemplate
     name: cspotemplate
   versions:
-    - v2
+    - ${CS_VERSION}
 ---
 apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
 kind: OpenStackClusterStackReleaseTemplate
 metadata:
   name: cspotemplate
-  namespace: my-tenant
+  namespace: ${CS_NAMESPACE}
 spec:
   template:
     spec:
       identityRef:
         kind: Secret
-        name: openstack
+        name: ${CS_SECRETNAME}
 EOF
 
 kubectl apply -f clusterstack.yaml
@@ -139,26 +165,42 @@ openstackclusterstackreleasetemplate.infrastructure.clusterstack.x-k8s.io/cspote
 
 ## Create the workload cluster resource (SCS-User/customer)
 
-Create and apply `cluster.yaml` file to the management cluster:
+To create a workload cluster you must configure the following things:
 
 ```bash
-cat >cluster.yaml <<EOF
+export CS_CLUSTER_NAME=cs-cluster
+# Note: if you need more than one POD_CIDR, please adjust the yaml file accordingly
+export CS_POD_CIDR=192.168.0.0/16
+# Note: if you need more than one SERVICE_CIDR, please adjust the yaml file accordingly
+export CS_SERVICE_CIDR=10.96.0.0/12
+export CS_EXTERNAL_ID=ebfe5546-f09f-4f42-ab54-094e457d42ec # gx-scs
+export CS_CLASS_NAME=openstack-"${CS_NAME}"-"${CS_K8S_VERSION/./-}"-"${CS_VERSION}"
+export CS_K8S_PATCH_VERSION=3
+```
+
+Create and apply `cluster.yaml` file to the management cluster.
+
+Depending on your cluster-class and cluster addons, some more variables may have to be provided in the `spec.topology.variables` list.
+An error message after applying the `Cluster` resource will tell you if more variables are necessary.
+
+```bash
+cat > cluster.yaml <<EOF
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: cs-cluster
-  namespace: my-tenant
+  name: ${CS_CLUSTER_NAME}
+  namespace: ${CS_NAMESPACE}
   labels:
     managed-secret: cloud-config
 spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-        - 192.168.0.0/16
+        - ${CS_POD_CIDR}
     serviceDomain: cluster.local
     services:
       cidrBlocks:
-        - 10.96.0.0/12
+        - ${CS_SERVICE_CIDR}
   topology:
     variables:
       - name: controller_flavor
@@ -166,16 +208,16 @@ spec:
       - name: worker_flavor
         value: "SCS-2V-4-50"
       - name: external_id
-        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec" # gx-scs
-    class: openstack-alpha-1-29-v2
+        value: ${CS_EXTERNAL_ID}
+    class: ${CS_CLASS_NAME}
     controlPlane:
       replicas: 1
-    version: v1.29.3
+    version: v${CS_K8S_VERSION}.${CS_K8S_PATCH_VERSION}
     workers:
       machineDeployments:
-        - class: openstack-alpha-1-29-v2
+        - class: ${CS_CLASS_NAME}
           failureDomain: nova
-          name: openstack-alpha-1-29-v2
+          name: ${CS_CLASS_NAME}
           replicas: 3
 EOF
 
@@ -189,14 +231,14 @@ cluster.cluster.x-k8s.io/cs-cluster created
 Utilize a convenient CLI `clusterctl` to investigate the health of the cluster:
 
 ```bash
-clusterctl -n my-tenant describe cluster cs-cluster
+clusterctl -n ${CS_NAMESPACE} describe cluster ${CS_CLUSTER_NAME}
 ```
 
 Once the cluster is provisioned and in good health, you can retrieve its kubeconfig and establish communication with the newly created workload cluster:
 
 ```bash
 # Get the workload cluster kubeconfig
-clusterctl -n my-tenant get kubeconfig cs-cluster > kubeconfig.yaml
+clusterctl -n "${CS_NAMESPACE}" get kubeconfig ${CS_CLUSTER_NAME} > kubeconfig.yaml
 # Communicate with the workload cluster
 kubectl --kubeconfig kubeconfig.yaml get nodes
 ```
