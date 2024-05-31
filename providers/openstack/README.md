@@ -58,19 +58,15 @@ GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 Get the latest CSO release version and apply CSO manifests to the management cluster.
 
 ```bash
-# Get the latest CSO release version
-CSO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-stack-operator/releases/latest -s | jq .name -r)
-# Apply CSO manifests
-curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/download/${CSO_VERSION}/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+# Get the latest CSO release version and apply CSO manifests
+curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/latest/download/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
 Get the latest CSPO release version and apply CSPO manifests to the management cluster.
 
 ```bash
-# Get the latest CSPO release version
-CSPO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-stack-provider-openstack/releases/latest -s | jq .name -r)
-# Apply CSPO manifests
-curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/download/${CSPO_VERSION}/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+# Get the latest CSPO release version and apply CSPO manifests
+curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/latest/download/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
 ### Deploy CSP-helper chart
@@ -95,7 +91,7 @@ clouds:
 ```
 
 ```bash
-helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/v0.3.0/v0.3.0.tgz -f path/to/clouds.yaml
+helm upgrade -i csp-helper-"${CS_NAMESPACE}" -n "${CS_NAMESPACE}" --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/latest/download/openstack-csp-helper.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
