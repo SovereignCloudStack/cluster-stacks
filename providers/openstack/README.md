@@ -1,4 +1,4 @@
-## Quickstart
+# Quickstart
 
 This quickstart guide contains steps to install the [Cluster Stack Operator][CSO] (CSO) utilizing the [Cluster Stack Provider OpenStack][CSPO] (CSPO) to provide [ClusterClasses][ClusterClass] which can be used with the [Kubernetes Cluster API][CAPI] to create Kubernetes Clusters.
 
