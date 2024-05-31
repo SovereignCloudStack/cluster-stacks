@@ -101,7 +101,7 @@ helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://git
 ## Create Cluster Stack definition (CSP/per tenant)
 
 ```bash
-cat <<EOF | kubectl apply -f -
+cat >clusterstack.yaml <<EOF
 apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
 metadata:
@@ -132,6 +132,8 @@ spec:
         kind: Secret
         name: openstack
 EOF
+
+kubectl apply -f clusterstack.yaml
 ```
 
 ```
@@ -144,7 +146,7 @@ openstackclusterstackreleasetemplate.infrastructure.clusterstack.x-k8s.io/cspote
 Create and apply `cluster.yaml` file to the management cluster:
 
 ```bash
-cat <<EOF | kubectl apply -f -
+cat >cluster.yaml <<EOF
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -180,6 +182,8 @@ spec:
           name: openstack-alpha-1-29-v2
           replicas: 3
 EOF
+
+kubectl apply -f cluster.yaml
 ```
 
 ```
