@@ -170,6 +170,9 @@
         - name: Get kubeadmcontrolplane status
           ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
           changed_when: true
+        - name: Wait for control-plane machines to be ready
+          ansible.builtin.command: "kubectl wait machines --for=condition=Ready -l cluster.x-k8s.io/control-plane,cluster.x-k8s.io/cluster-name=test-cluster --timeout={{ wait_for_cluster }}s"
+          changed_when: true
         - name: Get kubeconfig of the workload k8s cluster
           ansible.builtin.shell: "clusterctl get kubeconfig test-cluster > {{ cluster_manifest_dir }}/kubeconfig-test-cluster"
           changed_when: true
