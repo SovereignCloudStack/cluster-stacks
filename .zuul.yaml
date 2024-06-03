@@ -9,6 +9,7 @@
       must be inherited from it.
     pre-run: playbooks/dependencies.yaml
     run: playbooks/openstack/e2e.yaml
+    cleanup-run: playbooks/openstack/cleanup.yaml  # executed also when the job is canceled
     vars:
       wait_for_cluster_stack_resource: 120  # 2min
       wait_for_clusteraddons: 120  # 2min

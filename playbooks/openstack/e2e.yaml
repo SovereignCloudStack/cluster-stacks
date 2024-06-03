@@ -2,7 +2,6 @@
 - name: Cluster stack OpenStack E2E test
   hosts: all
   vars:
-    cloud_provider: "{{ cloud }}"  # inherited from the parent job
     cluster_stack: "providers/openstack/alpha/1-29"
     cluster_stack_name: "openstack-alpha-1-29"
     cluster_stack_version_name: alpha
@@ -196,13 +195,3 @@
           vars:
             kubeconfig_path: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
           when: scs_compliance.enabled
-      always:
-        - name: Delete Server Groups
-          ansible.builtin.command: "openstack server group delete {{ srvgrp_worker.stdout }} {{ srvgrp_controller.stdout }}"
-          environment:
-            OS_CLOUD: "{{ cloud_name }}"
-          changed_when: true
-          when: scs_compliance.enabled
-        - name: Cleanup workload cluster
-          ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
-          changed_when: true
