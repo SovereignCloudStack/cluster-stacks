@@ -1,6 +1,8 @@
 ---
 - name: Cleanup
   hosts: all
+  vars:
+    cloud_name: "{{ cloud }}"  # inherited from the parent job
   tasks:
     - name: Delete server groups
       when: scs_compliance.enabled
