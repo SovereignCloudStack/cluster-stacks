@@ -3,37 +3,30 @@
   vars:
     csctl_dir: "{{ ansible_user_dir }}/csctl"
     csctl_openstack_dir: "{{ ansible_user_dir }}/csctl-openstack"
-    # FIXME: Workaround until the csctl binary can be built from the main branch again
-    csctl_version: "8549aad57a30b3ea82a0c32f586bd213de60dfa6"
-    csctl_openstack_version: "main"
+    csctl_version: "0.0.3"
+    csctl_openstack_version: "0.0.1"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
-    - name: Clone csctl repository
-      ansible.builtin.git:
-        repo: https://github.com/SovereignCloudStack/csctl.git
+    - name: Make sure csctl directory exists
+      ansible.builtin.file:
+        path: "{{ csctl_dir }}"
+        state: directory
+        mode: 0755
+    - name: Make sure csctl-openstack directory exists
+      ansible.builtin.file:
+        path: "{{ csctl_openstack_dir }}"
+        state: directory
+        mode: 0755
+    - name: Get csctl release
+      ansible.builtin.unarchive:
+        src: "https://github.com/SovereignCloudStack/csctl/releases/download/v{{ csctl_version }}/csctl_{{ csctl_version }}_linux_amd64.tar.gz"
         dest: "{{ csctl_dir }}"
-        single_branch: true
-        version: "{{ csctl_version }}"
-    - name: Clone csctl-openstack repository
-      ansible.builtin.git:
-        repo: https://github.com/SovereignCloudStack/csctl-plugin-openstack.git
+        remote_src: true
+    - name: Get csctl-openstack release
+      ansible.builtin.unarchive:
+        src: "https://github.com/SovereignCloudStack/csctl-plugin-openstack/releases/download/v{{ csctl_openstack_version }}/csctl-plugin-openstack_{{ csctl_openstack_version }}_linux_amd64.tar.gz"
         dest: "{{ csctl_openstack_dir }}"
-        single_branch: true
-        version: "{{ csctl_openstack_version }}"
-    - name: Build csctl
-      ansible.builtin.command: "make build"
-      args:
-        chdir: "{{ csctl_dir }}"
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
-      changed_when: true
-    - name: Build csctl-openstack plugin
-      ansible.builtin.command: "make build"
-      args:
-        chdir: "{{ csctl_openstack_dir }}"
-      environment:
-        PATH: "{{ ansible_env.PATH }}:/usr/local/go/bin"
-      changed_when: true
+        remote_src: true
     - name: Install csctl
       ansible.builtin.copy:
         src: "{{ csctl_dir }}/csctl"
