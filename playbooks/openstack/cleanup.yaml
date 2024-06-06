@@ -3,6 +3,8 @@
   hosts: all
   vars:
     cloud_name: "{{ cloud }}"  # inherited from the parent job
+  environment:
+    PATH: "{{ ansible_user_dir }}/.local/bin:{{ ansible_env.PATH }}"
   tasks:
     - name: Delete server groups
       when: scs_compliance.enabled
