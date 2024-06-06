@@ -1,0 +1,35 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: KamajiControlPlane
+metadata:
+  name: kamaji-quickstart-control-plane
+spec:
+  addons:
+    coreDNS:
+      dnsServiceIPs:
+      - 10.96.0.10
+    konnectivity:
+      agent:
+        image: registry.k8s.io/kas-network-proxy/proxy-agent
+        version: v0.0.32
+      server:
+        image: registry.k8s.io/kas-network-proxy/proxy-server
+        port: 8132
+        version: v0.0.32
+  apiServer:
+    extraArgs:
+    - --cloud-provider=external
+  controllerManager:
+    extraArgs:
+    - --cloud-provider=external
+  dataStoreName: default
+  kubelet:
+    cgroupfs: systemd
+    preferredAddressTypes:
+    - ExternalIP
+    - InternalIP
+    - Hostname
+  network:
+    serviceType: LoadBalancer
+  registry: registry.k8s.io
+  replicas: 1
+  version: 1.26.0

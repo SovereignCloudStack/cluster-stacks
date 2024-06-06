@@ -1,0 +1,40 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-testcluster
+  namespace: p500924-tender-6a
+  labels:
+    managed-secret: cloud-config
+    clusterAddonChart: enabled
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    variables:
+      - name: controller_flavor
+        value: "SCS-2V-4-50"
+      - name: worker_flavor
+        value: "SCS-2V-4-50"
+      - name: external_id
+        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+      - name: dns_nameservers
+        value: 
+          - "9.9.9.9"
+          - "8.8.8.8"
+    class: testcluster
+    controlPlane:
+      replicas: 1
+    version: v1.28.6
+    workers:
+      machineDeployments:
+        - class: capi-testcluster
+          failureDomain: nova
+          name: capi-testcluster
+          replicas: 1

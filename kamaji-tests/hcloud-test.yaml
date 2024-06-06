@@ -1,0 +1,32 @@
+
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: KamajiControlPlane
+metadata:
+  name: workload-control-plane
+  namespace: default
+spec:
+  apiServer:
+    extraArgs:
+      - --cloud-provider=external
+  controllerManager:
+    extraArgs:
+      - --cloud-provider=external
+  dataStoreName: default
+  addons:
+    coreDNS: { }
+    kubeProxy: { }
+  kubelet:
+    cgroupfs: systemd
+    preferredAddressTypes:
+      - ExternalIP
+      - InternalIP
+      - Hostname
+  network:
+    serviceType: LoadBalancer
+    serviceAnnotations:
+      load-balancer.hetzner.cloud/location: fsn1
+  deployment:
+  replicas: 2
+  version: 1.25.2
+

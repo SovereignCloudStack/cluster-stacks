@@ -1,0 +1,134 @@
+# See https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-openstack/main/templates/cluster-template.yaml
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: kamaji-cluster
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+    serviceDomain: "cluster.local"
+  infrastructureRef:
+    # apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+    kind: OpenStackCluster
+    name: kamaji-cluster
+  controlPlaneRef:
+    kind: KamajiControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    name: kamaji-cluster-control-plane
+---
+# apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+kind: OpenStackCluster
+metadata:
+  name: kamaji-cluster
+spec:
+  cloudName: openstack
+  identityRef:
+    name: openstack-cloud-config
+    kind: Secret
+  # managedAPIServerLoadBalancer: true
+  apiServerLoadBalancer:
+    enabled: true
+  managedSecurityGroups: true
+  nodeCidr: 10.8.0.0/20
+  dnsNameservers: 
+    - 8.8.8.8
+    - 9.9.9.9
+  externalNetworkId: ebfe5546-f09f-4f42-ab54-094e457d42ec
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "kamaji-cluster-md"
+spec:
+  clusterName: "kamaji-cluster"
+  replicas: 1
+  selector:
+    matchLabels:
+  template:
+    spec:
+      clusterName: "kamaji-cluster"
+      version: 1.28.6
+      bootstrap:
+        configRef:
+          name: kamaji-cluster
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: kamaji-cluster
+        # apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+        kind: OpenStackMachineTemplate
+---
+# apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha7
+kind: OpenStackMachineTemplate
+metadata:
+  name: kamaji-cluster
+spec:
+  template:
+    spec:
+      cloudName: openstack
+      identityRef:
+        name: openstack-cloud-config
+        kind: Secret
+      flavor: SCS-2V-4-50
+      image: ubuntu-capi-image-v1.28.6
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: kamaji-cluster
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ local_hostname }}'
+          kubeletExtraArgs:
+            cloud-provider: external
+            provider-id: openstack:///'{{ instance_id }}'
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: KamajiControlPlane
+metadata:
+  name: kamaji-quickstart-control-plane
+  namespace: kamaji-system
+spec:
+  addons:
+    coreDNS:
+      dnsServiceIPs:
+      - 10.96.0.10
+    konnectivity:
+      agent:
+        image: registry.k8s.io/kas-network-proxy/proxy-agent
+        version: v0.0.32
+      server:
+        image: registry.k8s.io/kas-network-proxy/proxy-server
+        port: 8132
+        version: v0.0.32
+  apiServer:
+    extraArgs:
+    - --cloud-provider=external
+  controllerManager:
+    extraArgs:
+    - --cloud-provider=external
+  dataStoreName: default
+  kubelet:
+    cgroupfs: systemd
+    preferredAddressTypes:
+    - ExternalIP
+    - InternalIP
+    - Hostname
+  network:
+    serviceType: LoadBalancer
+  registry: registry.k8s.io
+  replicas: 1
+  version: 1.28.6
