@@ -1,7 +1,7 @@
 apiVersion: csctl.clusterstack.x-k8s.io/v1alpha1
 config:
-  kubernetesVersion: v1.27.12
-  clusterStackName: wooctavia
+  kubernetesVersion: v1.27.14
+  clusterStackName: scs
   provider:
     type: openstack
     apiVersion: openstack.csctl.clusterstack.x-k8s.io/v1alpha1
