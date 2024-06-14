@@ -1,4 +1,4 @@
-## Quickstart
+# Quickstart
 
 This quickstart guide contains steps to install the [Cluster Stack Operator][CSO] (CSO) utilizing the [Cluster Stack Provider OpenStack][CSPO] (CSPO) to provide [ClusterClasses][ClusterClass] which can be used with the [Kubernetes Cluster API][CAPI] to create Kubernetes Clusters.
 
@@ -12,7 +12,7 @@ Note that it is a common practice to create a temporary, local [bootstrap cluste
 - Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - Install [Helm](https://helm.sh/docs/intro/install/)
 - Install [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start.html#install-clusterctl)
-- Install [go](https://go.dev/doc/install) and the package [envsubst](https://github.com/drone/envsubst) is required to enable the expansion of variables specified in CSPO and CSO manifests.
+- Install [go](https://go.dev/doc/install)
 - Install [jq](https://jqlang.github.io/jq/)
 
 ## Initialize the management cluster
@@ -37,8 +37,8 @@ The CSO and CSPO must be directed to the Cluster Stacks repository housing relea
 Modify and export the following environment variables if you wish to redirect CSO and CSPO to an alternative Git repository
 
 Be aware that GitHub enforces limitations on the number of API requests per unit of time. To overcome this,
-it is recommended to configure a [personal access token](https://github.com/settings/personal-access-tokens/new) for authenticated calls. This will significantly increase the rate limit for GitHub API requests.  
-Fine grained PAT with `Public Repositories (read-only)` is enough.  
+it is recommended to configure a [personal access token](https://github.com/settings/personal-access-tokens/new) for authenticated calls. This will significantly increase the rate limit for GitHub API requests.
+Fine grained PAT with `Public Repositories (read-only)` is enough.
 
 ```bash
 export GIT_PROVIDER_B64=Z2l0aHVi  # github
@@ -58,25 +58,28 @@ GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 Get the latest CSO release version and apply CSO manifests to the management cluster.
 
 ```bash
-# Get the latest CSO release version
-CSO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-stack-operator/releases/latest -s | jq .name -r)
-# Apply CSO manifests
-curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/download/${CSO_VERSION}/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+# Get the latest CSO release version and apply CSO manifests
+curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/latest/download/cso-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
 ```
 
 Get the latest CSPO release version and apply CSPO manifests to the management cluster.
 
 ```bash
-# Get the latest CSPO release version
-CSPO_VERSION=$(curl https://api.github.com/repos/SovereignCloudStack/cluster-stack-provider-openstack/releases/latest -s | jq .name -r)
-# Apply CSPO manifests
-curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/download/${CSPO_VERSION}/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+# Get the latest CSPO release version and apply CSPO manifests
+curl -sSL https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/latest/download/cspo-infrastructure-components.yaml | /tmp/envsubst | kubectl apply -f -
+```
+
+## Define a namespace for a tenant (CSP/per tenant)
+
+```sh
+export CS_NAMESPACE=my-tenant
 ```
 
 ### Deploy CSP-helper chart
-The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in. 
 
-cloud and secret name default to `openstack`.
+The csp-helper chart is meant to create per tenant credentials as well as the tenants namespace where all resources for this tenant will live in.
+
+Cloud and secret name default to `openstack`.
 
 Example `clouds.yaml`
 
@@ -94,43 +97,65 @@ clouds:
 ```
 
 ```bash
-helm upgrade -i csp-helper-my-tenant -n my-tenant --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/v0.3.0/v0.3.0.tgz -f path/to/clouds.yaml
+helm upgrade -i csp-helper-"${CS_NAMESPACE}" -n "${CS_NAMESPACE}" --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/latest/download/openstack-csp-helper.tgz -f path/to/clouds.yaml
 ```
 
 ## Create Cluster Stack definition (CSP/per tenant)
 
+Configure the Cluster Stack you want to use:
+
+```sh
+# the name of the cluster stack (must match a name of a directory in https://github.com/SovereignCloudStack/cluster-stacks/tree/main/providers/openstack)
+export CS_NAME=alpha
+
+# the kubernetes version of the cluster stack (must match a tag for the kubernetes version and the stack version)
+export CS_K8S_VERSION=1.29
+
+# the version of the cluster stack (must match a tag for the kubernetes version and the stack version)
+export CS_VERSION=v2
+export CS_CHANNEL=stable
+
+# must match a cloud section name in the used clouds.yaml
+export CS_CLOUDNAME=openstack
+export CS_SECRETNAME="${CS_CLOUDNAME}"
+```
+
+This will use the cluster-stack as defined in the `providers/openstack/alpha` directory.
+
 ```bash
-cat <<EOF | kubectl apply -f -
+cat >clusterstack.yaml <<EOF
 apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
 metadata:
   name: clusterstack
-  namespace: my-tenant
+  namespace: ${CS_NAMESPACE}
 spec:
   provider: openstack
-  name: alpha
-  kubernetesVersion: "1.29"
-  channel: stable
+  name: ${CS_NAME}
+  kubernetesVersion: ${CS_K8S_VERSION}
+  channel: ${CS_CHANNEL}
   autoSubscribe: false
   providerRef:
     apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
     kind: OpenStackClusterStackReleaseTemplate
     name: cspotemplate
   versions:
-    - v2
+    - ${CS_VERSION}
 ---
 apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
 kind: OpenStackClusterStackReleaseTemplate
 metadata:
   name: cspotemplate
-  namespace: my-tenant
+  namespace: ${CS_NAMESPACE}
 spec:
   template:
     spec:
       identityRef:
         kind: Secret
-        name: openstack
+        name: ${CS_SECRETNAME}
 EOF
+
+kubectl apply -f clusterstack.yaml
 ```
 
 ```
@@ -140,26 +165,42 @@ openstackclusterstackreleasetemplate.infrastructure.clusterstack.x-k8s.io/cspote
 
 ## Create the workload cluster resource (SCS-User/customer)
 
-Create and apply `cluster.yaml` file to the management cluster:
+To create a workload cluster you must configure the following things:
 
 ```bash
-cat <<EOF | kubectl apply -f -
+export CS_CLUSTER_NAME=cs-cluster
+# Note: if you need more than one POD_CIDR, please adjust the yaml file accordingly
+export CS_POD_CIDR=192.168.0.0/16
+# Note: if you need more than one SERVICE_CIDR, please adjust the yaml file accordingly
+export CS_SERVICE_CIDR=10.96.0.0/12
+export CS_EXTERNAL_ID=ebfe5546-f09f-4f42-ab54-094e457d42ec # gx-scs
+export CS_CLASS_NAME=openstack-"${CS_NAME}"-"${CS_K8S_VERSION/./-}"-"${CS_VERSION}"
+export CS_K8S_PATCH_VERSION=3
+```
+
+Create and apply `cluster.yaml` file to the management cluster.
+
+Depending on your cluster-class and cluster addons, some more variables may have to be provided in the `spec.topology.variables` list.
+An error message after applying the `Cluster` resource will tell you if more variables are necessary.
+
+```bash
+cat > cluster.yaml <<EOF
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: cs-cluster
-  namespace: my-tenant
+  name: ${CS_CLUSTER_NAME}
+  namespace: ${CS_NAMESPACE}
   labels:
     managed-secret: cloud-config
 spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-        - 192.168.0.0/16
+        - ${CS_POD_CIDR}
     serviceDomain: cluster.local
     services:
       cidrBlocks:
-        - 10.96.0.0/12
+        - ${CS_SERVICE_CIDR}
   topology:
     variables:
       - name: controller_flavor
@@ -167,18 +208,20 @@ spec:
       - name: worker_flavor
         value: "SCS-2V-4-50"
       - name: external_id
-        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec" # gx-scs
-    class: openstack-alpha-1-29-v2
+        value: ${CS_EXTERNAL_ID}
+    class: ${CS_CLASS_NAME}
     controlPlane:
       replicas: 1
-    version: v1.29.3
+    version: v${CS_K8S_VERSION}.${CS_K8S_PATCH_VERSION}
     workers:
       machineDeployments:
-        - class: openstack-alpha-1-29-v2
+        - class: ${CS_CLASS_NAME}
           failureDomain: nova
-          name: openstack-alpha-1-29-v2
+          name: ${CS_CLASS_NAME}
           replicas: 3
 EOF
+
+kubectl apply -f cluster.yaml
 ```
 
 ```
@@ -188,22 +231,22 @@ cluster.cluster.x-k8s.io/cs-cluster created
 Utilize a convenient CLI `clusterctl` to investigate the health of the cluster:
 
 ```bash
-clusterctl -n my-tenant describe cluster cs-cluster
+clusterctl -n ${CS_NAMESPACE} describe cluster ${CS_CLUSTER_NAME}
 ```
 
 Once the cluster is provisioned and in good health, you can retrieve its kubeconfig and establish communication with the newly created workload cluster:
 
 ```bash
 # Get the workload cluster kubeconfig
-clusterctl -n my-tenant get kubeconfig cs-cluster > kubeconfig.yaml
+clusterctl -n "${CS_NAMESPACE}" get kubeconfig ${CS_CLUSTER_NAME} > kubeconfig.yaml
 # Communicate with the workload cluster
 kubectl --kubeconfig kubeconfig.yaml get nodes
 ```
 
-## Check the workload cluster health 
+## Check the workload cluster health
 
 ```bash
-$ kubectl --kubeconfig kubeconfig.yaml get po -A
+$ kubectl --kubeconfig kubeconfig.yaml get pods -A
 NAMESPACE     NAME                                                     READY   STATUS    RESTARTS   AGE
 kube-system   cilium-8mzrx                                             1/1     Running   0          7m58s
 kube-system   cilium-jdxqm                                             1/1     Running   0          6m43s
