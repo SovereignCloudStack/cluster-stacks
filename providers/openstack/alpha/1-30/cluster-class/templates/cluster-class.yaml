@@ -52,9 +52,6 @@ spec:
          example: ["5.1.66.255", "185.150.99.255"]
          items:
            type: string
-   - name: controller_flavor
-     required: false
-     schema:
        openAPIV3Schema:
          type: string
          default: "SCS-2V-4-20"
@@ -224,7 +221,7 @@ create group names like oidc:engineering and oidc:infra."
          type: array
          default: []
          example: ["10.6.0.0/24"]
-         description: "Allows restricting access to kubernetes API by list of CIDRs. Empty list (default) means public, [ "none" ] means internal access only."
+         description: "Allows restricting access to kubernetes API by list of CIDRs. Empty list (default) means public, [ 'none' ] means internal access only."
          items:
            type: string
   patches:
