@@ -132,7 +132,7 @@ metadata:
 spec:
   provider: openstack
   name: ${CS_NAME}
-  kubernetesVersion: ${CS_K8S_VERSION}
+  kubernetesVersion: "${CS_K8S_VERSION}"
   channel: ${CS_CHANNEL}
   autoSubscribe: false
   providerRef:
