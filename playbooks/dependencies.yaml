@@ -1,0 +1,61 @@
+---
+- name: Ensure cluster stacks dependencies
+  hosts: all
+  vars:
+    kind_version: "0.22.0"
+    kubectl_version: "1.29.3"
+    clusterctl_version: "1.7.2"
+    helm_version: "3.14.4"
+    yq_version: "4.44.1"
+    envsubst_version: "1.4.2"
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  roles:  # https://opendev.org/zuul/zuul-jobs
+    - role: ensure-docker
+    - role: ensure-go
+      vars:
+        go_version: 1.21.6
+  environment:
+    PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
+  tasks:
+    - name: Make sure installation directory exists
+      ansible.builtin.file:
+        path: "{{ install_dir }}"
+        state: directory
+        mode: 0755
+    - name: Install clusterctl
+      ansible.builtin.get_url:
+        url: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v{{ clusterctl_version }}/clusterctl-linux-amd64"
+        dest: "{{ install_dir }}/clusterctl"
+        mode: "+x"
+    - name: Install envsubst
+      ansible.builtin.get_url:
+        url: "https://github.com/a8m/envsubst/releases/download/v{{ envsubst_version }}/envsubst-Linux-x86_64"
+        dest: "{{ install_dir }}/envsubst"
+        mode: "+x"
+    - name: Install yq
+      ansible.builtin.get_url:
+        url: "https://github.com/mikefarah/yq/releases/download/v{{ yq_version }}/yq_linux_amd64"
+        dest: "{{ install_dir }}/yq"
+        mode: "+x"
+    - name: Install KinD
+      ansible.builtin.get_url:
+        url: "https://kind.sigs.k8s.io/dl/v{{ kind_version }}/kind-linux-amd64"
+        dest: "{{ install_dir }}/kind"
+        mode: "+x"
+    - name: Install kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: "{{ install_dir }}/kubectl"
+        mode: "+x"
+    # TODO: Install csctl and csctl-openstack from the release when it will be available
+    - name: Install csctl and csctl-openstack
+      ansible.builtin.import_tasks: tasks/csctl.yaml
+    - name: Install helm
+      ansible.builtin.unarchive:
+        src: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+        dest: "{{ install_dir }}"
+        extra_opts: "--strip-components=1"
+        mode: "+x"
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/helm"
