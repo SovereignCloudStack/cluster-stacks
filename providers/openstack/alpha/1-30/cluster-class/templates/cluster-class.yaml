@@ -217,6 +217,16 @@ Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
              description: "Prefix prepended to group claims to prevent clashes
 with existing names (such as system: groups). For example, the value oidc: will
 create group names like oidc:engineering and oidc:infra."
+   - name: restrict_kubeapi
+     required: false
+     schema:
+       openAPIV3Schema:
+         type: array
+         default: []
+         example: ["10.6.0.0/24"]
+         description: "Allows restricting access to kubernetes API by list of CIDRs. Empty list (default) means public, [ "none" ] means internal access only."
+         items:
+           type: string
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -536,3 +546,16 @@ create group names like oidc:engineering and oidc:infra."
             path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-prefix"
             valueFrom:
               variable: oidc_config.groups_prefix
+    - name: restrict_kubeapi
+      description: "Sets list of CIDRS for restricting access to kubernetes API"
+      enabledIf: {{ `"{{ if .restrict_kubeapi }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: replace
+            path: "/spec/template/spec/apiServerLoadBalancer/allowedCIDRs"
+            value: restrict_kubeapi
