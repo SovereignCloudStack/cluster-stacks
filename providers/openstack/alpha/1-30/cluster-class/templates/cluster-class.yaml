@@ -52,6 +52,9 @@ spec:
          example: ["5.1.66.255", "185.150.99.255"]
          items:
            type: string
+   - name: controller_flavor
+     required: false
+     schema:
        openAPIV3Schema:
          type: string
          default: "SCS-2V-4-20"
