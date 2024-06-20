@@ -93,6 +93,7 @@
     - name: Combine clouds_yaml_b64 and secure_yaml_b64 to produce full clouds.yaml
       ansible.builtin.set_fact:
         clouds_yaml_full: "{{ clouds_yaml_b64.content | b64decode | from_yaml | ansible.builtin.combine(secure_yaml_b64.content | b64decode | from_yaml, recursive=true) }}"
+      no_log: true
     - name: Write clouds.yaml file
       ansible.builtin.copy:
         content: "{{ clouds_yaml_full | to_yaml }}"
