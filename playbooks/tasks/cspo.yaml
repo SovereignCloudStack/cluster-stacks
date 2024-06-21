@@ -1,0 +1,39 @@
+---
+- name: Install CSPO
+  vars:
+    cspo_version: "0.1.0-alpha.3"
+    cspo_dir: "{{ ansible_user_dir }}/cspo"
+    cspo_wait_for_pods: 240
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  block:
+    - name: Make sure CSPO directory exists
+      ansible.builtin.file:
+        path: "{{ cspo_dir }}"
+        state: directory
+        mode: 0755
+    - name: Get CSPO manifest
+      ansible.builtin.get_url:
+        url: "https://github.com/sovereignCloudStack/cluster-stack-provider-openstack/releases/download/v{{ cspo_version }}/cspo-infrastructure-components.yaml"
+        dest: "{{ cspo_dir }}/cspo-infrastructure-components.yaml"
+        mode: "+w"
+    - name: Patch the CSPO deployment - enable the local mode and mount the cluster stack release
+      ansible.builtin.script:
+        cmd: "../files/patch_csx_deployment.sh {{ cspo_dir }}/cspo-infrastructure-components.yaml {{ release_dir }}"
+        executable: /bin/bash
+      changed_when: true
+    - name: Apply CSPO manifest
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          cat {{ cspo_dir }}/cspo-infrastructure-components.yaml | {{ install_dir }}/envsubst | kubectl apply -f -
+        executable: /bin/bash
+      changed_when: true
+      environment:
+        GIT_PROVIDER_B64: Z2l0aHVi  # github
+        GIT_ORG_NAME_B64: U292ZXJlaWduQ2xvdWRTdGFjaw==  # SovereignCloudStack
+        GIT_REPOSITORY_NAME_B64: Y2x1c3Rlci1zdGFja3M=  # cluster-stacks
+        # FIXME: It should be fetched from the zuul secret
+        # GIT_ACCESS_TOKEN_B64:
+    - name: Wait for all CSPO pods to become ready
+      ansible.builtin.command: "kubectl wait -n cspo-system --for=condition=Ready --timeout={{ cspo_wait_for_pods }}s pod --all"
+      changed_when: true
