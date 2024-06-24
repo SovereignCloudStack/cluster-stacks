@@ -1,0 +1,28 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        initConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+              node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
+            name: '{{"{{"}} ds.meta_data.name {{"}}"}}'
+        joinConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+              node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
+            name: '{{"{{"}} ds.meta_data.name {{"}}"}}'
+        files:
+        - content: |
+            ip_vs
+            ip_vs_rr
+            nf_conntrack
+          owner: "root:root"
+          path: /etc/modules-load.d/kube-vip.conf
+          permissions: "0644"
+        preKubeadmCommands:
+        - modprobe --all ip_vs ip_vs_rr nf_conntrack

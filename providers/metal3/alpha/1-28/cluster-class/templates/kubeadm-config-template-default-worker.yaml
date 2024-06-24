@@ -1,0 +1,12 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: 'metal3.io/uuid={{"{{"}} ds.meta_data.uuid {{"}}"}}'
+          name: '{{"{{"}} ds.meta_data.name {{"}}"}}'
