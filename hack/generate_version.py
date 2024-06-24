@@ -151,6 +151,8 @@ def update_cluster_addon(
         if dep["name"] == "openstack-cloud-controller-manager":
             dep["version"] = versions["occm"]
 
+    content["name"] = f"openstack-scs-{get_dash_version(versions["kubernetes"])}-cluster-addon"
+
     writefile(target, content)
 
     if build:
