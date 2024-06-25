@@ -238,8 +238,15 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, encoding="utf-8", format=LOGFORMAT)
     # Initialize arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--target-version", type=str, help="Generate files for version specified like 1.XX. See '-l' to list supported versions.")
-    parser.add_argument("-l", "--list", action="store_true", help="List supported versions and exit.")
+    parser.add_argument(
+        "-t",
+        "--target-version",
+        type=str,
+        help="Generate files for version specified like 1.XX. See '-l' to list supported versions.",
+    )
+    parser.add_argument(
+        "-l", "--list", action="store_true", help="List supported versions and exit."
+    )
     parser.add_argument("--build", action="store_true", help="Build helm dependencies.")
     parser.add_argument(
         "--build-verbose", action="store_false", help="Show output of helm build"
