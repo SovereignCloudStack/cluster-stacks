@@ -41,6 +41,13 @@ spec:
         default: "quay.io/capk/ubuntu-2204-container-disk:v1.29.5"
         example: "quay.io/capk/ubuntu-2204-container-disk:v1.29.5"
         description: "Container image used by worker and control plane nodes"
+  - name: csi_driver
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: false
+        description: "Enables CSI driver in tenant cluster"
   patches:
   - name: image
     description: Overrides image data for worker and control plane nodes

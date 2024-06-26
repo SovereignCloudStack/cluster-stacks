@@ -3,3 +3,9 @@ values: |
     commonLabels:
       domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
       clusterAddonVersion: "v1"
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if and (eq .name "csi_driver") .value }}
+  csi:
+    enable: {{ .value }}
+  {{- end }}
+  {{- end }}

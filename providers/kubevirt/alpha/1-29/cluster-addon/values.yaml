@@ -1,3 +1,9 @@
+csi:
+  enable: false
+
+commonLabels:
+  app: kubevirt-csi-driver
+
 metrics-server:
   fullnameOverride: metrics-server
   replicas: 1
