@@ -15,6 +15,7 @@ import argparse
 import logging
 import shutil
 import subprocess
+import sys
 from pathlib import Path, PosixPath
 
 import yaml
@@ -151,7 +152,9 @@ def update_cluster_addon(
         if dep["name"] == "openstack-cloud-controller-manager":
             dep["version"] = versions["occm"]
 
-    content["name"] = f"openstack-scs-{get_dash_version(versions["kubernetes"])}-cluster-addon"
+    content["name"] = (
+        f"openstack-scs-{get_dash_version(versions["kubernetes"])}-cluster-addon"
+    )
 
     writefile(target, content)
 
@@ -231,12 +234,19 @@ def update_node_images(target: PosixPath, **kwargs):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logger.info("Starting")
+    LOGFORMAT = "%(asctime)s - %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.INFO, encoding="utf-8", format=LOGFORMAT)
     # Initialize arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--target-version", type=str)
-    parser.add_argument("-l", "--list", action="store_true")
+    parser.add_argument(
+        "-t",
+        "--target-version",
+        type=str,
+        help="Generate files for version specified like 1.XX. See '-l' to list supported versions.",
+    )
+    parser.add_argument(
+        "-l", "--list", action="store_true", help="List supported versions and exit."
+    )
     parser.add_argument("--build", action="store_true", help="Build helm dependencies.")
     parser.add_argument(
         "--build-verbose", action="store_false", help="Show output of helm build"
@@ -251,6 +261,7 @@ if __name__ == "__main__":
         for v in sup_versions:
             print(f"{".".join(v["kubernetes"].split(".")[0:2])}")
         print("Usage: generate_version.py --target-version VERSION")
+        sys.exit()
 
     # filter versions to generate
     if args.target_version:
