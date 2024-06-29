@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+spec:
+  template:
+    spec:
+      flavor: {{ .Values.worker_flavor }}
+      identityRef:
+        name: {{ .Values.identityRef.name }}
+        cloudName: {{ .Values.identityRef.cloudName }}
+      image:
+        filter:
+          name: placeholder

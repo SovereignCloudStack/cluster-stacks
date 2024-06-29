@@ -1,0 +1,460 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+      kind: KamajiControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: OpenStackClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+  variables:
+  - name: data_store
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        example: "default"
+        description: "Name of the Kamaji DataStore to use for the given KamajiControlPlane."
+  - name: dns_service_ips
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        minItems: 1
+        description: "List of IP addresses for the cluster DNS server."
+        default: ["10.96.0.10"]
+        example: ["10.96.0.10"]
+        items:
+          type: string
+  - name: external_id
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+        example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+        format: "uuid4"
+        description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+  - name: dns_nameservers
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        description: "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
+        default: ["5.1.66.255", "185.150.99.255"]
+        example: ["5.1.66.255", "185.150.99.255"]
+        items:
+          type: string
+  - name: worker_flavor
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "SCS-2V-4-20"
+        example: "SCS-2V-4-20"
+        description: "OpenStack instance flavor for worker nodes."
+  - name: worker_root_disk
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: integer
+        minimum: 1
+        example: 20
+        description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+  - name: node_cidr
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        format: "cidr"
+        default: "10.8.0.0/20"
+        example: "10.8.0.0/20"
+        description: "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created."
+  - name: openstack_security_groups
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: []
+        example: ["security-group-1"]
+        description: "The names of the security groups to assign to the instance"
+        items:
+          type: string
+  - name: cloud_name
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "openstack"
+        example: "openstack"
+        description: "The name of the cloud to use from the clouds secret"
+  - name: secret_name
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "openstack"
+        example: "openstack"
+        description: "The name of the clouds secret"
+  - name: worker_server_group_id
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "869fe071-1e56-46a9-9166-47c9f228e297"
+        description: "The server group to assign the worker nodes to."
+  - name: ssh_key
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "capi-keypair"
+        description: "The ssh key to inject in the nodes."
+  - name: certSANs
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: []
+        example: ["mydomain.example"]
+        description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+        items:
+          type: string
+  - name: oidc_config
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          client_id:
+            type: string
+            example: "kubectl"
+            description: "A client id that all tokens must be issued for."
+          issuer_url:
+            type: string
+            example: "https://dex.k8s.scs.community"
+            description: "URL of the provider that allows the API server to
+  discover public signing keys. Only URLs that use the https:// scheme are
+  accepted. This is typically the provider's discovery URL, changed to have an
+  empty path"
+          username_claim:
+            type: string
+            example: "preferred_username"
+            default: "sub"
+            description: "JWT claim to use as the user name. By default sub,
+  which is expected to be a unique identifier of the end user. Admins can choose
+  other claims, such as email or name, depending on their provider. However,
+  claims other than email will be prefixed with the issuer URL to prevent naming
+  clashes with other plugins."
+          groups_claim:
+            type: string
+            example: "groups"
+            default: "groups"
+            description: "JWT claim to use as the user's group. If the claim
+  is present it must be an array of strings."
+          username_prefix:
+            type: string
+            example: "oidc:"
+            default: "oidc:"
+            description: "Prefix prepended to username claims to prevent
+  clashes with existing names (such as system: users). For example, the value
+  oidc: will create usernames like oidc:jane.doe. If this flag isn't provided and
+  --oidc-username-claim is a value other than email the prefix defaults to (
+  Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
+  - can be used to disable all prefixing."
+          groups_prefix:
+            type: string
+            example: "oidc:"
+            default: "oidc:"
+            description: "Prefix prepended to group claims to prevent clashes
+  with existing names (such as system: groups). For example, the value oidc: will
+  create group names like oidc:engineering and oidc:infra."
+  patches:
+  - name: k8s_version
+    description: "Sets the openstack node image for workers to the cluster-api image with the version mentioned in spec.topology.version."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/image/filter/name"
+        valueFrom:
+          template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
+  - name: worker_flavor
+    description: "Sets the openstack instance flavor for the worker nodes."
+    enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/flavor"
+        valueFrom:
+          variable: worker_flavor
+  - name: worker_root_disk
+    description: "Sets the root disk size in GiB for worker nodes."
+    enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/rootVolume"
+        valueFrom:
+          template: |
+            sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
+  - name: data_store
+    description: "Sets the name of the Kamaji DataStore to use for the given KamajiControlPlane."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+        kind: KamajiControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/dataStoreName"
+        valueFrom:
+          variable: data_store
+  - name: dns_service_ips
+    description: "Sets the list of IP addresses for the cluster DNS server."
+    enabledIf: {{ `"{{ if .dns_service_ips }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+        kind: KamajiControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/addons/coreDNS/dnsServiceIPs"
+        valueFrom:
+          variable: dns_service_ips
+  - name: external_id
+    description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+    enabledIf: {{ `'{{ ne .external_id "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/externalNetwork/id"
+        valueFrom:
+          variable: external_id
+  - name: subnet
+    description: "Sets the NodeCIDR and optional nameservers for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+    enabledIf: {{ `'{{ ne .node_cidr "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/managedSubnets"
+        valueFrom:
+          template: |
+            - cidr: '{{"{{"}} .node_cidr {{"}}"}}'
+              dnsNameservers:
+              {{`{{- range .dns_nameservers }}`}}
+              - {{`{{ . }}`}}
+              {{`{{- end }}`}}
+  - name: openstack_security_groups
+    description: "Sets the list of the openstack security groups for the worker instances."
+    enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/securityGroups"
+        valueFrom:
+          template: {{ `"[ {{ range .openstack_security_groups }} { filter: { name: {{ . }}}}, {{ end }} ]"` }}
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/managedSecurityGroups/allowAllInClusterTraffic"
+        value: false
+  - name: cloud_name
+    description: "Sets the name of the cloud to use from the clouds secret."
+    enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/identityRef/cloudName"
+        valueFrom:
+          variable: cloud_name
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/identityRef/cloudName"
+        valueFrom:
+          variable: cloud_name
+  - name: secret_name
+    description: "Sets the name of the clouds secret."
+    enabledIf: {{ `'{{ ne .secret_name "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/identityRef/name"
+        valueFrom:
+          variable: secret_name
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/identityRef/name"
+        valueFrom:
+          variable: secret_name
+  - name: worker_server_group_id
+    description: "Sets the server group to assign the worker nodes to."
+    enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/serverGroup"
+        valueFrom:
+          template: |
+            id: {{"{{"}} .worker_server_group_id {{"}}"}}
+  - name: ssh_key
+    description: "Sets the ssh key to inject in the nodes."
+    enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: OpenStackMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/sshKeyName"
+        valueFrom:
+          variable: ssh_key
+  - name: certSANs
+    description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+    enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+        kind: KamajiControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/network/certSANs"
+        valueFrom:
+          variable: certSANs
+  - name: oidc_config
+    description: "Configure API Server to use external authentication service."
+    enabledIf: {{ `"{{ if and .oidc_config .oidc_config.client_id .oidc_config.issuer_url }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+        kind: KamajiControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-client-id={{ `{{ .oidc_config.client_id }}` }}
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-issuer-url={{ `{{ .oidc_config.issuer_url }}` }}
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-username-claim={{ `{{ .oidc_config.username_claim }}` }}
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-groups-claim={{ `{{ .oidc_config.groups_claim }}` }}
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-username-prefix={{ `{{ .oidc_config.username_prefix }}` }}
+      - op: add
+        path: "/spec/template/spec/apiServer/extraArgs/-"
+        valueFrom:
+          template: --oidc-groups-prefix={{ `{{ .oidc_config.groups_prefix }}` }}

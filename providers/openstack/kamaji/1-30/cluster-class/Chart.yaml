@@ -1,0 +1,7 @@
+apiVersion: v2
+description: |
+  This chart installs and configures:
+  * Openstack Kamaji Cluster Class
+name: openstack-kamaji-1-30-cluster-class
+type: application
+version: v1

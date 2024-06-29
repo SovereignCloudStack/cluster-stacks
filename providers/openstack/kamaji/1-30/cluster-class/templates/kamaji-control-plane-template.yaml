@@ -1,0 +1,25 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: KamajiControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      addons:
+        coreDNS: {}
+        konnectivity: {}
+        kubeProxy: {}
+      apiServer:
+        extraArgs:
+        - --cloud-provider=external
+      controllerManager:
+        extraArgs:
+        - --cloud-provider=external
+      kubelet:
+        cgroupfs: systemd
+        preferredAddressTypes:
+        - InternalIP
+        - ExternalIP
+        - Hostname
+      network:
+        serviceType: LoadBalancer
