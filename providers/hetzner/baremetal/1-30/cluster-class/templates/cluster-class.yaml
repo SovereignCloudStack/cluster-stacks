@@ -157,6 +157,20 @@ spec:
               image: quay.io/ceph/ceph:v18.2.2
               allowUnsupported: false
         description: "Helm values for Ceph Cluster."
+  - name: etcdEncryptionSecretRef
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          name:
+            type: string
+            default: etcd-encryption
+          key:
+            type: string
+            default: config
   patches:
   - name: HetznerClusterTemplateGeneral
     definitions:
@@ -257,3 +271,33 @@ spec:
         path: "/spec/template/spec/preKubeadmCommands/0"
         valueFrom:
           template: {{ `"export KUBERNETES_VERSION=$(echo {{ .builtin.cluster.topology.version }} | sed 's/^v//')"` }}
+  - name: etcd_encryption
+    description: "Configures encryption of confidential data at rest."
+    enabledIf: {{ `"{{ if .etcdEncryptionSecretRef.enabled }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/files/0"
+        valueFrom:
+          template: |
+            contentFrom:
+              secret:
+                key: '{{"{{"}} .etcdEncryptionSecretRef.key {{"}}"}}'
+                name: '{{"{{"}} .etcdEncryptionSecretRef.name {{"}}"}}'
+            owner: root:root
+            path: /etc/kubernetes/encryption-provider.yaml
+            permissions: "0600"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
+        value:
+        - hostPath: /etc/kubernetes/encryption-provider.yaml
+          mountPath: /etc/kubernetes/encryption-provider.yaml
+          name: encryption-provider
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/encryption-provider-config"
+        value: /etc/kubernetes/encryption-provider.yaml
