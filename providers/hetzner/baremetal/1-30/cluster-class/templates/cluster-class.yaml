@@ -51,6 +51,17 @@ spec:
       openAPIV3Schema:
         type: string
         default: "lb11"
+  - name: clusterLoadBalancerName
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+  - name: clusterLoadBalancerAlgorithm
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "round_robin"
   - name: clusterLoadBalancerExtraServices
     required: false
     schema:
@@ -193,6 +204,10 @@ spec:
         valueFrom:
           variable: clusterLoadBalancerType
       - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/algorithm"
+        valueFrom:
+          variable: clusterLoadBalancerAlgorithm
+      - op: add
         path: "/spec/template/spec/controlPlaneLoadBalancer/extraServices"
         valueFrom:
           variable: clusterLoadBalancerExtraServices
@@ -204,6 +219,19 @@ spec:
         path: "/spec/template/spec/controlPlaneLoadBalancer/region"
         valueFrom:
           variable: region
+  - name: existing_load_balancer
+    enabledIf: {{ `"{{ if .clusterLoadBalancerName }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: HetznerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/name"
+        valueFrom:
+          variable: clusterLoadBalancerName
   - name: HetznerBareMetalMachineTemplateWorker
     definitions:
     - selector:
