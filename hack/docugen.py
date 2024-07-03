@@ -16,7 +16,7 @@ import yaml
 
 BASE_PATH = Path(__file__).parent.parent
 TEMPLATE_PATH = BASE_PATH.joinpath(
-    "providers", "openstack", "scs", "1-27", "cluster-class"
+    "providers", "openstack", "scs", "cluster-class"
 )
 
 

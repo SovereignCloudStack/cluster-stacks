@@ -1,0 +1,39 @@
+---
+- name: Install CSO
+  vars:
+    cso_version: "0.1.0-alpha.5"
+    cso_dir: "{{ ansible_user_dir }}/cso"
+    cso_wait_for_pods: 240
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  block:
+    - name: Make sure CSO directory exists
+      ansible.builtin.file:
+        path: "{{ cso_dir }}"
+        state: directory
+        mode: 0755
+    - name: Get CSO manifest
+      ansible.builtin.get_url:
+        url: "https://github.com/sovereignCloudStack/cluster-stack-operator/releases/download/v{{ cso_version }}/cso-infrastructure-components.yaml"
+        dest: "{{ cso_dir }}/cso-infrastructure-components.yaml"
+        mode: "+w"
+    - name: Patch the CSO deployment - enable the local mode and mount the cluster stack release
+      ansible.builtin.script:
+        cmd: "../files/patch_csx_deployment.sh {{ cso_dir }}/cso-infrastructure-components.yaml {{ release_dir }}"
+        executable: /bin/bash
+      changed_when: true
+    - name: Apply CSO manifest
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          cat {{ cso_dir }}/cso-infrastructure-components.yaml | {{ install_dir }}/envsubst | kubectl apply -f -
+        executable: /bin/bash
+      changed_when: true
+      environment:
+        GIT_PROVIDER_B64: Z2l0aHVi  # github
+        GIT_ORG_NAME_B64: U292ZXJlaWduQ2xvdWRTdGFjaw==  # SovereignCloudStack
+        GIT_REPOSITORY_NAME_B64: Y2x1c3Rlci1zdGFja3M=  # cluster-stacks
+        # FIXME: It should be fetched from the zuul secret
+        # GIT_ACCESS_TOKEN_B64:
+    - name: Wait for all CSO pods to become ready
+      ansible.builtin.command: "kubectl wait -n cso-system --for=condition=Ready --timeout={{ cso_wait_for_pods }}s pod --all"
+      changed_when: true

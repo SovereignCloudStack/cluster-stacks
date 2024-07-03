@@ -1,0 +1,41 @@
+---
+- name: Install csctl and csctl-openstack
+  vars:
+    csctl_dir: "{{ ansible_user_dir }}/csctl"
+    csctl_openstack_dir: "{{ ansible_user_dir }}/csctl-openstack"
+    csctl_version: "0.0.3"
+    csctl_openstack_version: "0.0.1"
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+  block:
+    - name: Make sure csctl directory exists
+      ansible.builtin.file:
+        path: "{{ csctl_dir }}"
+        state: directory
+        mode: 0755
+    - name: Make sure csctl-openstack directory exists
+      ansible.builtin.file:
+        path: "{{ csctl_openstack_dir }}"
+        state: directory
+        mode: 0755
+    - name: Get csctl release
+      ansible.builtin.unarchive:
+        src: "https://github.com/SovereignCloudStack/csctl/releases/download/v{{ csctl_version }}/csctl_{{ csctl_version }}_linux_amd64.tar.gz"
+        dest: "{{ csctl_dir }}"
+        remote_src: true
+    - name: Get csctl-openstack release
+      ansible.builtin.unarchive:
+        src: "https://github.com/SovereignCloudStack/csctl-plugin-openstack/releases/download/v{{ csctl_openstack_version }}/csctl-plugin-openstack_{{ csctl_openstack_version }}_linux_amd64.tar.gz"
+        dest: "{{ csctl_openstack_dir }}"
+        remote_src: true
+    - name: Install csctl
+      ansible.builtin.copy:
+        src: "{{ csctl_dir }}/csctl"
+        dest: "{{ install_dir }}/csctl"
+        mode: "+x"
+        remote_src: true
+    - name: Install csctl-openstack
+      ansible.builtin.copy:
+        src: "{{ csctl_openstack_dir }}/csctl-openstack"
+        dest: "{{ install_dir }}/csctl-openstack"
+        mode: "+x"
+        remote_src: true

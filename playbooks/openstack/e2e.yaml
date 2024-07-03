@@ -1,0 +1,212 @@
+---
+- name: Cluster stack OpenStack E2E test
+  hosts: all
+  vars:
+    cluster_stack: "providers/openstack/alpha/1-29"
+    cluster_stack_name: "openstack-alpha-1-29"
+    cluster_stack_version_name: alpha
+    project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
+    cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
+    cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
+    cluster_stack_release_container_dir: "/.release"
+    openstack_csp_helper_chart_version: v0.6.0
+    openstack_csp_helper_chart_url: "https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/{{ openstack_csp_helper_chart_version }}/openstack-csp-helper.tgz"
+    capo_version: "v0.10.3"
+    openstackclient_version: "6.6.0"
+
+    k8s_management_name: "management"
+    k8s_management_version: "v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245"
+    k8s_management_cluster_wait_for: "180"
+
+  environment:
+    PATH: "{{ ansible_user_dir }}/.local/bin:{{ ansible_env.PATH }}"
+  tasks:
+    - name: Determine cluster stack directory
+      block:
+        - name: Make sure directory structure exists
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: 0755
+          loop:
+            - "{{ cluster_manifest_dir }}"
+            - "{{ cluster_stack_release_dir }}"
+        - name: Extract Zuul config
+          ansible.builtin.set_fact:
+            zuul_config: "{{ zuul.change_message | regex_search('(?s)```ZUUL_CONFIG(.+?)```', '\\1', multiline=true) }}"
+          when: zuul.change_message is defined
+        - name: Trim Zuul config
+          ansible.builtin.set_fact:
+            zuul_config: "{{ zuul_config  | first | split('/n') | map('trim') | join('\n') }}"
+          when: zuul_config is defined and zuul_config is not none and zuul_config != ''
+        - name: Extract cluster stack from Zuul config
+          ansible.builtin.set_fact:
+            cluster_stack_name: "{{ zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
+          when:
+            - zuul_config is defined and zuul_config is not none and zuul_config != ''
+            - zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"') is defined
+        - name: Override cluster stack if extracted
+          ansible.builtin.set_fact:
+            cluster_stack: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', 'providers/openstack/\\1/\\2') }}"
+            cluster_stack_version_name: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', '\\1') }}"
+          when: cluster_stack_name is defined
+    - name: Create cluster stack
+      ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack }} --output {{ cluster_stack_release_dir }}  --mode hash"
+      args:
+        chdir: "{{ project_dir }}"
+      changed_when: true
+    - name: Ensure management cluster
+      block:
+        - name: Create management cluster config file
+          ansible.builtin.template:
+            src: "mgmt-cluster-config.yaml.j2"
+            dest: "{{ ansible_user_dir }}/mgmt-cluster-config.yaml"
+            mode: "0644"
+        - name: Create management cluster
+          ansible.builtin.command: "kind create cluster --config {{ ansible_user_dir }}/mgmt-cluster-config.yaml"
+          changed_when: true
+        - name: Wait for all system pods in the management cluster to become ready
+          ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ k8s_management_cluster_wait_for }}s pod --all"
+          changed_when: true
+    - name: Install CAPI and CAPO
+      ansible.builtin.command: "clusterctl init --infrastructure openstack:{{ capo_version }}"
+      changed_when: true
+      environment:
+        CLUSTER_TOPOLOGY: "true"
+        EXP_CLUSTER_RESOURCE_SET: "true"
+    - name: Install CSO and mount cluster stack release
+      ansible.builtin.import_tasks: ../tasks/cso.yaml
+      vars:
+        release_dir: "{{ cluster_stack_release_container_dir }}"
+    - name: Install CSPO and mount cluster stack release
+      ansible.builtin.import_tasks: ../tasks/cspo.yaml
+      vars:
+        release_dir: "{{ cluster_stack_release_container_dir }}"
+    - name: Read Zuul's clouds.yaml content, base64 encoded
+      ansible.builtin.slurp:
+        src: /etc/openstack/clouds.yaml
+      register: clouds_yaml_b64
+    - name: Read Zuul's secure.yaml content, base64 encoded
+      ansible.builtin.slurp:
+        src: /etc/openstack/secure.yaml
+      register: secure_yaml_b64
+    - name: Combine clouds_yaml_b64 and secure_yaml_b64 to produce full clouds.yaml
+      ansible.builtin.set_fact:
+        clouds_yaml_full: "{{ clouds_yaml_b64.content | b64decode | from_yaml | ansible.builtin.combine(secure_yaml_b64.content | b64decode | from_yaml, recursive=true) }}"
+      no_log: true
+    - name: Write clouds.yaml file
+      ansible.builtin.copy:
+        content: "{{ clouds_yaml_full | to_yaml }}"
+        dest: "{{ ansible_user_dir }}/clouds.yaml"
+        mode: "0644"
+    - name: Create secrets and ClusterResourceSet for the clusterstacks approach
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          helm upgrade -i clusterstacks-credentials {{ openstack_csp_helper_chart_url }} -f {{ ansible_user_dir }}/clouds.yaml
+        executable: /bin/bash
+      changed_when: true
+    - name: Find the directory containing metadata.yaml
+      ansible.builtin.find:
+        paths: "{{ cluster_stack_release_dir }}"
+        patterns: "metadata.yaml"
+        recurse: true
+      register: found_files
+    - name: Read metadata.yaml
+      ansible.builtin.slurp:
+        src: "{{ found_files.files[0].path }}"
+      register: metadata_content
+      when: found_files.matched > 0
+    - name: Get cluster-stack and k8s version
+      ansible.builtin.set_fact:
+        cluster_stack_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['clusterStack'] }}"
+        k8s_version: "{{ (metadata_content['content'] | b64decode | from_yaml)['versions']['kubernetes'] }}"
+      when: metadata_content is defined
+    - name: Parse k8s version to major.minor
+      ansible.builtin.set_fact:
+        k8s_version_major_minor: "{{ k8s_version | regex_replace('^v?([0-9]+\\.[0-9]+)\\..*', '\\1') }}"
+      when: k8s_version is defined
+    - name: Extract cloud name from clouds_yaml_full
+      ansible.builtin.set_fact:
+        cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"
+      when: clouds_yaml_full.clouds is defined and clouds_yaml_full.clouds | dict2items | length == 1
+    - name: Generate clusterstack YAML
+      ansible.builtin.template:
+        src: "cluster-stack-template.yaml.j2"
+        dest: "{{ ansible_user_dir }}/clusterstack.yaml"
+        mode: "0644"
+    - name: Apply cluster-stack template
+      ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/clusterstack.yaml"
+      changed_when: true
+    - name: Necessary pause for the clusterstack resource to exist (default is 2 minutes)
+      ansible.builtin.pause:
+        seconds: "{{ wait_for_cluster_stack_resource }}"
+    - name: Wait for cluster-stack to be ready
+      ansible.builtin.command: "kubectl wait clusterstack/clusterstack --for=condition=Ready --timeout={{ wait_for_cluster_stack }}s"
+      changed_when: true
+    - name: Create k8s workload cluster and execute checks
+      block:
+        - name: Create Server Groups for nodes when scs_compliance tests are enabled
+          ansible.builtin.import_tasks: ../tasks/create_server_groups.yaml
+          when: scs_compliance.enabled
+        - name: Generate cluster YAML
+          ansible.builtin.template:
+            src: "cluster.yaml.j2"
+            dest: "{{ ansible_user_dir }}/cluster.yaml"
+            mode: "0644"
+          vars:
+            worker_server_group_id: "{{ srvgrp_worker.stdout | default('') }}"
+            worker_server_group_id_value: "{% if worker_server_group_id == '' %}\"\"{% else %}{{ worker_server_group_id }}{% endif %}"
+            controller_server_group_id: "{{ srvgrp_controller.stdout | default('') }}"
+            controller_server_group_id_value: "{% if controller_server_group_id == '' %}\"\"{% else %}{{ controller_server_group_id }}{% endif %}"
+        - name: Apply cluster template
+          ansible.builtin.command: "kubectl apply -f {{ ansible_user_dir }}/cluster.yaml"
+          changed_when: true
+        - name: Get kubeadmcontrolplane name
+          ansible.builtin.command: "kubectl get kubeadmcontrolplane -o=jsonpath='{.items[0].metadata.name}'"
+          retries: 6
+          delay: 10
+          until: kcp_name.rc == 0
+          register: kcp_name
+          changed_when: true
+        - name: Get kubeadmcontrolplane status
+          ansible.builtin.command: "kubectl wait kubeadmcontrolplane/{{ kcp_name.stdout }} --for=condition=Available --timeout={{ wait_for_cluster }}s"
+          changed_when: true
+        - name: Wait for control-plane machines to be ready
+          ansible.builtin.command: "kubectl wait machines --for=condition=Ready -l cluster.x-k8s.io/control-plane,cluster.x-k8s.io/cluster-name=test-cluster --timeout={{ wait_for_cluster }}s"
+          changed_when: true
+        - name: Get kubeconfig of the workload k8s cluster
+          ansible.builtin.shell: "clusterctl get kubeconfig test-cluster > {{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          changed_when: true
+        - name: Wait for clusteraddons resource to become ready
+          ansible.builtin.command: "kubectl wait clusteraddons/cluster-addon-test-cluster --for=condition=Ready --timeout={{ wait_for_clusteraddons }}s"
+          changed_when: true
+        - name: Wait for all system pods in the workload k8s cluster to become ready
+          ansible.builtin.command: "kubectl wait -n kube-system --for=condition=Ready --timeout={{ wait_for_cluster }}s pod --all"
+          environment:
+            KUBECONFIG: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          changed_when: true
+        - name: Import sonobouy tasks
+          ansible.builtin.import_tasks: ../tasks/sonobouy.yaml
+          when: sonobouy.enabled
+        - name: Import scs_compliance pre-tasks
+          ansible.builtin.import_tasks: ../tasks/label_nodes.yaml
+          vars:
+            os_cloud: "{{ cloud_name }}"
+            kubeconfig_path: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          when: scs_compliance.enabled
+        - name: Import scs_compliance tasks
+          ansible.builtin.import_tasks: ../tasks/scs_compliance.yaml
+          vars:
+            kubeconfig_path: "{{ cluster_manifest_dir }}/kubeconfig-test-cluster"
+          when: scs_compliance.enabled
+      always:
+        - name: Delete Server Groups
+          ansible.builtin.command: "openstack server group delete {{ srvgrp_worker.stdout }} {{ srvgrp_controller.stdout }}"
+          environment:
+            OS_CLOUD: "{{ cloud_name }}"
+          changed_when: true
+          when: scs_compliance.enabled
+        - name: Cleanup workload cluster
+          ansible.builtin.command: "kubectl delete -f {{ ansible_user_dir }}/cluster.yaml"
+          changed_when: true

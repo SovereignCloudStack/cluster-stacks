@@ -1,0 +1,15 @@
+dependencies:
+- name: metrics-server
+  repository: https://kubernetes-sigs.github.io/metrics-server/
+  version: 3.12.1
+- name: cilium
+  repository: https://helm.cilium.io/
+  version: 1.15.4
+- name: rook-ceph
+  repository: https://charts.rook.io/release
+  version: v1.14.3
+- name: rook-ceph-cluster
+  repository: https://charts.rook.io/release
+  version: v1.14.3
+digest: sha256:db203f95bd1f05bd924e872214a8cefd90ce23ccccf53637c9a5923de796b8a2
+generated: "2024-05-14T12:50:06.480902528+02:00"

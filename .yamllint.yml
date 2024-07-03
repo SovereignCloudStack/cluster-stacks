@@ -1,0 +1,19 @@
+---
+extends: default
+
+rules:
+  comments: enable
+  line-length: disable
+  # accept both     key:
+  #                   - item
+  # and             key:
+  #                 - item
+  # (the latter is very common in k8s land)
+  indentation:
+    indent-sequences: whatever
+  # Remove this once all yaml files become docstart header
+  document-start: disable
+ignore:
+  # Help templates should and can NOT be checked with yamllint
+  - "**/templates/**"
+  - "providers/openstack/scs/1-27/cluster-addon-values.yaml"
