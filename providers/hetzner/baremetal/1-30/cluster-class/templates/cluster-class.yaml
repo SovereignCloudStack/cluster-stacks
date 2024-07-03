@@ -182,6 +182,65 @@ spec:
           key:
             type: string
             default: config
+  - name: certSANs
+    required: false
+    schema:
+     openAPIV3Schema:
+       type: array
+       default: []
+       example: ["mydomain.example"]
+       description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+       items:
+         type: string
+  - name: oidc_config
+    required: false
+    schema:
+     openAPIV3Schema:
+       type: object
+       properties:
+         client_id:
+           type: string
+           example: "kubectl"
+           description: "A client id that all tokens must be issued for."
+         issuer_url:
+           type: string
+           example: "https://dex.k8s.scs.community"
+           description: "URL of the provider that allows the API server to
+    discover public signing keys. Only URLs that use the https:// scheme are
+    accepted. This is typically the provider's discovery URL, changed to have an
+    empty path"
+         username_claim:
+           type: string
+           example: "preferred_username"
+           default: "preferred_username"
+           description: "JWT claim to use as the user name. By default sub,
+    which is expected to be a unique identifier of the end user. Admins can choose
+    other claims, such as email or name, depending on their provider. However,
+    claims other than email will be prefixed with the issuer URL to prevent naming
+    clashes with other plugins."
+         groups_claim:
+           type: string
+           example: "groups"
+           default: "groups"
+           description: "JWT claim to use as the user's group. If the claim
+    is present it must be an array of strings."
+         username_prefix:
+           type: string
+           example: "oidc:"
+           default: "oidc:"
+           description: "Prefix prepended to username claims to prevent
+    clashes with existing names (such as system: users). For example, the value
+    oidc: will create usernames like oidc:jane.doe. If this flag isn't provided and
+    --oidc-username-claim is a value other than email the prefix defaults to (
+    Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
+    - can be used to disable all prefixing."
+         groups_prefix:
+           type: string
+           example: "oidc:"
+           default: "oidc:"
+           description: "Prefix prepended to group claims to prevent clashes
+    with existing names (such as system: groups). For example, the value oidc: will
+    create group names like oidc:engineering and oidc:infra."
   patches:
   - name: HetznerClusterTemplateGeneral
     definitions:
@@ -329,3 +388,51 @@ spec:
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/encryption-provider-config"
         value: /etc/kubernetes/encryption-provider.yaml
+  - name: certSANs
+    description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+    enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+        valueFrom:
+          variable: certSANs
+  - name: oidc_config
+    description: "Configure API Server to use external authentication service."
+    enabledIf: {{ `"{{ if and .oidc_config .oidc_config.client_id .oidc_config.issuer_url }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-client-id"
+        valueFrom:
+          variable: oidc_config.client_id
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-issuer-url"
+        valueFrom:
+          variable: oidc_config.issuer_url
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-claim"
+        valueFrom:
+          variable: oidc_config.username_claim
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-claim"
+        valueFrom:
+          variable: oidc_config.groups_claim
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-prefix"
+        valueFrom:
+          variable: oidc_config.username_prefix
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-prefix"
+        valueFrom:
+          variable: oidc_config.groups_prefix
