@@ -20,18 +20,18 @@ spec:
       name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
     machineDeployments:
-    - class: {{ .Release.Name }}-{{ .Chart.Version }}
+    - class: default-worker
       template:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
   variables:
    - name: external_id
      required: false
@@ -317,7 +317,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/image/filter/name"
@@ -512,7 +512,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/flavor"
@@ -544,7 +544,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/rootVolume"
@@ -576,7 +576,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/securityGroups"
@@ -612,7 +612,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/identityRef/cloudName"
@@ -639,7 +639,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/identityRef/name"
@@ -670,7 +670,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/serverGroupID"
@@ -687,7 +687,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/sshKeyName"
