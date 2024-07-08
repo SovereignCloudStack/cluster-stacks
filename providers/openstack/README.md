@@ -28,6 +28,7 @@ Transform the Kubernetes cluster into a management cluster by using `clusterctl 
 ```bash
 export CLUSTER_TOPOLOGY=true
 export EXP_CLUSTER_RESOURCE_SET=true
+export EXP_RUNTIME_SDK=true
 clusterctl init --infrastructure openstack
 ```
 
