@@ -40,6 +40,26 @@ cilium:
     rollOutPods: true
     priorityClassName: "system-node-critical"
 
+hcloud-cloud-controller-manager:
+  robot:
+    enabled: true
+  env:
+    HCLOUD_TOKEN:
+      valueFrom:
+        secretKeyRef:
+          name: hetzner
+          key: hcloud
+    ROBOT_USER:
+      valueFrom:
+        secretKeyRef:
+          name: hetzner
+          key: robot-user
+    ROBOT_PASSWORD:
+      valueFrom:
+        secretKeyRef:
+          name: hetzner
+          key: robot-password
+
 rook-ceph:
   enableDiscoveryDaemon: true
   currentNamespaceOnly: true

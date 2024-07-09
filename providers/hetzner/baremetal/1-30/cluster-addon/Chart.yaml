@@ -8,10 +8,10 @@ dependencies:
   name: cilium
   repository: https://helm.cilium.io/
   version: 1.15.6
-- alias: ccm-hetzner
-  name: ccm-hetzner
-  repository: https://charts.syself.com
-  version: 1.1.15
+- alias: hcloud-cloud-controller-manager
+  name: hcloud-cloud-controller-manager
+  repository: https://charts.hetzner.cloud
+  version: 1.20.0
 - alias: rook-ceph
   name: rook-ceph
   repository: https://charts.rook.io/release
