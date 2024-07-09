@@ -55,7 +55,7 @@ spec:
       preKubeadmCommands:
       - set -x
       - grep VERSION= /etc/os-release; uname -a
-      - export CONTAINERD=1.7.18
+      - export CONTAINERD=1.7.19
       - export TRIMMED_KUBERNETES_VERSION=$(echo ${KUBERNETES_VERSION} | awk -F . '{print $1 "." $2}')
       - ARCH=amd64
       - if [ "$(uname -m)" = "aarch64" ]; then ARCH=arm64; fi
