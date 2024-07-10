@@ -199,12 +199,25 @@ def update_cluster_class(target: PosixPath, **kwargs):
         Returns:
             None
     """
-    logger.info("Updating %s", target)
-    content = readfile(target)
+    chart_file = target.joinpath("Chart.yaml")
+    values_file = target.joinpath("values.yaml")
+
+    logger.info("Updating %s", chart_file)
+    content = readfile(chart_file)
     version = get_dash_version(kwargs["kubernetes"])
     content["name"] = f"openstack-scs-{version}-cluster-class"
 
-    writefile(target, content)
+    writefile(chart_file, content)
+
+    logger.info("Updating %s", values_file)
+    content = readfile(values_file)
+
+    content["images"]["controlPlane"][
+        "name"
+    ] = f"ubuntu-capi-image-v{kwargs["kubernetes"]}"
+    content["images"]["worker"]["name"] = f"ubuntu-capi-image-v{kwargs["kubernetes"]}"
+
+    writefile(values_file, content)
 
 
 def update_node_images(target: PosixPath, **kwargs):
@@ -280,5 +293,5 @@ if __name__ == "__main__":
             **tv,
         )
         update_csctl_conf(output_dir.joinpath("csctl.yaml"), **tv)
-        update_cluster_class(output_dir.joinpath("cluster-class", "Chart.yaml"), **tv)
+        update_cluster_class(output_dir.joinpath("cluster-class"), **tv)
         update_node_images(output_dir.joinpath("node-images", "config.yaml"), **tv)
