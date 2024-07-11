@@ -33,7 +33,7 @@
       wait_for_cluster: 1200  # 20min
       sonobouy:
         enabled: true
-        mode: non-disruptive-conformance
+        mode: certified-conformance
       scs_compliance:
         enabled: true
 
