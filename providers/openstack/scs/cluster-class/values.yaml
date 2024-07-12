@@ -1,22 +1,17 @@
-# mirrored from variables.tf
-external_id: ebfe5546-f09f-4f42-ab54-094e457d42ec
-dns_nameservers:
-  - 5.1.66.255
-  - 185.150.99.255
 controller_flavor: SCS-2V-4-20
-worker_flavor: SCS-2V-4-20
-node_cidr: 10.8.0.0/20
-restrict_kubeapi: []
-
-# newly introduced:
-openstack_loadbalancer_apiserver: true
-
-# TBD, currently needed:
+dns_nameservers:
+- 5.1.66.255
+- 185.150.99.255
+external_id: ebfe5546-f09f-4f42-ab54-094e457d42ec
+identityRef:
+  cloudName: openstack
+  name: openstack
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.27.14
+    name: ubuntu-capi-image-v1.30.2
   worker:
-    name: ubuntu-capi-image-v1.27.14
-identityRef:
-  name: openstack
-  cloudName: openstack
+    name: ubuntu-capi-image-v1.30.2
+node_cidr: 10.8.0.0/20
+openstack_loadbalancer_apiserver: true
+restrict_kubeapi: []
+worker_flavor: SCS-2V-4-20
