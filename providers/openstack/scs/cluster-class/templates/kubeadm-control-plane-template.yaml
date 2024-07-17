@@ -13,10 +13,17 @@ spec:
           controllerManager:
             extraArgs:
               cloud-provider: external
+              bind-address: 0.0.0.0
+              secure-port: 10257
+          scheduler:
+            extraArgs:
+              bind-address: 0.0.0.0
+              secure-port: 10259
           etcd:
             local:
               dataDir: /var/lib/etcd
               extraArgs:
+                listen-metrics-urls: http://0.0.0.0:2381              
                 auto-compaction-mode: periodic
                 auto-compaction-retention: 8h
                 election-timeout: "2500"
