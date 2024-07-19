@@ -35,7 +35,7 @@ spec:
     version: {{ k8s_version }}
     workers:
       machineDeployments:
-        - class: {{ cluster_stack_name }}-{{ cluster_stack_version }}
+        - class: default-worker
           failureDomain: nova
           name: {{ cluster_stack_name }}
           replicas: 3
