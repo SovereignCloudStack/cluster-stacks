@@ -14,7 +14,37 @@ spec:
         allowedCIDRs: {{ .Values.restrict_kubeapi }}
 {{- end }}
       managedSecurityGroups:
-        allowAllInClusterTraffic: true
+        allNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: VXLAN (Cilium)
+          portRangeMin: 8472
+          portRangeMax: 8472
+          protocol: udp
+          description: "Allow VXLAN traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: HealthCheck (Cilium)
+          portRangeMin: 4240
+          portRangeMax: 4240
+          protocol: tcp
+          description: "Allow HealthCheck traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Hubble (Cilium)
+          portRangeMin: 4244
+          portRangeMax: 4244
+          protocol: tcp
+          description: "Allow Hubble traffic for Cilium"
       managedSubnets:
         - cidr: {{ .Values.node_cidr }}
           dnsNameservers:
