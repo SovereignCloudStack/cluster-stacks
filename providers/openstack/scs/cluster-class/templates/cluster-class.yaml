@@ -38,9 +38,8 @@ spec:
       schema:
         openAPIV3Schema:
           type: string
-          default: ""
           example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-          pattern: "^(|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+          format: "uuid4"
           description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
     - name: controller_flavor
       required: false
@@ -553,7 +552,7 @@ cre ate group names like oidc:engineering and oidc:infra."
                 sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
     - name: external_id
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-      enabledIf: {{ `'{{ ne .external_id "" }}'` }}
+      enabledIf: {{ `"{{ if .external_id }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
