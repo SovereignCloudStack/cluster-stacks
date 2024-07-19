@@ -38,9 +38,9 @@ spec:
       schema:
         openAPIV3Schema:
           type: string
-          default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+          default: ""
           example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-          format: "uuid4"
+          pattern: "^(|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
           description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
     - name: controller_flavor
       required: false
@@ -561,7 +561,10 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
+          - op: add
+            path: "/spec/template/spec/externalNetwork"
+            value: {}
+          - op: add
             path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
