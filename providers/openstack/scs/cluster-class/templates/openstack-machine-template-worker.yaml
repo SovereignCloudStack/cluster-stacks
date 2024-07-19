@@ -7,8 +7,8 @@ spec:
     spec:
       flavor: {{ .Values.worker_flavor }}
       identityRef:
-        cloudName: {{ default "openstack" .Values.identityRef.cloudName }}
-        name: {{ default "openstack" .Values.identityRef.name }}
+        cloudName: {{ .Values.identityRef.cloudName }}
+        name: {{ .Values.identityRef.name }}
       image:
         filter:
           name: {{ .Values.images.worker.name }}
