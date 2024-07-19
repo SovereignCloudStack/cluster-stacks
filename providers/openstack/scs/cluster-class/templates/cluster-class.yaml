@@ -584,15 +584,6 @@ cre ate group names like oidc:engineering and oidc:infra."
             path: "/spec/template/spec/securityGroups"
             valueFrom:
               template: {{ `"[ {{ range .openstack_security_groups }} { filter: { name: {{ . }}}}, {{ end }} ]"` }}
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/managedSecurityGroups/allowAllInClusterTraffic"
-            value: false
     - name: cloud_name
       description: "Sets the name of the cloud to use from the clouds secret."
       enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
