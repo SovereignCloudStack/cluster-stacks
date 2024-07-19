@@ -6,8 +6,8 @@ spec:
   template:
     spec:
       identityRef:
-        cloudName: {{ default "openstack" .Values.identityRef.cloudName }}
-        name: {{ default "openstack" .Values.identityRef.name }}
+        cloudName: {{ .Values.identityRef.cloudName }}
+        name: {{ .Values.identityRef.name }}
       apiServerLoadBalancer:
         enabled: {{ .Values.openstack_loadbalancer_apiserver }}
 {{- if .Values.restrict_kubeapi }}
