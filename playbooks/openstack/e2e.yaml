@@ -2,9 +2,7 @@
 - name: Cluster stack OpenStack E2E test
   hosts: all
   vars:
-    cluster_stack: "providers/openstack/alpha/1-29"
-    cluster_stack_name: "openstack-alpha-1-29"
-    cluster_stack_version_name: alpha
+    cluster_stack_path: "providers/openstack/scs"
     project_dir: "{{ ansible_user_dir }}/{{ zuul.project.src_dir }}"
     cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
     cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
@@ -62,19 +60,18 @@
           ansible.builtin.set_fact:
             zuul_config: "{{ zuul_config  | first | split('/n') | map('trim') | join('\n') }}"
           when: zuul_config is defined and zuul_config is not none and zuul_config != ''
-        - name: Extract cluster stack from Zuul config
+        - name: Extract cluster_stack_folder from Zuul config
           ansible.builtin.set_fact:
-            cluster_stack_name: "{{ zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
+            cluster_stack_folder: "{{ zuul_config | regex_search('cluster_stack_folder\\s*=\\s*\"([^\"]+)\"', '\\1') | first }}"
           when:
             - zuul_config is defined and zuul_config is not none and zuul_config != ''
             - zuul_config | regex_search('cluster_stack\\s*=\\s*\"([^\"]+)\"') is defined
-        - name: Override cluster stack if extracted
+        - name: Override cluster_stack_path if the cluster_stack_folder extracted
           ansible.builtin.set_fact:
-            cluster_stack: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', 'providers/openstack/\\1/\\2') }}"
-            cluster_stack_version_name: "{{ cluster_stack_name | regex_replace('^openstack-([a-zA-Z0-9]+)-([0-9]+-[0-9]+)$', '\\1') }}"
-          when: cluster_stack_name is defined
+            cluster_stack_path: "providers/openstack/{{ cluster_stack_folder }}"
+          when: cluster_stack_folder is defined
     - name: Create cluster stack
-      ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack }} --output {{ cluster_stack_release_dir }}  --mode hash"
+      ansible.builtin.command: "csctl create {{ project_dir }}/{{ cluster_stack_path }} --output {{ cluster_stack_release_dir }}  --mode hash"
       args:
         chdir: "{{ project_dir }}"
       changed_when: true
@@ -149,6 +146,22 @@
       ansible.builtin.set_fact:
         k8s_version_major_minor: "{{ k8s_version | regex_replace('^v?([0-9]+\\.[0-9]+)\\..*', '\\1') }}"
       when: k8s_version is defined
+    - name: Read the csctl.yaml file
+      ansible.builtin.slurp:
+        src: "{{ project_dir }}/{{ cluster_stack_path }}/csctl.yaml"
+      register: csctl_file_content
+    - name: Parse the csctl.yaml content
+      ansible.builtin.set_fact:
+        csctl_data: "{{ csctl_file_content.content | b64decode | from_yaml }}"
+    - name: Register cluster_stack_version_name
+      ansible.builtin.set_fact:
+        cluster_stack_version_name: "{{ csctl_data.config.clusterStackName }}"
+    - name: Format the kubernetesVersion for cluster_stack_name
+      ansible.builtin.set_fact:
+        k8s_version_formatted: "{{ k8s_version_major_minor | regex_replace('\\.', '-') }}"
+    - name: Create the cluster_stack_name
+      ansible.builtin.set_fact:
+        cluster_stack_name: "{{ csctl_data.config.provider.type }}-{{ csctl_data.config.clusterStackName }}-{{ k8s_version_formatted }}"
     - name: Extract cloud name from clouds_yaml_full
       ansible.builtin.set_fact:
         cloud_name: "{{ clouds_yaml_full.clouds.keys() | first }}"

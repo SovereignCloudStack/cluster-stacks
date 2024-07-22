@@ -51,5 +51,3 @@ spec:
           {{- range .Values.dns_nameservers }}
             - {{ . }}
           {{- end }}
-      externalNetwork:
-        id: {{ .Values.external_id }}
