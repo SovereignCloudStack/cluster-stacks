@@ -20,292 +20,291 @@ spec:
       name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
   workers:
     machineDeployments:
-    - class: {{ .Release.Name }}-{{ .Chart.Version }}
+    - class: default-worker
       template:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: OpenStackMachineTemplate
-            name: {{ .Release.Name }}-{{ .Chart.Version }}
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
   variables:
-   - name: external_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-         example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-         format: "uuid4"
-         description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-   - name: controller_flavor
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "SCS-2V-4-20"
-         example: "SCS-2V-4-20"
-         description: "OpenStack instance flavor for control-plane nodes."
-   - name: worker_flavor
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "SCS-2V-4-20"
-         example: "SCS-2V-4-20"
-         description: "OpenStack instance flavor for worker nodes."
-   - name: controller_root_disk
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: integer
-         minimum: 1
-         example: 20
-         description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
-   - name: worker_root_disk
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: integer
-         minimum: 1
-         example: 20
-         description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
-   - name: yawol_flavor_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "uuid4"
-         example: "0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"
-         description: "ID of the existing flavor used as a default yawol flavor."
-   - name: yawol_image_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "uuid4"
-         example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
-         description: "ID of the existing imaged used as a default yawol image."
-   - name: kube_vip_network_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "uuid4"
-         example: "40a51f6c-9e4b-4b24-9187-49851a410c97"
-         description: "ID of the existing network. The network should have one subnet with one port reserved as virtual IP."
-   - name: kube_vip_apiserver_virtual_ip
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "ipv4"
-         example: "10.0.0.197"
-         description: "Virtual IP address reserved in kube_vip_network_id."
-   - name: kube_vip_apiserver_public_ip
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "ipv4"
-         description: "Public IP address associated with kube_vip_apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
-   - name: openstack_security_groups
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         default: []
-         example: ["security-group-1"]
-         description: "The names of the security groups to assign to the instance"
-         items:
-           type: string
-   - name: cloud_name
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "openstack"
-         example: "openstack"
-         description: "The name of the cloud to use from the clouds secret"
-   - name: secret_name
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "openstack"
-         example: "openstack"
-         description: "The name of the clouds secret"
-   - name: controller_server_group_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: ""
-         example: "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"
-         description: "The server group to assign the control plane nodes to."
-   - name: worker_server_group_id
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: ""
-         example: "869fe071-1e56-46a9-9166-47c9f228e297"
-         description: "The server group to assign the worker nodes to."
-   - name: ssh_key
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: ""
-         example: "capi-keypair"
-         description: "The ssh key to inject in the nodes."
-   - name: apiserver_loadbalancer
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "octavia-amphora"
-         example: "none, octavia-amphora, octavia-ovn, kube-vip"
-         description: | 
-           "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
-           To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
-           You can choose from 4 options:
+    - name: external_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+          format: "uuid4"
+          description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+    - name: controller_flavor
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "SCS-2V-4-20"
+          example: "SCS-2V-4-20"
+          description: "OpenStack instance flavor for control-plane nodes."
+    - name: worker_flavor
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "SCS-2V-4-20"
+          example: "SCS-2V-4-20"
+          description: "OpenStack instance flavor for worker nodes."
+    - name: controller_root_disk
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          minimum: 1
+          example: 20
+          description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+    - name: worker_root_disk
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          minimum: 1
+          example: 20
+          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+    - name: yawol_flavor_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "uuid4"
+          example: "0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"
+          description: "ID of the existing flavor used as a default yawol flavor."
+    - name: yawol_image_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "uuid4"
+          example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
+          description: "ID of the existing imaged used as a default yawol image."
+    - name: kube_vip_network_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "uuid4"
+          example: "40a51f6c-9e4b-4b24-9187-49851a410c97"
+          description: "ID of the existing network. The network should have one subnet with one port reserved as virtual IP."
+    - name: kube_vip_apiserver_virtual_ip
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "ipv4"
+          example: "10.0.0.197"
+          description: "Virtual IP address reserved in kube_vip_network_id."
+    - name: kube_vip_apiserver_public_ip
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "ipv4"
+          description: "Public IP address associated with kube_vip_apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
+    - name: openstack_security_groups
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: ["security-group-1"]
+          description: "The names of the security groups to assign to the instance"
+          items:
+            type: string
+    - name: cloud_name
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "openstack"
+          example: "openstack"
+          description: "The name of the cloud to use from the clouds secret"
+    - name: secret_name
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "openstack"
+          example: "openstack"
+          description: "The name of the clouds secret"
+    - name: controller_server_group_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          example: "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"
+          description: "The server group to assign the control plane nodes to."
+    - name: worker_server_group_id
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          example: "869fe071-1e56-46a9-9166-47c9f228e297"
+          description: "The server group to assign the worker nodes to."
+    - name: ssh_key
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          example: "capi-keypair"
+          description: "The ssh key to inject in the nodes."
+    - name: apiserver_loadbalancer
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "octavia-amphora"
+          example: "none, octavia-amphora, octavia-ovn, kube-vip"
+          description: | 
+            "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
+            To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
+            You can choose from 4 options:
 
-           none:
-             No loadbalancer solution will be deployed
+            none:
+              No loadbalancer solution will be deployed
 
-           octavia-amphora:
-             (default) Uses openstack's loadbalancer service (provider:amphora)
-           
-           octavia-ovn:
-             Uses openstack's loadbalancer service (provider:ovn)
-
-           kube-vip:
-             Uses kube-vip as loadbalancer.
-             You have to provide the following additional variables: 
-               kube_vip_network_id
-               kube_vip_apiserver_virtual_ip
-               kube_vip_apiserver_public_ip 
+            octavia-amphora:
+              (default) Uses openstack's loadbalancer service (provider:amphora)
             
-             Requires Kubernetes version < 1.29
-             Also the settings node_cidr and dns_nameservers will no longer have an effect.
-      
-   - name: workload_loadbalancer
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         default: "octavia-amphora"
-         example: "none, octavia-amphora, octavia-ovn, yawol"
-         description: |
-           "This setting here is to configure the loadbalancer solution for your services inside your cluster.
-           If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
-           You can choose from 4 options:
+            octavia-ovn:
+              Uses openstack's loadbalancer service (provider:ovn)
 
-           none:
-             No loadbalancer solution will be deployed
-
-           octavia-amphora:
-             (default) Uses openstack's loadbalancer service (provider:amphora)
-           
-           octavia-ovn:
-             Uses openstack's loadbalancer service (provider:ovn)
-
-           yawol:
-             Uses yawol as loadbalancer.
-             You have to provide the following additional variables: 
-               yawol_flavor_id
-               yawol_image_id
+            kube-vip:
+              Uses kube-vip as loadbalancer.
+              You have to provide the following additional variables: 
+                kube_vip_network_id
+                kube_vip_apiserver_virtual_ip
+                kube_vip_apiserver_public_ip 
              
-             Also note this setting does not work with application credentials (only username/password)"
-   - name: dns_nameservers
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         description: |
-           "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required.
-           This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-           However you can set the dns server when creating the subnet for kube-vip."
-         default: ["5.1.66.255", "185.150.99.255"]
-         example: ["5.1.66.255", "185.150.99.255"]
-         items:
-           type: string
-   - name: node_cidr
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: string
-         format: "cidr"
-         default: "10.8.0.0/20"
-         example: "10.8.0.0/20"
-         description: |
-           "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
-           This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-           However you can set the node_cidr when creating the subnet for kube-vip."
-   - name: certSANs
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: array
-         default: []
-         example: ["mydomain.example"]
-         description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
-         items:
-           type: string
-   - name: oidc_config
-     required: false
-     schema:
-       openAPIV3Schema:
-         type: object
-         properties:
-           client_id:
-             type: string
-             example: "kubectl"
-             description: "A client id that all tokens must be issued for."
-           issuer_url:
-             type: string
-             example: "https://dex.k8s.scs.community"
-             description: "URL of the provider that allows the API server to
-discover public signing keys. Only URLs that use the https:// scheme are
-accepted. This is typically the provider's discovery URL, changed to have an
-empty path"
-           username_claim:
-             type: string
-             example: "preferred_username"
-             default: "preferred_username"
-             description: "JWT claim to use as the user name. By default sub,
-which is expected to be a unique identifier of the end user. Admins can choose
-other claims, such as email or name, depending on their provider. However,
-claims other than email will be prefixed with the issuer URL to prevent naming
-clashes with other plugins."
-           groups_claim:
-             type: string
-             example: "groups"
-             default: "groups"
-             description: "JWT claim to use as the user's group. If the claim
-is present it must be an array of strings."
-           username_prefix:
-             type: string
-             example: "oidc:"
-             default: "oidc:"
-             description: "Prefix prepended to username claims to prevent
-clashes with existing names (such as system: users). For example, the value
-oidc: will create usernames like oidc:jane.doe. If this flag isn't provided and
---oidc-username-claim is a value other than email the prefix defaults to (
-Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
-- can be used to disable all prefixing."
-           groups_prefix:
-             type: string
-             example: "oidc:"
-             default: "oidc:"
-             description: "Prefix prepended to group claims to prevent clashes
-with existing names (such as system: groups). For example, the value oidc: will
-create group names like oidc:engineering and oidc:infra."
+              Requires Kubernetes version < 1.29
+              Also the settings node_cidr and dns_nameservers will no longer have an effect.
+       
+    - name: workload_loadbalancer
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "octavia-amphora"
+          example: "none, octavia-amphora, octavia-ovn, yawol"
+          description: |
+            "This setting here is to configure the loadbalancer solution for your services inside your cluster.
+            If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
+            You can choose from 4 options:
+
+            none:
+              No loadbalancer solution will be deployed
+
+            octavia-amphora:
+              (default) Uses openstack's loadbalancer service (provider:amphora)
+            
+            octavia-ovn:
+              Uses openstack's loadbalancer service (provider:ovn)
+
+            yawol:
+              Uses yawol as loadbalancer.
+              You have to provide the following additional variables: 
+                yawol_flavor_id
+                yawol_image_id
+              
+              Also note this setting does not work with application credentials (only username/password)"
+    - name: dns_nameservers
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          description: |
+            "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required.
+            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
+            However you can set the dns server when creating the subnet for kube-vip."
+          default: ["5.1.66.255", "185.150.99.255"]
+          example: ["5.1.66.255", "185.150.99.255"]
+          items:
+            type: string
+    - name: node_cidr
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "cidr"
+          default: "10.8.0.0/20"
+          example: "10.8.0.0/20"
+          description: |
+            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
+            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
+            However you can set the node_cidr when creating the subnet for kube-vip."
+    - name: certSANs
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: ["mydomain.example"]
+          description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+          items:
+            type: string
+    - name: oidc_config
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            client_id:
+              type: string
+              example: "kubectl"
+              description: "A client id that all tokens must be issued for."
+            issuer_url:
+              type: string
+              example: "https://dex.k8s.scs.community"
+              description: "URL of the provider that allows the API server to
+dis cover public signing keys. Only URLs that use the https:// scheme are
+acc epted. This is typically the provider's discovery URL, changed to have an
+emp ty path"
+            username_claim:
+              type: string
+              example: "preferred_username"
+              default: "preferred_username"
+              description: "JWT claim to use as the user name. By default sub,
+whi ch is expected to be a unique identifier of the end user. Admins can choose
+oth er claims, such as email or name, depending on their provider. However,
+cla ims other than email will be prefixed with the issuer URL to prevent naming
+cla shes with other plugins."
+            groups_claim:
+              type: string
+              example: "groups"
+              default: "groups"
+              description: "JWT claim to use as the user's group. If the claim
+is  present it must be an array of strings."
+            username_prefix:
+              type: string
+              example: "oidc:"
+              default: "oidc:"
+              description: "Prefix prepended to username claims to prevent
+cla shes with existing names (such as system: users). For example, the value
+oid c: will create usernames like oidc:jane.doe. If this flag isn't provided and
+--o idc-username-claim is a value other than email the prefix defaults to (
+Iss uer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
+- c an be used to disable all prefixing."
+            groups_prefix:
+              type: string
+              example: "oidc:"
+              default: "oidc:"
+              description: "Prefix prepended to group claims to prevent clashes
+wit h existing names (such as system: groups). For example, the value oidc: will
+cre ate group names like oidc:engineering and oidc:infra."
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -317,9 +316,9 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/image/filter/name"
             valueFrom:
               template: ubuntu-capi-image-{{ `{{ .builtin.cluster.topology.version }}` }}
@@ -512,7 +511,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/flavor"
@@ -532,7 +531,7 @@ create group names like oidc:engineering and oidc:infra."
             path: "/spec/template/spec/rootVolume"
             valueFrom:
               template: |
-                diskSize: {{"{{"}} .controller_root_disk {{"}}"}}
+                sizeGiB: {{"{{"}} .controller_root_disk {{"}}"}}
     - name: worker_root_disk
       description: "Sets the root disk size in GiB for worker nodes."
       enabledIf: {{ `"{{ if .worker_root_disk }}true{{end}}"` }}
@@ -544,16 +543,16 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/rootVolume"
             valueFrom:
               template: |
-                diskSize: {{"{{"}} .worker_root_disk {{"}}"}}
+                sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
     - name: external_id
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-      enabledIf: {{ `'{{ ne .external_id "" }}'` }}
+      enabledIf: {{ `"{{ if .external_id }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -561,7 +560,10 @@ create group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
+          - op: add
+            path: "/spec/template/spec/externalNetwork"
+            value: {}
+          - op: add
             path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
@@ -576,21 +578,12 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/securityGroups"
             valueFrom:
-              template: {{ `"[ {{ range .openstack_security_groups }} { name: {{ . }}}, {{ end }} ]"` }}
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: replace
-            path: "/spec/template/spec/allowAllInClusterTraffic"
-            value: false
+              template: {{ `"[ {{ range .openstack_security_groups }} { filter: { name: {{ . }}}}, {{ end }} ]"` }}
     - name: cloud_name
       description: "Sets the name of the cloud to use from the clouds secret."
       enabledIf: {{ `'{{ ne .cloud_name "" }}'` }}
@@ -612,7 +605,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/identityRef/cloudName"
@@ -639,7 +632,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: replace
             path: "/spec/template/spec/identityRef/name"
@@ -656,9 +649,10 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/serverGroupID"
+            path: "/spec/template/spec/serverGroup"
             valueFrom:
-              variable: controller_server_group_id
+              template: |
+                id: {{"{{"}} .controller_server_group_id {{"}}"}}
     - name: worker_server_group_id
       description: "Sets the server group to assign the worker nodes to."
       enabledIf: {{ `'{{ ne .worker_server_group_id "" }}'` }}
@@ -670,12 +664,13 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: false
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
-            path: "/spec/template/spec/serverGroupID"
+            path: "/spec/template/spec/serverGroup"
             valueFrom:
-              variable: worker_server_group_id
+              template: |
+                id: {{"{{"}} .worker_server_group_id {{"}}"}}
     - name: ssh_key
       description: "Sets the ssh key to inject in the nodes."
       enabledIf: {{ `'{{ ne .ssh_key "" }}'` }}
@@ -687,7 +682,7 @@ create group names like oidc:engineering and oidc:infra."
               controlPlane: true
               machineDeploymentClass:
                 names:
-                  - {{ .Release.Name }}-{{ .Chart.Version }}
+                  - default-worker
           jsonPatches:
           - op: add
             path: "/spec/template/spec/sshKeyName"
@@ -751,7 +746,7 @@ create group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/managedSubnets"
             valueFrom:
               template: |

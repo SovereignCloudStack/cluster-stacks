@@ -28,6 +28,7 @@ Transform the Kubernetes cluster into a management cluster by using `clusterctl 
 ```bash
 export CLUSTER_TOPOLOGY=true
 export EXP_CLUSTER_RESOURCE_SET=true
+export EXP_RUNTIME_SDK=true
 clusterctl init --infrastructure openstack
 ```
 
@@ -215,9 +216,9 @@ spec:
     version: v${CS_K8S_VERSION}.${CS_K8S_PATCH_VERSION}
     workers:
       machineDeployments:
-        - class: ${CS_CLASS_NAME}
+        - class: default-worker
           failureDomain: nova
-          name: ${CS_CLASS_NAME}
+          name: default-worker
           replicas: 3
 EOF
 
