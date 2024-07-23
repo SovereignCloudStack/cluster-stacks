@@ -4,7 +4,7 @@ dependencies:
   version: 3.12.1
 - name: cilium
   repository: https://helm.cilium.io/
-  version: 1.15.6
+  version: 1.15.7
 - name: hcloud-cloud-controller-manager
   repository: https://charts.hetzner.cloud
   version: 1.20.0
@@ -14,5 +14,5 @@ dependencies:
 - name: rook-ceph-cluster
   repository: https://charts.rook.io/release
   version: v1.14.8
-digest: sha256:c94c04f4c77a669482885e13d46d3d62a10a0f28d7254367a8289130927771d3
-generated: "2024-07-09T09:00:53.207795418+02:00"
+digest: sha256:eb5d26dcc4c9acbbdfe315cee40ebaa5bf6fd9a8b65b38c73c50b8ffcb7da54a
+generated: "2024-07-23T08:39:47.976315835+02:00"
