@@ -62,71 +62,12 @@ hcloud-cloud-controller-manager:
 
 rook-ceph:
   enableDiscoveryDaemon: true
-  currentNamespaceOnly: true
 rook-ceph-cluster:
   operatorNamespace: kube-system
-  # based on cluster-test.yaml
+  toolbox:
+    enabled: true
   cephClusterSpec:
-    cephVersion:
-      image: quay.io/ceph/ceph:v18
-      allowUnsupported: true
-    mon:
-      count: 1
-      allowMultiplePerNode: true
     mgr:
-      count: 1
-      allowMultiplePerNode: true
       modules:
       - name: rook
         enabled: true
-    dashboard:
-      ssl: false
-    crashCollector:
-      disable: true
-    logCollector:
-      enabled: false
-    healthCheck:
-      daemonHealth:
-        mon:
-          interval: 45s
-          timeout: 600s
-        osd:
-        status:
-      livenessProbe:
-    resources:
-  configOverride: |
-    [global]
-    osd_pool_default_size = 1
-    mon_warn_on_pool_no_redundancy = false
-    bdev_flock_retry = 20
-    bluefs_buffered_io = false
-    mon_data_avail_warn = 10
-  # based on storageclass-test.yaml
-  cephBlockPools:
-  - name: ceph-blockpool
-    spec:
-      failureDomain: osd
-      replicated:
-        size: 1
-        requireSafeReplicaSize: false
-    storageClass:
-      enabled: true
-      name: ceph-block
-      isDefault: true
-      reclaimPolicy: Delete
-      allowVolumeExpansion: true
-      volumeBindingMode: "Immediate"
-      mountOptions: []
-      allowedTopologies: []
-      parameters:
-        imageFormat: "2"
-        imageFeatures: layering
-        csi.storage.k8s.io/provisioner-secret-name: rook-csi-rbd-provisioner
-        csi.storage.k8s.io/provisioner-secret-namespace: "{{ .Release.Namespace }}"
-        csi.storage.k8s.io/controller-expand-secret-name: rook-csi-rbd-provisioner
-        csi.storage.k8s.io/controller-expand-secret-namespace: "{{ .Release.Namespace }}"
-        csi.storage.k8s.io/node-stage-secret-name: rook-csi-rbd-node
-        csi.storage.k8s.io/node-stage-secret-namespace: "{{ .Release.Namespace }}"
-        csi.storage.k8s.io/fstype: ext4
-  cephFileSystems: []
-  cephObjectStores: []

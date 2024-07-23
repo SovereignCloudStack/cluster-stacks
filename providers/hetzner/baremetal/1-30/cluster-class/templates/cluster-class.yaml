@@ -155,7 +155,7 @@ spec:
         type: string
         example: |
           enabled: true
-          currentNamespaceOnly: false
+          currentNamespaceOnly: true
         description: "Helm values for Ceph Operator."
   - name: rook_ceph_cluster_values
     schema:
@@ -163,10 +163,8 @@ spec:
         type: string
         default: "enabled: false"
         example: |
-          cephClusterSpec:
-            cephVersion:
-              image: quay.io/ceph/ceph:v18.2.2
-              allowUnsupported: false
+          enabled: true
+          clusterName: rook-ceph
         description: "Helm values for Ceph Cluster."
   - name: etcdEncryptionSecretRef
     required: false
