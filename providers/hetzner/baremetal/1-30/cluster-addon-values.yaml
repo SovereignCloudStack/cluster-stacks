@@ -8,5 +8,11 @@ values: |
   rook-ceph:{{ .value | nindent 4 }}
   {{- else if and (eq .name "rook_ceph_cluster_values") .value }}
   rook-ceph-cluster:{{ .value | nindent 4 }}
+  {{- else if eq .name "region" }}
+  ingressNginx:
+    controller:
+      service:
+        annotations:
+          load-balancer.hetzner.cloud/location: {{ .value }}
   {{- end }}
   {{- end }}

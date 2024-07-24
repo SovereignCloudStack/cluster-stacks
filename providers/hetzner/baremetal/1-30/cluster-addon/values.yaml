@@ -76,3 +76,6 @@ certManager:
   crds:
     enabled: true
   namespace: cert-manager
+
+ingressNginx:
+  namespaceOverride: ingress-nginx
