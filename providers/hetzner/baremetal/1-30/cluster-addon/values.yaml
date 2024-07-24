@@ -71,3 +71,8 @@ rook-ceph-cluster:
       modules:
       - name: rook
         enabled: true
+
+certManager:
+  crds:
+    enabled: true
+  namespace: cert-manager

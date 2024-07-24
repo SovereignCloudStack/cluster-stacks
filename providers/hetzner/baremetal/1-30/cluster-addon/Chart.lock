@@ -14,5 +14,8 @@ dependencies:
 - name: rook-ceph-cluster
   repository: https://charts.rook.io/release
   version: v1.14.8
-digest: sha256:eb5d26dcc4c9acbbdfe315cee40ebaa5bf6fd9a8b65b38c73c50b8ffcb7da54a
-generated: "2024-07-23T08:39:47.976315835+02:00"
+- name: cert-manager
+  repository: https://charts.jetstack.io
+  version: v1.15.1
+digest: sha256:a686afdea6d5792f0dfcfff193009a1b7f8818fa7830b537757ef889f5a7967d
+generated: "2024-07-24T08:58:39.397409609+02:00"
