@@ -72,10 +72,6 @@ rook-ceph-cluster:
       - name: rook
         enabled: true
 
-certManager:
+cert-manager:
   crds:
     enabled: true
-  namespace: cert-manager
-
-ingressNginx:
-  namespaceOverride: ingress-nginx

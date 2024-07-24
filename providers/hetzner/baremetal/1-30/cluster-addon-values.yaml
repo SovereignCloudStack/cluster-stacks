@@ -9,7 +9,7 @@ values: |
   {{- else if and (eq .name "rook_ceph_cluster_values") .value }}
   rook-ceph-cluster:{{ .value | nindent 4 }}
   {{- else if eq .name "region" }}
-  ingressNginx:
+  ingress-nginx:
     controller:
       service:
         annotations:

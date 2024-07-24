@@ -22,11 +22,11 @@ dependencies:
   repository: https://charts.rook.io/release
   version: v1.14.8
   condition: rook-ceph-cluster.enabled
-- alias: certManager
+- alias: cert-manager
   name: cert-manager
   repository: https://charts.jetstack.io
   version: v1.15.1
-- alias: ingressNginx
+- alias: ingress-nginx
   name: ingress-nginx
   repository: https://kubernetes.github.io/ingress-nginx
   version: 4.11.1
