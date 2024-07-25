@@ -73,5 +73,9 @@ rook-ceph-cluster:
         enabled: true
 
 cert-manager:
+  fullnameOverride: cert-manager
   crds:
     enabled: true
+
+ingress-nginx:
+  fullnameOverride: ingress-nginx
