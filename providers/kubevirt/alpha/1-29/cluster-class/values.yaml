@@ -1,0 +1,6 @@
+image:
+  url: quay.io/capk/ubuntu-2204-container-disk:v1.29.5
+
+cpu:
+  cores: 2
+memory: 4Gi
