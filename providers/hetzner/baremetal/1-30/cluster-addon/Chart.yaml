@@ -15,12 +15,12 @@ dependencies:
 - alias: rook-ceph
   name: rook-ceph
   repository: https://charts.rook.io/release
-  version: v1.14.8
+  version: v1.14.9
   condition: rook-ceph.enabled,rook-ceph-cluster.enabled
 - alias: rook-ceph-cluster
   name: rook-ceph-cluster
   repository: https://charts.rook.io/release
-  version: v1.14.8
+  version: v1.14.9
   condition: rook-ceph-cluster.enabled
 name: hetzner-baremetal-1-30-cluster-addon
 type: application
