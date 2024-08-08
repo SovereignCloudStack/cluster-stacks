@@ -49,3 +49,9 @@ openstack-cinder-csi:
 yawol-controller:
   yawolOSSecretName: cloud-config
   enabled: false
+cilium:
+  podSecurityContext:
+    # -- AppArmorProfile options for the `cilium-agent` and init containers
+    appArmorProfile: null
+  securityContext:
+    privileged: true
