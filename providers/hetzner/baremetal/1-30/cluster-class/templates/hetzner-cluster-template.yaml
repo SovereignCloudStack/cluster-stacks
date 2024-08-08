@@ -1,0 +1,28 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: HetznerClusterTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+spec:
+  template:
+    spec:
+      controlPlaneEndpoint:
+        host: ""
+        port: 443
+      controlPlaneLoadBalancer:
+        enabled: true
+      controlPlaneRegions: []
+      hcloudNetwork:
+        enabled: false
+      hetznerSecretRef:
+        key:
+          hcloudToken: hcloud
+          hetznerRobotPassword: robot-password
+          hetznerRobotUser: robot-user
+        name: hetzner
+      sshKeys:
+        robotRescueSecretRef:
+          key:
+            name: sshkey-name
+            privateKey: ssh-privatekey
+            publicKey: ssh-publickey
+          name: robot-ssh
