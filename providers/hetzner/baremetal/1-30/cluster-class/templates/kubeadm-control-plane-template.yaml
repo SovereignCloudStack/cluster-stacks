@@ -184,3 +184,5 @@ spec:
         - echo 'source <(kubectl completion bash)' >>/root/.bashrc
         - echo 'export KUBECONFIG=/etc/kubernetes/admin.conf' >>/root/.bashrc
         - apt-get -y autoremove && apt-get -y clean all
+        postKubeadmCommands:
+        - echo fs.inotify.max_user_instances=1024 >> /etc/sysctl.conf && sysctl -p
