@@ -30,9 +30,7 @@
               X-GitHub-Api-Version: 2022-11-28
           register: pull_request
           when: zuul.change is defined  # execute when the e2e pipeline is initiated on a PR
-        - name: |
-            Set facts -
-            In cases where e2e is not executed on the PR, the main branch is used for the pipeline.
+        - name: Set facts when the e2e pipeline is initiated on a PR
           ansible.builtin.set_fact:
             git_branch_name: "{{ pull_request.json.head.ref }}"
             git_repository_url: "{{ pull_request.json.head.repo.clone_url }}"
