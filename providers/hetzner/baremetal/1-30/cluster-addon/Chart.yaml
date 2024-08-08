@@ -15,17 +15,17 @@ dependencies:
 - alias: rook-ceph
   name: rook-ceph
   repository: https://charts.rook.io/release
-  version: v1.14.8
+  version: v1.14.9
   condition: rook-ceph.enabled,rook-ceph-cluster.enabled
 - alias: rook-ceph-cluster
   name: rook-ceph-cluster
   repository: https://charts.rook.io/release
-  version: v1.14.8
+  version: v1.14.9
   condition: rook-ceph-cluster.enabled
 - alias: cert-manager
   name: cert-manager
   repository: https://charts.jetstack.io
-  version: v1.15.1
+  version: v1.15.2
 - alias: ingress-nginx
   name: ingress-nginx
   repository: https://kubernetes.github.io/ingress-nginx
@@ -33,7 +33,7 @@ dependencies:
 - alias: prometheus-operator-crds
   name: prometheus-operator-crds
   repository: https://prometheus-community.github.io/helm-charts
-  version: 13.0.1
+  version: 13.0.2
 name: hetzner-baremetal-1-30-cluster-addon
 type: application
 version: v1
