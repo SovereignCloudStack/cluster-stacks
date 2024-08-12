@@ -46,6 +46,9 @@ openstack-cinder-csi:
     effect: NoSchedule
   - key: node-role.kubernetes.io/control-plane
     effect: NoSchedule
+  storageClass:
+    delete:
+      isDefault: true
 yawol-controller:
   yawolOSSecretName: cloud-config
   enabled: false
