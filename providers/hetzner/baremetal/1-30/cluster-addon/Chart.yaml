@@ -7,7 +7,9 @@ dependencies:
 - alias: tigera-operator
   name: tigera-operator
   repository: https://docs.tigera.io/calico/charts
-  version: v3.28.1
+  # FIXME: CSO helm templating doesn't support helm hooks, https://github.com/projectcalico/calico/issues/9033
+  # Use v3.28 version of Calico
+  version: v3.26.4
 - alias: hcloud-cloud-controller-manager
   name: hcloud-cloud-controller-manager
   repository: https://charts.hetzner.cloud
