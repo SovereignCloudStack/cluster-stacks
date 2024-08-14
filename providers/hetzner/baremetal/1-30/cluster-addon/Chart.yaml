@@ -4,10 +4,10 @@ dependencies:
   name: metrics-server
   repository: https://kubernetes-sigs.github.io/metrics-server/
   version: 3.12.1
-- alias: cilium
-  name: cilium
-  repository: https://helm.cilium.io/
-  version: 1.15.7
+- alias: tigera-operator
+  name: tigera-operator
+  repository: https://docs.tigera.io/calico/charts
+  version: v3.28.1
 - alias: hcloud-cloud-controller-manager
   name: hcloud-cloud-controller-manager
   repository: https://charts.hetzner.cloud

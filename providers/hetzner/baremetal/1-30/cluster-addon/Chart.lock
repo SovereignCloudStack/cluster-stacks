@@ -2,9 +2,9 @@ dependencies:
 - name: metrics-server
   repository: https://kubernetes-sigs.github.io/metrics-server/
   version: 3.12.1
-- name: cilium
-  repository: https://helm.cilium.io/
-  version: 1.15.7
+- name: tigera-operator
+  repository: https://docs.tigera.io/calico/charts
+  version: v3.28.1
 - name: hcloud-cloud-controller-manager
   repository: https://charts.hetzner.cloud
   version: 1.20.0
@@ -23,5 +23,5 @@ dependencies:
 - name: prometheus-operator-crds
   repository: https://prometheus-community.github.io/helm-charts
   version: 13.0.2
-digest: sha256:780fb97000b1d7d582605779400bc2c62d1e400c99ff3554af1c11f16ff558fb
-generated: "2024-08-08T09:31:32.674765243+02:00"
+digest: sha256:063dfa258b14fa6526fc013ba7c92253f61020248cf168c10ed2ab7f6feb8581
+generated: "2024-08-14T11:31:29.862812988+02:00"
