@@ -51,3 +51,6 @@ cert-manager:
 
 ingress-nginx:
   fullnameOverride: ingress-nginx
+  controller:
+    extraArgs:
+      enable-ssl-passthrough: true
