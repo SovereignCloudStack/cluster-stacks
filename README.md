@@ -6,7 +6,7 @@ It encapsulates multiple layers, including node configuration, Cluster API setup
 
 ## 🔧 Usage
 
-Follow our [quickstart guide](providers/openstack/README.md) for an introduction on how to deploy cluster stacks on openstack.
+Follow our [quickstart guide](docs/providers/openstack/quickstart.md) for an introduction on how to deploy cluster stacks on openstack.
 
 ## Layers of a Cluster Stack
 
