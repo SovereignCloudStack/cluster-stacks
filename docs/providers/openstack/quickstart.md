@@ -107,13 +107,13 @@ Configure the Cluster Stack you want to use:
 
 ```sh
 # the name of the cluster stack (must match a name of a directory in https://github.com/SovereignCloudStack/cluster-stacks/tree/main/providers/openstack)
-export CS_NAME=alpha
+export CS_NAME=scs
 
 # the kubernetes version of the cluster stack (must match a tag for the kubernetes version and the stack version)
 export CS_K8S_VERSION=1.29
 
 # the version of the cluster stack (must match a tag for the kubernetes version and the stack version)
-export CS_VERSION=v2
+export CS_VERSION=v1
 export CS_CHANNEL=stable
 
 # must match a cloud section name in the used clouds.yaml
@@ -121,7 +121,7 @@ export CS_CLOUDNAME=openstack
 export CS_SECRETNAME="${CS_CLOUDNAME}"
 ```
 
-This will use the cluster-stack as defined in the `providers/openstack/alpha` directory.
+This will use the cluster-stack as defined in the `providers/openstack/scs` directory.
 
 ```bash
 cat >clusterstack.yaml <<EOF
