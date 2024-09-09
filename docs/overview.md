@@ -1,4 +1,6 @@
-# Cluster Stacks
+# Overview
+
+## Cluster Stacks
 
 Cluster Stacks is a comprehensive framework and reference implementations for defining and managing Kubernetes clusters via the Cluster API. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
 
@@ -6,7 +8,7 @@ It encapsulates multiple layers, including node configuration, Cluster API setup
 
 ## 🔧 Usage
 
-Follow our [quickstart guide](docs/providers/openstack/quickstart.md) for an introduction on how to deploy cluster stacks on openstack.
+Follow our [quickstart guide](providers/openstack/quickstart.md) for an introduction on how to deploy cluster stacks on openstack.
 
 ## Layers of a Cluster Stack
 

@@ -305,6 +305,29 @@ Iss uer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
               description: "Prefix prepended to group claims to prevent clashes
 wit h existing names (such as system: groups). For example, the value oidc: will
 cre ate group names like oidc:engineering and oidc:infra."
+    - name: network_mtu
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          example: 1500
+          description: "NetworkMTU sets the maximum transmission unit (MTU) value to address fragmentation for the private network ID."
+    - name: controlPlaneAvailabilityZones
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          example: ["nova"]
+          description: "ControlPlaneAvailabilityZones is the set of availability zones which control plane machines may be deployed to."
+          items:
+            type: string
+    - name: controlPlaneOmitAvailabilityZone
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          example: true
+          description: "ControlPlaneOmitAvailabilityZone causes availability zone to be omitted when creating control plane nodes, allowing the Nova scheduler to make a decision on which availability zone to use based on other scheduling constraints."
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -567,6 +590,48 @@ cre ate group names like oidc:engineering and oidc:infra."
             path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
               variable: external_id
+    - name: network_mtu
+      description: "Sets the network MTU when variable network_mtu exist in cluster resource."
+      enabledIf: {{ `"{{ if .network_mtu }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/networkMTU"
+            valueFrom:
+              variable: network_mtu
+    - name: controlPlaneAvailabilityZones
+      description: "Sets the availability zones which control plane machines may be deployed to."
+      enabledIf: {{ `"{{ if .controlPlaneAvailabilityZones }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/controlPlaneAvailabilityZones"
+            valueFrom:
+              variable: controlPlaneAvailabilityZones
+    - name: controlPlaneOmitAvailabilityZone
+      description: "Causes availability zone to be omitted when creating control plane nodes."
+      enabledIf: {{ `"{{ if .controlPlaneOmitAvailabilityZone }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/controlPlaneOmitAvailabilityZone"
+            valueFrom:
+              variable: controlPlaneOmitAvailabilityZone
     - name: openstack_security_groups
       description: "Sets the list of the openstack security groups for the worker and the controlplane instances."
       enabledIf: {{ `"{{ if .openstack_security_groups }}true{{end}}"` }}

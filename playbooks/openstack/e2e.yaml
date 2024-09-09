@@ -21,6 +21,27 @@
   tasks:
     - name: Determine cluster stack directory
       block:
+        - name: Get PR details
+          ansible.builtin.uri:
+            url: "https://api.github.com/repos/{{ zuul.project.name }}/pulls/{{ zuul.change }}"
+            body_format: json
+            headers:
+              Accept: application/vnd.github+json
+              X-GitHub-Api-Version: 2022-11-28
+          register: pull_request
+          when: zuul.change is defined  # execute when the e2e pipeline is initiated on a PR
+        - name: Set facts when the e2e pipeline is initiated on a PR
+          ansible.builtin.set_fact:
+            git_branch_name: "{{ pull_request.json.head.ref }}"
+            git_repository_url: "{{ pull_request.json.head.repo.clone_url }}"
+          when: zuul.change is defined  # execute when the e2e pipeline is initiated on a PR
+        - name: Checkout to PR branch
+          ansible.builtin.git:
+            repo: "{{ git_repository_url }}"
+            clone: false
+            dest: "{{ project_dir }}"
+            version: "{{ git_branch_name }}"
+          when: zuul.change is defined  # execute when the e2e pipeline is initiated on a PR
         - name: Make sure directory structure exists
           ansible.builtin.file:
             path: "{{ item }}"
