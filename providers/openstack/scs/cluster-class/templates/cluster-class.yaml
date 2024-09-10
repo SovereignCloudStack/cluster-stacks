@@ -46,16 +46,16 @@ spec:
       schema:
         openAPIV3Schema:
           type: string
-          default: "SCS-2V-4-20"
-          example: "SCS-2V-4-20"
+          default: "SCS-2V-4-20s"
+          example: "SCS-2V-4-20s"
           description: "OpenStack instance flavor for control-plane nodes."
     - name: worker_flavor
       required: false
       schema:
         openAPIV3Schema:
           type: string
-          default: "SCS-2V-4-20"
-          example: "SCS-2V-4-20"
+          default: "SCS-2V-4"
+          example: "SCS-2V-4"
           description: "OpenStack instance flavor for worker nodes."
     - name: controller_root_disk
       required: false
@@ -63,16 +63,17 @@ spec:
         openAPIV3Schema:
           type: integer
           minimum: 1
-          example: 20
-          description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+          example: 25
+          description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should only be used for the diskless flavors."
     - name: worker_root_disk
       required: false
       schema:
         openAPIV3Schema:
           type: integer
           minimum: 1
-          example: 20
-          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors."
+          default: 25
+          example: 25
+          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used for the diskless flavors."
     - name: yawol_flavor_id
       required: false
       schema:
