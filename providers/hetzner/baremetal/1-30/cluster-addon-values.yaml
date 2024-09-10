@@ -1,0 +1,12 @@
+values: |
+  metrics-server:
+    commonLabels:
+      domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
+      clusterAddonVersion: "v1"
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if and (eq .name "rook_ceph_values") .value }}
+  rook-ceph:{{ .value | nindent 4 }}
+  {{- else if and (eq .name "rook_ceph_cluster_values") .value }}
+  rook-ceph-cluster:{{ .value | nindent 4 }}
+  {{- end }}
+  {{- end }}
