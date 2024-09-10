@@ -4,7 +4,7 @@ worker_flavor: SCS-2V-4-20
 restrict_kubeapi: []
 
 # newly introduced:
-openstack_loadbalancer_apiserver: true
+openstack_loadbalancer_apiserver: false
 
 # TBD, currently needed:
 images:

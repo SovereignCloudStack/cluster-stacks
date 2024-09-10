@@ -355,7 +355,7 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             value: true
           - op: add
@@ -371,7 +371,7 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             value: true
           - op: add
