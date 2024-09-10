@@ -71,6 +71,7 @@ spec:
         openAPIV3Schema:
           type: integer
           minimum: 1
+          default: 25
           example: 25
           description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used for the diskless flavors."
     - name: yawol_flavor_id
