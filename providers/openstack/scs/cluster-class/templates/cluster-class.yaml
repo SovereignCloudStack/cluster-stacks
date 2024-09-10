@@ -812,7 +812,7 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/managedSubnets"
             valueFrom:
               template: |

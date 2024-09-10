@@ -1,10 +1,6 @@
 # mirrored from variables.tf
-dns_nameservers:
-  - 5.1.66.255
-  - 185.150.99.255
 controller_flavor: SCS-2V-4-20
 worker_flavor: SCS-2V-4-20
-node_cidr: 10.8.0.0/20
 restrict_kubeapi: []
 
 # newly introduced:
