@@ -30,6 +30,8 @@ values: |
   {{- end }}
 
   openstack-cloud-controller-manager:
+    cluster:
+      name: {{ .Cluster.metadata.name }}
     cloudConfig:
       loadBalancer:
       {{- range .Cluster.spec.topology.variables }}

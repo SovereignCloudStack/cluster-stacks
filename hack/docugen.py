@@ -16,7 +16,7 @@ import yaml
 
 BASE_PATH = Path(__file__).parent.parent
 TEMPLATE_PATH = BASE_PATH.joinpath(
-    "providers", "openstack", "scs", "1-27", "cluster-class"
+    "providers", "openstack", "scs", "cluster-class"
 )
 
 
@@ -62,7 +62,7 @@ def parse_variable(tmpl: dict) -> list:
         row.append(str(var_default))
         row.append(str(var_example))
 
-    row.append(var_desc.replace("\n", "<br>"))
+    row.append(var_desc.replace("\n", "<br />"))
     row.append(str(var_required))  # Convert boolean variable to string
 
     return row

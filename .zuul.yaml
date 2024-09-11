@@ -25,7 +25,7 @@
     parent: openstack-e2e-abstract
     description: |
       Run e2e tests of cluster-stacks project using
-      [sonobuoy](https://sonobuoy.io/) with mode conformance and
+      [sonobuoy](https://sonobuoy.io/) with mode non-disruptive conformance and
       SCS compliance checks meaning it will test if the Kubernetes
       cluster is conformant to the CNCF and to the SCS.
     timeout: 10800  # 3h
@@ -33,7 +33,7 @@
       wait_for_cluster: 1200  # 20min
       sonobouy:
         enabled: true
-        mode: conformance
+        mode: certified-conformance
       scs_compliance:
         enabled: true
 

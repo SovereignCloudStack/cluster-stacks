@@ -1,0 +1,436 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+    machineInfrastructure:
+      ref:
+        kind: HetznerBareMetalMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: HetznerClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: baremetal-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-baremetal-worker
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: HetznerBareMetalMachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-baremetal-worker
+  variables:
+  - name: clusterEndpointHost
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+  - name: clusterEndpointPort
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: integer
+        default: 443
+  - name: clusterLoadBalancerType
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "lb11"
+  - name: clusterLoadBalancerName
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+  - name: clusterLoadBalancerAlgorithm
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "round_robin"
+  - name: clusterLoadBalancerExtraServices
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: []
+        items:
+          type: object
+          properties:
+            protocol:
+              type: string
+            listenPort:
+              type: integer
+            destinationPort:
+              type: integer
+  - name: region
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: fsn1
+  - name: bareMetalWorkerHostSelector
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          matchExpressions:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                operator:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+          matchLabels:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+  - name: bareMetalControlPlaneHostSelector
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          matchExpressions:
+            type: array
+            items:
+              type: object
+              properties:
+                key:
+                  type: string
+                operator:
+                  type: string
+                values:
+                  type: array
+                  items:
+                    type: string
+          matchLabels:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+  - name: bareMetalWorkerRaidEnabled
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+  - name: bareMetalWorkerRaidLevel
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: integer
+        default: 1
+  - name: bareMetalControlPlaneRaidEnabled
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+  - name: bareMetalControlPlaneRaidLevel
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: integer
+        default: 1
+  - name: rook_ceph_values
+    schema:
+      openAPIV3Schema:
+        type: string
+        example: |
+          enabled: true
+          currentNamespaceOnly: true
+        description: "Helm values for Ceph Operator."
+  - name: rook_ceph_cluster_values
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: "enabled: false"
+        example: |
+          enabled: true
+          clusterName: rook-ceph
+        description: "Helm values for Ceph Cluster."
+  - name: etcdEncryptionSecretRef
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+          name:
+            type: string
+            default: etcd-encryption
+          key:
+            type: string
+            default: config
+  - name: certSANs
+    required: false
+    schema:
+     openAPIV3Schema:
+       type: array
+       default: []
+       example: ["mydomain.example"]
+       description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+       items:
+         type: string
+  - name: oidc_config
+    required: false
+    schema:
+     openAPIV3Schema:
+       type: object
+       properties:
+         client_id:
+           type: string
+           example: "kubectl"
+           description: "A client id that all tokens must be issued for."
+         issuer_url:
+           type: string
+           example: "https://dex.k8s.scs.community"
+           description: "URL of the provider that allows the API server to
+    discover public signing keys. Only URLs that use the https:// scheme are
+    accepted. This is typically the provider's discovery URL, changed to have an
+    empty path"
+         username_claim:
+           type: string
+           example: "preferred_username"
+           default: "preferred_username"
+           description: "JWT claim to use as the user name. By default sub,
+    which is expected to be a unique identifier of the end user. Admins can choose
+    other claims, such as email or name, depending on their provider. However,
+    claims other than email will be prefixed with the issuer URL to prevent naming
+    clashes with other plugins."
+         groups_claim:
+           type: string
+           example: "groups"
+           default: "groups"
+           description: "JWT claim to use as the user's group. If the claim
+    is present it must be an array of strings."
+         username_prefix:
+           type: string
+           example: "oidc:"
+           default: "oidc:"
+           description: "Prefix prepended to username claims to prevent
+    clashes with existing names (such as system: users). For example, the value
+    oidc: will create usernames like oidc:jane.doe. If this flag isn't provided and
+    --oidc-username-claim is a value other than email the prefix defaults to (
+    Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
+    - can be used to disable all prefixing."
+         groups_prefix:
+           type: string
+           example: "oidc:"
+           default: "oidc:"
+           description: "Prefix prepended to group claims to prevent clashes
+    with existing names (such as system: groups). For example, the value oidc: will
+    create group names like oidc:engineering and oidc:infra."
+  patches:
+  - name: HetznerClusterTemplateGeneral
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: HetznerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: "/spec/template/spec/controlPlaneEndpoint/host"
+        valueFrom:
+          variable: clusterEndpointHost
+      - op: replace
+        path: "/spec/template/spec/controlPlaneEndpoint/port"
+        valueFrom:
+          variable: clusterEndpointPort
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/type"
+        valueFrom:
+          variable: clusterLoadBalancerType
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/algorithm"
+        valueFrom:
+          variable: clusterLoadBalancerAlgorithm
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/extraServices"
+        valueFrom:
+          variable: clusterLoadBalancerExtraServices
+      - op: add
+        path: "/spec/template/spec/controlPlaneRegions"
+        valueFrom:
+          template: {{ `"[{{ .region | quote }}]"` }}
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/region"
+        valueFrom:
+          variable: region
+  - name: existing_load_balancer
+    enabledIf: {{ `"{{ if .clusterLoadBalancerName }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: HetznerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/controlPlaneLoadBalancer/name"
+        valueFrom:
+          variable: clusterLoadBalancerName
+  - name: HetznerBareMetalMachineTemplateWorker
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: HetznerBareMetalMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - baremetal-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/hostSelector"
+        valueFrom:
+          variable: bareMetalWorkerHostSelector
+      - op: replace
+        path: "/spec/template/spec/installImage/swraid"
+        valueFrom:
+          template: {{ `"{{ if .bareMetalWorkerRaidEnabled }}1{{else}}0{{end}}"` }}
+      - op: replace
+        path: "/spec/template/spec/installImage/swraidLevel"
+        valueFrom:
+          variable: bareMetalWorkerRaidLevel
+  - name: HetznerBareMetalMachineTemplateControlPlane
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: HetznerBareMetalMachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/hostSelector"
+        valueFrom:
+          variable: bareMetalControlPlaneHostSelector
+      - op: replace
+        path: "/spec/template/spec/installImage/swraid"
+        valueFrom:
+          template: {{ `"{{ if .bareMetalControlPlaneRaidEnabled }}1{{else}}0{{end}}"` }}
+      - op: replace
+        path: "/spec/template/spec/installImage/swraidLevel"
+        valueFrom:
+          variable: bareMetalControlPlaneRaidLevel
+  - name: k8s_version
+    description: "Sets the k8s version in the preKubeadmCommands according to the version mentioned in spec.topology.version."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/0"
+        valueFrom:
+          template: {{ `"export KUBERNETES_VERSION=$(echo {{ .builtin.cluster.topology.version }} | sed 's/^v//')"` }}
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - baremetal-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/preKubeadmCommands/0"
+        valueFrom:
+          template: {{ `"export KUBERNETES_VERSION=$(echo {{ .builtin.cluster.topology.version }} | sed 's/^v//')"` }}
+  - name: etcd_encryption
+    description: "Configures encryption of confidential data at rest."
+    enabledIf: {{ `"{{ if .etcdEncryptionSecretRef.enabled }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/files/0"
+        valueFrom:
+          template: |
+            contentFrom:
+              secret:
+                key: '{{"{{"}} .etcdEncryptionSecretRef.key {{"}}"}}'
+                name: '{{"{{"}} .etcdEncryptionSecretRef.name {{"}}"}}'
+            owner: root:root
+            path: /etc/kubernetes/encryption-provider.yaml
+            permissions: "0600"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
+        value:
+        - hostPath: /etc/kubernetes/encryption-provider.yaml
+          mountPath: /etc/kubernetes/encryption-provider.yaml
+          name: encryption-provider
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/encryption-provider-config"
+        value: /etc/kubernetes/encryption-provider.yaml
+  - name: certSANs
+    description: "CertSANs sets extra Subject Alternative Names for the API Server signing cert."
+    enabledIf: {{ `"{{ if .certSANs }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+        valueFrom:
+          variable: certSANs
+  - name: oidc_config
+    description: "Configure API Server to use external authentication service."
+    enabledIf: {{ `"{{ if and .oidc_config .oidc_config.client_id .oidc_config.issuer_url }}true{{end}}"` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-client-id"
+        valueFrom:
+          variable: oidc_config.client_id
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-issuer-url"
+        valueFrom:
+          variable: oidc_config.issuer_url
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-claim"
+        valueFrom:
+          variable: oidc_config.username_claim
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-claim"
+        valueFrom:
+          variable: oidc_config.groups_claim
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-prefix"
+        valueFrom:
+          variable: oidc_config.username_prefix
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-prefix"
+        valueFrom:
+          variable: oidc_config.groups_prefix
