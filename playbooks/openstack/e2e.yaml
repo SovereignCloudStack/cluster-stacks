@@ -7,13 +7,13 @@
     cluster_stack_release_dir: "{{ ansible_user_dir }}/.release"
     cluster_manifest_dir: "{{ ansible_user_dir }}/cluster_manifest"
     cluster_stack_release_container_dir: "/.release"
-    openstack_csp_helper_chart_version: v0.6.0
+    openstack_csp_helper_chart_version: v0.7.0
     openstack_csp_helper_chart_url: "https://github.com/SovereignCloudStack/openstack-csp-helper/releases/download/{{ openstack_csp_helper_chart_version }}/openstack-csp-helper.tgz"
-    capo_version: "v0.10.3"
+    capo_version: "v0.10.5"
     openstackclient_version: "6.6.0"
 
     k8s_management_name: "management"
-    k8s_management_version: "v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245"
+    k8s_management_version: "v1.31.0@sha256:53df588e04085fd41ae12de0c3fe4c72f7013bba32a20e7325357a1ac94ba865"
     k8s_management_cluster_wait_for: "180"
 
   environment:

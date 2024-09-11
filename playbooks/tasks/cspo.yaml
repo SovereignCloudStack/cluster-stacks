@@ -1,7 +1,7 @@
 ---
 - name: Install CSPO
   vars:
-    cspo_version: "0.1.0-alpha.3"
+    cspo_version: "0.1.0-alpha.5"
     cspo_dir: "{{ ansible_user_dir }}/cspo"
     cspo_wait_for_pods: 240
     install_dir: "{{ ansible_user_dir }}/.local/bin"

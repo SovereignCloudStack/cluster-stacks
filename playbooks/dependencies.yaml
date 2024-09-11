@@ -2,18 +2,18 @@
 - name: Ensure cluster stacks dependencies
   hosts: all
   vars:
-    kind_version: "0.22.0"
-    kubectl_version: "1.29.3"
-    clusterctl_version: "1.7.2"
-    helm_version: "3.14.4"
-    yq_version: "4.44.1"
+    kind_version: "0.24.0"
+    kubectl_version: "1.31.0"
+    clusterctl_version: "1.8.3"
+    helm_version: "3.15.4"
+    yq_version: "4.44.3"
     envsubst_version: "1.4.2"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   roles:  # https://opendev.org/zuul/zuul-jobs
     - role: ensure-docker
     - role: ensure-go
       vars:
-        go_version: 1.21.6
+        go_version: 1.23.1
   environment:
     PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
   tasks:
@@ -47,7 +47,6 @@
         url: "https://dl.k8s.io/release/v{{ kubectl_version }}/bin/linux/amd64/kubectl"
         dest: "{{ install_dir }}/kubectl"
         mode: "+x"
-    # TODO: Install csctl and csctl-openstack from the release when it will be available
     - name: Install csctl and csctl-openstack
       ansible.builtin.import_tasks: tasks/csctl.yaml
     - name: Install helm
