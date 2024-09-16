@@ -4,24 +4,24 @@ dependencies:
   version: 3.12.1
 - name: tigera-operator
   repository: https://docs.tigera.io/calico/charts
-  version: v3.26.4
+  version: v3.26.5
 - name: hcloud-cloud-controller-manager
   repository: https://charts.hetzner.cloud
   version: 1.20.0
 - name: rook-ceph
   repository: https://charts.rook.io/release
-  version: v1.14.9
+  version: v1.15.1
 - name: rook-ceph-cluster
   repository: https://charts.rook.io/release
-  version: v1.14.9
+  version: v1.15.1
 - name: cert-manager
   repository: https://charts.jetstack.io
-  version: v1.15.2
+  version: v1.15.3
 - name: ingress-nginx
   repository: https://kubernetes.github.io/ingress-nginx
-  version: 4.11.1
+  version: 4.11.2
 - name: prometheus-operator-crds
   repository: https://prometheus-community.github.io/helm-charts
   version: 13.0.2
-digest: sha256:2b9570f479716f82f40515a91fffe7875cf723ab521e34ffa4547f668fb3a2b1
-generated: "2024-08-14T15:29:00.894860422+02:00"
+digest: sha256:e50064ce15d4b1b437b4905f6879eb9cee7809cde1ddf71a48c160dc4321ffb2
+generated: "2024-09-16T08:46:56.559023494+02:00"
