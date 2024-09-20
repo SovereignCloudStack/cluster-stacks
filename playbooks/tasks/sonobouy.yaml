@@ -1,7 +1,7 @@
 ---
 - name: Execute sonobouy check mode {{ sonobouy.mode }}
   vars:
-    sonobuoy_version: "0.57.1"
+    sonobuoy_version: "0.57.2"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
   - name: Install Sonobuoy

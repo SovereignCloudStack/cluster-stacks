@@ -3,8 +3,8 @@
   vars:
     csctl_dir: "{{ ansible_user_dir }}/csctl"
     csctl_openstack_dir: "{{ ansible_user_dir }}/csctl-openstack"
-    csctl_version: "0.0.3"
-    csctl_openstack_version: "0.0.1"
+    csctl_version: "0.0.4"
+    csctl_openstack_version: "0.0.2"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
   block:
     - name: Make sure csctl directory exists
