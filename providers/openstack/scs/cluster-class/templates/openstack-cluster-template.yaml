@@ -45,9 +45,3 @@ spec:
           portRangeMax: 4244
           protocol: tcp
           description: "Allow Hubble traffic for Cilium"
-      managedSubnets:
-        - cidr: {{ .Values.node_cidr }}
-          dnsNameservers:
-          {{- range .Values.dns_nameservers }}
-            - {{ . }}
-          {{- end }}
