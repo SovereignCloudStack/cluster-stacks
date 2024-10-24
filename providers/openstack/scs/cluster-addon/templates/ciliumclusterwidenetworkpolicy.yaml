@@ -1,0 +1,13 @@
+---
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: deny-egress-to-metadata-service
+spec:
+  endpointSelector: {}
+  egress:
+    - toEntities:
+        - world
+  egressDeny:
+    - toCIDR:
+        - 193.99.144.80/32
