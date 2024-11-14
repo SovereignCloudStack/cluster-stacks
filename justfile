@@ -13,21 +13,22 @@ mainBranch := "main"
 workingBranchPrefix := "chore/update-"
 targetBranchPrefix := "release-"
 
-# Show available commands
+[private]
 default:
     @just --list --justfile {{ justfile() }}
 
 # Show available commands
+[group('General')]
 help: default
 
-# Check if csctl and clusterstack-provider-openstack are available and build them if neccessary
-[no-cd]
-ensure-dependencies:
+# Check if csctl and clusterstack-provider-openstack are available and build them if neccessary. Checks for helm and yq
+[group('General')]
+dependencies:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     export PATH=${path}
-    if ! which csctl >/dev/null 2>&1;then
-      echo "csctl not found, building it from source."
+    if ! which csctl >/dev/null 2>&1; then
+      echo -e "\e[33m\e[1mcsctl not found, building it from source.\e[0m"
       mkdir -p bin
       pushd bin
       git clone https://github.com/SovereignCloudStack/csctl csctl-git
@@ -38,9 +39,8 @@ ensure-dependencies:
       rm -rf csctl-git
       popd
     fi
-
     if ! which csctl-openstack >/dev/null 2>&1; then
-      echo "csctl-plugin-openstack not found, building it from source."
+      echo -e "\e[33m\e[1mcsctl-plugin-openstack not found, building it from source.\e[0m"
       mkdir -p bin
       pushd bin
       git clone https://github.com/SovereignCloudStack/csctl-plugin-openstack
@@ -51,57 +51,31 @@ ensure-dependencies:
       rm -rf csctl-plugin-openstack
       popd
     fi
-
     if ! which yq; then
+      echo -e "\e[33m\e[1myq not found. Installing from GitHub.\e[0m"
       mkdir -p bin
-      wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O bin/yq &&\
-    chmod +x bin/yq
+      wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O bin/yq
+      chmod +x bin/yq
+    fi
+    if ! which helm; then
+      echo -e "\e[31m\e[1mHelm not found. Please install it.\e[0m"
     fi
 
 # Clean temporary files and binaries
-[no-cd]
+[group('General')]
 clean:
+    @echo -e "\e[33m\e[1mClean Buildtools\e[0m"
     rm -rf bin
+    @echo -e "\e[33m\e[1mClean Provider Versions\e[0m"
+    rm -rf providers/openstack/out
+    @echo -e "\e[33m\e[1mClean Assets\e[0m"
+    rm -rf .release
 
-# Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
-[no-cd]
-build-versions: ensure-dependencies
-    #!/usr/bin/env bash
-    changedVersions=$(just diff)
-    for version in ${changedVersions[@]}; do
-      ./hack/generate_version.py --target-version ${version}
-    done
-
-# Generate manifest for all Kubernetes Version regardless of changes to versions.
-[no-cd]
-build-versions-all: ensure-dependencies
-    ./hack/generate_version.py --build
-
-# Generate Manifest for a specific Kubernetes version. Builds out directory
-[no-cd]
-build-version VERSION:
-    ./hack/generate_version.py --target-version {{VERSION}}
-
-# Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[no-cd]
-build-assets-local-for VERSION: ensure-dependencies
-    csctl create -m hash providers/openstack/out/{{replace(VERSION, ".", "-")}}/
-
-# Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[no-cd]
-build-assets-local: ensure-dependencies
-    #!/usr/bin/env bash
-    export PATH=${path}
-    changedVersions=$(just diff)
-    for version in ${changedVersions[@]}; do
-      csctl create -m hash providers/openstack/out/${version//./-}/
-    done
-
-# Calculate the diff in the versions.yaml files to get relevant versions
-[no-cd]
+# Calculate the diff in the versions.yaml against main/HEAD to get relevant versions
+[group('General')]
 diff:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euxo pipefail
     versionsPath="providers/openstack/scs/versions.yaml"
     currentVersions=$(cat ${versionsPath})
     mainVersions=$(git show ${mainBranch}:${versionsPath})
@@ -115,3 +89,87 @@ diff:
       fi
     done
     echo "${toTest[@]}"
+
+
+# Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
+[group('Building Manifests')]
+build-versions: dependencies
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    changedVersions=$(just diff)
+    for version in ${changedVersions[@]}; do
+      just build-version ${version}
+    done
+
+# Generate manifest for all Kubernetes Version regardless of changes to versions.
+[group('Building Manifests')]
+build-versions-all: dependencies
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    versionsPath="providers/openstack/scs/versions.yaml"
+    currentVersions=$(cat ${versionsPath})
+    kubernetesVersions=$(yq -r '.[].kubernetes' ${versionsPath} | grep -Po "1\.\d+")
+    for version in ${kubernetesVersions}; do
+      just build-version ${version}
+    done
+
+# Generate Manifest for a specific Kubernetes version. Builds out directory
+[group('Building Manifests')]
+build-version VERSION:
+    #!/usr/bin/env bash
+    set -euxo pipefail
+    echo -e "\e[33m\e[1mBuild Manifests for {{ VERSION }}\e[0m"
+    ## CHECK IF THERE IS A CHANGE IN THE COMPONENT VERSIONS
+    if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
+      versionsFile="providers/openstack/scs/versions.yaml"
+      k8sVersion=$(yq -r ".[] | select(.kubernetes | test(\"{{ replace(VERSION, "-", ".") }}\")).kubernetes" ${versionsFile})
+      cinder_csiVersion=$(yq -r ".[] | select(.kubernetes | test(\"{{ replace(VERSION, "-", ".") }}\")).cinder_csi" ${versionsFile})
+      occmVersion=$(yq -r ".[] | select(.kubernetes | test(\"{{ replace(VERSION, "-", ".") }}\")).occm" ${versionsFile})
+      k8sVersionCmp=$(yq -r .config.kubernetesVersion providers/openstack/out/{{ replace(VERSION, ".", "-") }}/csctl.yaml)
+      cinder_csiVersionCmp=$(yq -r ".dependencies[] | select(.name | test(\"openstack-cinder-csi\")).version" providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/Chart.yaml)
+      occmVersionCmp=$(yq -r ".dependencies[] | select(.name | test(\"openstack-cloud-controller-manager\")).version" providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/Chart.yaml)
+      if [[ ${k8sVersion} != ${k8sVersionCmp#v} ]] || [[ ${cinder_csiVersion} != ${cinder_csiVersionCmp} ]] || [[ ${occmVersion} != ${occmVersionCmp} ]]; then
+      ./hack/generate_version.py --target-version {{ replace(VERSION, "-", ".") }}
+      fi
+    else
+      ./hack/generate_version.py --target-version {{ replace(VERSION, "-", ".") }}
+    fi
+
+
+# Build assets for a certain Kubernetes Version. Out directory needs to be present.
+[group('Building Assets')]
+build-assets-local-for VERSION: dependencies
+    #!/usr/bin/env bash
+    export PATH=${path}
+    set -euxo pipefail
+    just build-version {{ VERSION }}
+    echo -e "\e[33m\e[1mBuild Assets for {{ VERSION }}\e[0m"
+    if ! [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/Chart.lock ]]; then
+      helm dependency up providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/
+    fi
+    if ! [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-class/Chart.lock ]]; then
+      helm dependency up providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-class/
+    fi
+    csctl create -m hash providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
+
+# Build assets for a certain Kubernetes Version. Out directory needs to be present.
+[group('Building Assets')]
+build-assets-local: build-versions
+    #!/usr/bin/env bash
+    export PATH=${path}
+    changedVersions=$(just diff)
+    for version in ${changedVersions[@]}; do
+      just build-assets-local-for ${version}
+    done
+
+# Build assets for a certain Kubernetes Version.
+[group('Building Assets')]
+build-assets-all-local: build-versions-all
+    #!/usr/bin/env bash
+    export PATH=${path}
+    set -euxo pipefail
+    versions="$(cd providers/openstack/out/ && echo *)"
+    for version in ${versions[@]}; do
+      just build-assets-local-for ${version}
+    done
+
