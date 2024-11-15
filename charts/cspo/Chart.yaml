@@ -1,6 +1,6 @@
 apiVersion: v2
-name: cluster-stack-provider-openstack
-description: A Helm chart for Kubernetes
+name: cspo
+description: Helm Charts to install Cluster Stack Provider Openstack
 # A chart can be either an 'application' or a 'library' chart.
 #
 # Application charts are a collection of templates that can be packaged into versioned archives
