@@ -173,3 +173,34 @@ build-assets-all-local: build-versions-all
       just build-assets-local-for ${version}
     done
 
+# Remove old branches that had been merged to main 
+[group('git')]
+git-clean:
+    git branch --merged | grep -Ev "(^\*|^\+|master|main|dev)" | xargs --no-run-if-empty git branch -d
+
+# Create Chore branch for specific Kubernetes Version
+[group('git')]
+git-chore-branch VERSION:
+    #!/usr/bin/env bash
+    currentBranch=$(git branch --show-current)
+    git switch -c chore/update-{{replace(VERSION, "-", ".") }}
+    cp -r providers/openstack/out/{{replace(VERSION, ".", "-") }}/* providers/openstack/scs/
+    git add providers/openstack/scs/
+    git commit -s -S -m "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}"
+    #git push
+    git switch ${currentBranch}
+
+# Create chore branches for all available out versions
+[group('git')]
+git-chore-branches-all:
+    #!/usr/bin/env bash
+    if ! [[ -e providers/openstack/out ]]; then
+       echo "Error: out directory does not exists."
+    else
+       pushd providers/openstack/out
+       versions=$(echo *)
+       popd
+       for version in ${versions[@]}; do
+         just git-chore-branch $version
+       done
+    fi
