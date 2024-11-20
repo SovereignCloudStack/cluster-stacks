@@ -11,16 +11,16 @@ dependencies:
 - alias: openstack-cloud-controller-manager
   name: openstack-cloud-controller-manager
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.31.1
+  version: 2.30.3
 - alias: openstack-cinder-csi
   name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.31.2
+  version: 2.30.0
 - alias: yawol-controller
   condition: yawol-controller.enabled
   name: yawol-controller
   repository: https://stackitcloud.github.io/yawol
   version: 0.25.0
-name: openstack-scs-1-31-cluster-addon
+name: openstack-scs-1-30-cluster-addon
 type: application
 version: v1

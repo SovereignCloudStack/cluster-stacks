@@ -7,9 +7,9 @@ identityRef:
   name: openstack
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.31.2
+    name: ubuntu-capi-image-v1.30.6
   worker:
-    name: ubuntu-capi-image-v1.31.2
+    name: ubuntu-capi-image-v1.30.6
 node_cidr: 10.8.0.0/20
 openstack_loadbalancer_apiserver: false
 restrict_kubeapi: []
