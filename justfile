@@ -75,7 +75,7 @@ clean:
 [group('General')]
 diff:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     versionsPath="providers/openstack/scs/versions.yaml"
     currentVersions=$(cat ${versionsPath})
     mainVersions=$(git show ${mainBranch}:${versionsPath})
@@ -95,7 +95,7 @@ diff:
 [group('Building Manifests')]
 build-versions: dependencies
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     changedVersions=$(just diff)
     for version in ${changedVersions[@]}; do
       just build-version ${version}
@@ -105,7 +105,7 @@ build-versions: dependencies
 [group('Building Manifests')]
 build-versions-all: dependencies
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     versionsPath="providers/openstack/scs/versions.yaml"
     currentVersions=$(cat ${versionsPath})
     kubernetesVersions=$(yq -r '.[].kubernetes' ${versionsPath} | grep -Po "1\.\d+")
@@ -117,7 +117,7 @@ build-versions-all: dependencies
 [group('Building Manifests')]
 build-version VERSION:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     echo -e "\e[33m\e[1mBuild Manifests for {{ VERSION }}\e[0m"
     ## CHECK IF THERE IS A CHANGE IN THE COMPONENT VERSIONS
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
@@ -141,7 +141,7 @@ build-version VERSION:
 build-assets-local-for VERSION: dependencies
     #!/usr/bin/env bash
     export PATH=${path}
-    set -euxo pipefail
+    set -euo pipefail
     just build-version {{ VERSION }}
     echo -e "\e[33m\e[1mBuild Assets for {{ VERSION }}\e[0m"
     if ! [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/Chart.lock ]]; then
@@ -157,6 +157,7 @@ build-assets-local-for VERSION: dependencies
 build-assets-local: build-versions
     #!/usr/bin/env bash
     export PATH=${path}
+    set -euo pipefail
     changedVersions=$(just diff)
     for version in ${changedVersions[@]}; do
       just build-assets-local-for ${version}
@@ -167,10 +168,32 @@ build-assets-local: build-versions
 build-assets-all-local: build-versions-all
     #!/usr/bin/env bash
     export PATH=${path}
-    set -euxo pipefail
+    set -euo pipefail
     versions="$(cd providers/openstack/out/ && echo *)"
     for version in ${versions[@]}; do
       just build-assets-local-for ${version}
+    done
+
+# Publish assets to OCI registry
+[group('Building Assets')]
+publish-assets VERSION: 
+    #!/usr/bin/env bash
+    export PATH=${path}
+    if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
+      csctl create -m hash --publish --remote oci providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
+    else
+      echo "Manifest directory for {{ replace(VERSION, ".", "-") }}" does not exist.
+    fi
+
+# Publish alles available assets to OCI registry
+[group('Building Assets')]
+publish-assets-all:
+    #!/usr/bin/env bash
+    export PATH=${path}
+    set -euo pipefail
+    versions="$(cd providers/openstack/out/ && echo *)"
+    for version in ${versions[@]}; do
+      just publish-assets ${version}
     done
 
 # Remove old branches that had been merged to main 
@@ -182,6 +205,7 @@ git-clean:
 [group('git')]
 git-chore-branch VERSION:
     #!/usr/bin/env bash
+    set -euo pipefail
     currentBranch=$(git branch --show-current)
     git switch -c chore/update-{{replace(VERSION, "-", ".") }}
     cp -r providers/openstack/out/{{replace(VERSION, ".", "-") }}/* providers/openstack/scs/
@@ -194,6 +218,7 @@ git-chore-branch VERSION:
 [group('git')]
 git-chore-branches-all:
     #!/usr/bin/env bash
+    set -euo pipefail
     if ! [[ -e providers/openstack/out ]]; then
        echo "Error: out directory does not exists."
     else
