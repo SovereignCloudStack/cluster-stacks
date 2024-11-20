@@ -7,7 +7,7 @@ set export := true
 set dotenv-filename := "just.env"
 set dotenv-load := true
 
-path := env_var('PATH') + ":" + justfile_directory() + "/bin"
+PATH := env_var('PATH') + ":" + justfile_directory() + "/bin"
 repo := "https://github.com/SovereignCloudStack/cluster-stacks"
 mainBranch := "main"
 workingBranchPrefix := "chore/update-"
@@ -26,7 +26,7 @@ help: default
 dependencies:
     #!/usr/bin/env bash
     set -euo pipefail
-    export PATH=${path}
+    
     if ! which csctl >/dev/null 2>&1; then
       echo -e "\e[33m\e[1mcsctl not found, building it from source.\e[0m"
       mkdir -p bin
@@ -92,7 +92,7 @@ diff:
 
 
 # Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
-[group('Building Manifests')]
+[group('Build Manifests')]
 build-versions: dependencies
     #!/usr/bin/env bash
     set -euo pipefail
@@ -102,7 +102,7 @@ build-versions: dependencies
     done
 
 # Generate manifest for all Kubernetes Version regardless of changes to versions.
-[group('Building Manifests')]
+[group('Build Manifests')]
 build-versions-all: dependencies
     #!/usr/bin/env bash
     set -euo pipefail
@@ -114,12 +114,12 @@ build-versions-all: dependencies
     done
 
 # Generate Manifest for a specific Kubernetes version. Builds out directory
-[group('Building Manifests')]
+[group('Build Manifests')]
 build-version VERSION:
     #!/usr/bin/env bash
     set -euo pipefail
     echo -e "\e[33m\e[1mBuild Manifests for {{ VERSION }}\e[0m"
-    ## CHECK IF THERE IS A CHANGE IN THE COMPONENT VERSIONS
+    # check if there is a change in the component versions
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
       versionsFile="providers/openstack/scs/versions.yaml"
       k8sVersion=$(yq -r ".[] | select(.kubernetes | test(\"{{ replace(VERSION, "-", ".") }}\")).kubernetes" ${versionsFile})
@@ -137,10 +137,9 @@ build-version VERSION:
 
 
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[group('Building Assets')]
+[group('Build Assets')]
 build-assets-local-for VERSION: dependencies
     #!/usr/bin/env bash
-    export PATH=${path}
     set -euo pipefail
     just build-version {{ VERSION }}
     echo -e "\e[33m\e[1mBuild Assets for {{ VERSION }}\e[0m"
@@ -153,10 +152,9 @@ build-assets-local-for VERSION: dependencies
     csctl create -m hash providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
 
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[group('Building Assets')]
+[group('Build Assets')]
 build-assets-local: build-versions
     #!/usr/bin/env bash
-    export PATH=${path}
     set -euo pipefail
     changedVersions=$(just diff)
     for version in ${changedVersions[@]}; do
@@ -164,10 +162,9 @@ build-assets-local: build-versions
     done
 
 # Build assets for a certain Kubernetes Version.
-[group('Building Assets')]
+[group('Build Assets')]
 build-assets-all-local: build-versions-all
     #!/usr/bin/env bash
-    export PATH=${path}
     set -euo pipefail
     versions="$(cd providers/openstack/out/ && echo *)"
     for version in ${versions[@]}; do
@@ -175,21 +172,25 @@ build-assets-all-local: build-versions-all
     done
 
 # Publish assets to OCI registry
-[group('Building Assets')]
+[group('Release')]
 publish-assets VERSION: 
     #!/usr/bin/env bash
-    export PATH=${path}
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
-      csctl create -m hash --publish --remote oci providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
+      if [[ -n ${OCI_REGISTRY} && \ 
+            -n ${OCI_REPOSITORY} && \
+            (( -n ${OCI_USERNAME} && -n ${OCI_PASSWORD} ) || -n ${OCI_ACCESS_TOKEN} ) ]]; then
+        csctl create -m hash --publish --remote oci providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
+      else
+        echo "Please define OCI_* Variables in just.env"
+      fi
     else
       echo "Manifest directory for {{ replace(VERSION, ".", "-") }}" does not exist.
     fi
 
-# Publish alles available assets to OCI registry
-[group('Building Assets')]
+# Publish all available assets to OCI registry
+[group('Release')]
 publish-assets-all:
     #!/usr/bin/env bash
-    export PATH=${path}
     set -euo pipefail
     versions="$(cd providers/openstack/out/ && echo *)"
     for version in ${versions[@]}; do
@@ -199,19 +200,25 @@ publish-assets-all:
 # Remove old branches that had been merged to main 
 [group('git')]
 git-clean:
-    git branch --merged | grep -Ev "(^\*|^\+|master|main|dev)" | xargs --no-run-if-empty git branch -d
+    git branch --merged | grep -Ev "(^\*|^\+|^release/\+|main)" | xargs --no-run-if-empty git branch -d
 
-# Create Chore branch for specific Kubernetes Version
+# Create chore branch and PR for specific Kubernetes Version
 [group('git')]
-git-chore-branch VERSION:
+git-chore-branch VERSION: && (gh-create-chore-pr VERSION)
     #!/usr/bin/env bash
     set -euo pipefail
     currentBranch=$(git branch --show-current)
-    git switch -c chore/update-{{replace(VERSION, "-", ".") }}
+    if git show-ref -q  --branches {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}; then
+      # Switch to branch if it exists
+      git switch {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
+    else
+      # Create branch and switch to it
+      git switch -c {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
+    fi
     cp -r providers/openstack/out/{{replace(VERSION, ".", "-") }}/* providers/openstack/scs/
     git add providers/openstack/scs/
-    git commit -s -S -m "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}"
-    #git push
+    git commit -s -m "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}"
+    git push --set-upstream origin {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
     git switch ${currentBranch}
 
 # Create chore branches for all available out versions
@@ -228,4 +235,43 @@ git-chore-branches-all:
        for version in ${versions[@]}; do
          just git-chore-branch $version
        done
+    fi
+
+# Publish new release of providers/openstack/scs
+[group('Release')]
+[confirm('Are you sure to publish a new stable release? (y|n)')]
+publish-release: dependencies
+    csctl create --publish --remote oci providers/openstack/scs/
+
+# Login to Github with GitHub CLI
+[group('GitHub')]
+gh-login GH_TOKEN="${GH_TOKEN}":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! which gh >/dev/null 2>&1; then
+      echo "GitHub CLI not installed."
+    else
+      if ! gh auth status >/dev/null 2>&1; then
+        gh config set -h github.com git_protocol https
+        # If TOKEN is empty use WebUI Authentication
+        if [[ -z $GH_TOKEN ]]; then
+          gh auth login --hostname github.com
+        else
+          echo $GH_TOKEN | gh auth login --hostname github.com --with-token
+        fi
+      fi
+    fi
+
+# Create chore PR for given VERSION against correspondend release branch
+[group('GitHub')]
+gh-create-chore-pr VERSION: gh-login
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! which gh >/dev/null 2>&1; then
+      echo "GitHub CLI not installed."
+    else
+      gh pr --title "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}" \
+            --head {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }} \
+            --base {{ targetBranchPrefix }}{{replace(VERSION, "-", ".") }} \
+            --dry-run
     fi
