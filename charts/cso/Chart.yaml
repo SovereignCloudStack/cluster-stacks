@@ -1,6 +1,6 @@
 apiVersion: v2
-name: cluster-stack-operator
-description: A Helm chart for Kubernetes
+name: cso
+description: A Helm chart for Cluster Stack Operator
 # A chart can be either an 'application' or a 'library' chart.
 #
 # Application charts are a collection of templates that can be packaged into versioned archives
