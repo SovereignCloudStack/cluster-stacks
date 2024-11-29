@@ -60,7 +60,7 @@
 #     parent: base
 #     description: |
 #       Creates Cluster Stack Assets and uploads them to the configured OCI Registry.
-#       If used in a PR, Assets with a hashed version will be used. Otherwise, a 
+#       If used in a PR, Assets with a hashed version will be used. Otherwise, a
 #       new release is build.
 #     timeout: 900 # 15m
 #     pre-run: playbooks/dependencies.yaml
@@ -71,7 +71,7 @@
 #     parent: publish-cluster-stack-assets
 #     description: |
 #       Creates Cluster Stack Assets and uploads them to the configured OCI Registry.
-#       If used in a PR, Assets with a hashed version will be used. Otherwise, a 
+#       If used in a PR, Assets with a hashed version will be used. Otherwise, a
 #       new release is build.
 #     timeout: 900 # 15m
 #     pre-run: playbooks/dependencies.yaml
@@ -84,7 +84,7 @@
 #     parent: base
 #     description: |
 #       Creates Cluster Stack manifests with updated versions and opens chore branches
-#       and PRs against the correspondend release branches. 
+#       and PRs against the correspondend release branches.
 #     timeout: 900 # 15m
 #     pre-run: playbooks/dependencies.yaml
 #     run: playbooks/create_chore_branches.yaml

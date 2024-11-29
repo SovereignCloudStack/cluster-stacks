@@ -1,5 +1,4 @@
 ---
-# This Play should be used on PRs against release branches to upload Release Assets to SCS Registry
 - name: "Upload Assets"
   hosts: "all"
   vars:
