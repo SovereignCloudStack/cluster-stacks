@@ -4,7 +4,7 @@
   hosts: "all"
   vars:
     install_dir: "{{ ansible_user_dir }}/.local/bin"
-    is_pr: True # Set to False for Runs after merge.
+    is_pr: true  # Set to False for Runs after merge.
     registry_credentials:
       OCI_REGISTRY: "registry.scs.community"
       OCI_REPOSITORY: "registry.scs.community/cluster-stacks/scs"
@@ -28,10 +28,10 @@
         line: "{{ item.key }}={{ item.value }}"
       loop: "{{registry_credentials | dict2items }}"
     - name: "Upload Preliminary Assets"
-      ansible.builtin.cmd:
+      ansible.builtin.command:
         cmd: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-test-release"
       when: is_pr
     - name: "Upload Release Assets"
-      ansible.builtin.cmd:
+      ansible.builtin.command:
         cmd: "just --yes --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-release"
       when: not is_pr
