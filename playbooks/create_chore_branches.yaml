@@ -1,0 +1,27 @@
+---
+# This Play should be used on PRs against release branches to upload Release Assets to SCS Registry
+- name: "Create Chore Branches and PRs"
+  hosts: "all"
+  vars:
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+    github_token: ""
+  environment:
+    PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
+  tasks:
+    - name: "Install Just"
+      ansible.builtin.command:
+        cmd: "curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to {{ ansible_user_dir }}/.local/bin/"
+        creates: "{{ ansible_user_dir }}/.local/bin/just"
+    - name: "Ensure just env file"
+      ansible.builtin.copy:
+        src: "{{ zuul.project.src_dir}}/just.env.example"
+        dest: "{{ zuul.project.src_dir}}/just.env"
+    - name: "Set Enviroments variables for just"
+      ansible.builtin.lineinfile:
+        path: "{{ zuul.project.src_dir}}/just.env"
+        regexp: '^GH_TOKEN='
+        line: "GH_TOKEN={{ github_token }}"
+    - name: "Build Versions"
+      ansible.builtin.command: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile build-versions"
+    - name: "Create Chore PRs"
+      ansible.builtin.command: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile git-chore-branches-all"

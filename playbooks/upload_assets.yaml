@@ -1,0 +1,37 @@
+---
+# This Play should be used on PRs against release branches to upload Release Assets to SCS Registry
+- name: "Upload Assets"
+  hosts: "all"
+  vars:
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+    is_pr: True # Set to False for Runs after merge.
+    registry_credentials:
+      OCI_REGISTRY: "registry.scs.community"
+      OCI_REPOSITORY: "registry.scs.community/cluster-stacks/scs"
+      OCI_USERNAME: ""
+      OCI_PASSWORD: ""
+  environment:
+    PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
+  tasks:
+    - name: "Install Just"
+      ansible.builtin.command:
+        cmd: "curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to {{ ansible_user_dir }}/.local/bin/"
+        creates: "{{ ansible_user_dir }}/.local/bin/just"
+    - name: "Ensure just env file"
+      ansible.builtin.copy:
+        src: "{{ zuul.project.src_dir}}/just.env.example"
+        dest: "{{ zuul.project.src_dir}}/just.env"
+    - name: "Set Enviroments variables for just"
+      ansible.builtin.lineinfile:
+        path: "{{ zuul.project.src_dir}}/just.env"
+        regexp: '^{{ item.key }}='
+        line: "{{ item.key }}={{ item.value }}"
+      loop: "{{registry_credentials | dict2items }}"
+    - name: "Upload Preliminary Assets"
+      ansible.builtin.cmd:
+        cmd: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-test-release"
+      when: is_pr
+    - name: "Upload Release Assets"
+      ansible.builtin.cmd:
+        cmd: "just --yes --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-release"
+      when: not is_pr

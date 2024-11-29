@@ -14,6 +14,7 @@ workingBranchPrefix := "chore/update-"
 targetBranchPrefix := "release-"
 
 # For Cluster Stack creation
+
 mgmtcluster := "contextName"
 mgmcluster_namespace := "NamespaceName"
 
@@ -30,7 +31,7 @@ help: default
 dependencies:
     #!/usr/bin/env bash
     set -euo pipefail
-    
+
     if ! which csctl >/dev/null 2>&1; then
       echo -e "\e[33m\e[1mcsctl not found, building it from source.\e[0m"
       mkdir -p bin
@@ -138,7 +139,6 @@ build-version VERSION:
       ./hack/generate_version.py --target-version {{ replace(VERSION, "-", ".") }}
     fi
 
-
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
 [group('Build Assets')]
 build-assets-local-for VERSION: dependencies
@@ -176,7 +176,7 @@ build-assets-all-local: build-versions-all
 
 # Publish assets to OCI registry
 [group('Release')]
-publish-assets VERSION: 
+publish-assets VERSION:
     #!/usr/bin/env bash
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
       if [[ -n ${OCI_REGISTRY} && \ 
@@ -202,11 +202,16 @@ publish-assets-all:
 
 # Publish new release of providers/openstack/scs
 [group('Release')]
+publish-test-release: dependencies
+    csctl create -m hash --publish --remote oci providers/openstack/scs/
+
+# Publish new release of providers/openstack/scs
 [confirm('Are you sure to publish a new stable release? (y|n)')]
+[group('Release')]
 publish-release: dependencies
     csctl create --publish --remote oci providers/openstack/scs/
 
-# Remove old branches that had been merged to main 
+# Remove old branches that had been merged to main
 [group('git')]
 git-clean:
     git branch --merged | grep -Ev "(^\*|^\+|^release/\+|main)" | xargs --no-run-if-empty git branch -d
@@ -217,17 +222,17 @@ git-chore-branch VERSION: && (gh-create-chore-pr VERSION)
     #!/usr/bin/env bash
     set -euo pipefail
     currentBranch=$(git branch --show-current)
-    if git show-ref -q  --branches {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}; then
+    if git show-ref -q  --branches {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}; then
       # Switch to branch if it exists
-      git switch {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
+      git switch {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
     else
       # Create branch and switch to it
-      git switch -c {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
+      git switch -c {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
     fi
-    cp -r providers/openstack/out/{{replace(VERSION, ".", "-") }}/* providers/openstack/scs/
+    cp -r providers/openstack/out/{{ replace(VERSION, ".", "-") }}/* providers/openstack/scs/
     git add providers/openstack/scs/
-    git commit -s -m "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}"
-    git push --set-upstream origin {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }}
+    git commit -s -m "chore(versions): Update Release for {{ replace(VERSION, "-", ".") }}"
+    git push --set-upstream origin {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
     git switch ${currentBranch}
 
 # Create chore branches for all available out versions
@@ -273,9 +278,9 @@ gh-create-chore-pr VERSION: gh-login
     if ! which gh >/dev/null 2>&1; then
       echo "GitHub CLI not installed."
     else
-      gh pr --title "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}" \
-            --head {{ workingBranchPrefix }}{{replace(VERSION, "-", ".") }} \
-            --base {{ targetBranchPrefix }}{{replace(VERSION, "-", ".") }} \
+      gh pr --title "chore(versions): Update Release for {{ replace(VERSION, "-", ".") }}" \
+            --head {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }} \
+            --base {{ targetBranchPrefix }}{{ replace(VERSION, "-", ".") }} \
             --dry-run
     fi
 
@@ -286,23 +291,23 @@ create-clusterstack PATH:
     set -euo pipefail
     # Given directory name
     directory_name=".release/$PATH"
-    
+
     # Extract parts from the directory name
     IFS='/' read -ra PARTS <<<"$directory_name"
     IFS='-' read -ra PARTS <<<"${PARTS[1]}"
-    
+
     provider="${PARTS[0]}"
     name="${PARTS[1]}"
     kubernetes_major_version="${PARTS[2]}"
     kubernetes_minor_version="${PARTS[3]}"
     version="${PARTS[4]}-${PARTS[5]}.${PARTS[6]}"
     channel="custom"
-    
+
     if [[ -z ${PARTS[6]} ]]; then
       version="${PARTS[4]}"
       channel="stable"
     fi
-    
+
     Create the YAML structure
     clusterstack_yaml=$(cat <<-EOF
       ---
@@ -324,7 +329,7 @@ create-clusterstack PATH:
         - ${version}
       EOF
     )
-    
+
     echo "$clusterstack" | kubectl apply -f -
 
 # UNTESTED RECIPE: Check on Cluster Stack creation
@@ -357,7 +362,7 @@ check-clusterstack NAME:
 create-cluster VERSION CLASS:
     #!/usr/bin/env bash
     set -euo pipefail
-    cluster_manifest=<<-EOF
+    cluster_manifest=$(cat <<-EOF
       ---
       apiVersion: cluster.x-k8s.io/v1beta1
       kind: Cluster
@@ -377,4 +382,5 @@ create-cluster VERSION CLASS:
                 name: md-0
                 replicas: 1
       EOF
+    )
     echo "${cluster_manifest}" | kubectl apply -f -
