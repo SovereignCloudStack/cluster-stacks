@@ -8,20 +8,28 @@
   environment:
     PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
   tasks:
-    - name: "Install Just"
-      ansible.builtin.command:
-        cmd: "curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to {{ ansible_user_dir }}/.local/bin/"
-        creates: "{{ ansible_user_dir }}/.local/bin/just"
+    - name: Install just
+      ansible.builtin.unarchive:
+        src: "https://github.com/casey/just/releases/download/{{ just_version }}/just-{{ just_version }}-x86_64-unknown-linux-musl.tar.gz"
+        dest: "{{ install_dir }}"
+        extra_opts: "--strip-components=1"
+        mode: "+x"
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/just"
     - name: "Ensure just env file"
       ansible.builtin.copy:
-        src: "{{ zuul.project.src_dir}}/just.env.example"
-        dest: "{{ zuul.project.src_dir}}/just.env"
+        src: "just.env.example"
+        dest: "just.env"
+        mode: preserve
     - name: "Set Enviroments variables for just"
       ansible.builtin.lineinfile:
-        path: "{{ zuul.project.src_dir}}/just.env"
+        path: "just.env"
         regexp: '^GH_TOKEN='
         line: "GH_TOKEN={{ github_token }}"
     - name: "Build Versions"
-      ansible.builtin.command: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile build-versions"
+      ansible.builtin.command: "just build-versions"
+      changed_when: false
     - name: "Create Chore PRs"
-      ansible.builtin.command: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile git-chore-branches-all"
+      ansible.builtin.command: "just git-chore-branches-all"
+      changed_when: false

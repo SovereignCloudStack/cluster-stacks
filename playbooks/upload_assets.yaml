@@ -1,7 +1,8 @@
 ---
-- name: "Upload Assets"
-  hosts: "all"
+- name: Upload Assets
+  hosts: all
   vars:
+    just_version: "1.37.0"
     install_dir: "{{ ansible_user_dir }}/.local/bin"
     is_pr: true  # Set to False for Runs after merge.
     registry_credentials:
@@ -12,25 +13,33 @@
   environment:
     PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
   tasks:
-    - name: "Install Just"
-      ansible.builtin.command:
-        cmd: "curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to {{ ansible_user_dir }}/.local/bin/"
-        creates: "{{ ansible_user_dir }}/.local/bin/just"
-    - name: "Ensure just env file"
+    - name: Install just
+      ansible.builtin.unarchive:
+        src: "https://github.com/casey/just/releases/download/{{ just_version }}/just-{{ just_version }}-x86_64-unknown-linux-musl.tar.gz"
+        dest: "{{ install_dir }}"
+        extra_opts: "--strip-components=1"
+        mode: "+x"
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/just"
+    - name: Ensure just env file
       ansible.builtin.copy:
-        src: "{{ zuul.project.src_dir}}/just.env.example"
-        dest: "{{ zuul.project.src_dir}}/just.env"
-    - name: "Set Enviroments variables for just"
+        src: "just.env.example"
+        dest: "just.env"
+        mode: preserve
+    - name: Set Enviroments variables for just
       ansible.builtin.lineinfile:
-        path: "{{ zuul.project.src_dir}}/just.env"
-        regexp: '^{{ item.key }}='
+        path: "just.env"
+        regexp: "^{{ item.key }}="
         line: "{{ item.key }}={{ item.value }}"
-      loop: "{{registry_credentials | dict2items }}"
-    - name: "Upload Preliminary Assets"
+      loop: "{{ registry_credentials | dict2items }}"
+    - name: Upload Preliminary Assets
       ansible.builtin.command:
-        cmd: "just --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-test-release"
+        cmd: "just publish-test-release"
       when: is_pr
-    - name: "Upload Release Assets"
+      changed_when: false
+    - name: Upload Release Assets
       ansible.builtin.command:
-        cmd: "just --yes --working-directory {{ zuul.project.src_dir}} --just-file {{ zuul.project.src_dir}}/justfile publish-release"
+        cmd: "just --yes publish-release"
       when: not is_pr
+      changed_when: false
