@@ -13,6 +13,10 @@ mainBranch := "main"
 workingBranchPrefix := "chore/update-"
 targetBranchPrefix := "release-"
 
+# For Cluster Stack creation
+mgmtcluster := "contextName"
+mgmcluster_namespace := "NamespaceName"
+
 [private]
 default:
     @just --list --justfile {{ justfile() }}
@@ -89,7 +93,6 @@ diff:
       fi
     done
     echo "${toTest[@]}"
-
 
 # Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
 [group('Build Manifests')]
@@ -197,6 +200,12 @@ publish-assets-all:
       just publish-assets ${version}
     done
 
+# Publish new release of providers/openstack/scs
+[group('Release')]
+[confirm('Are you sure to publish a new stable release? (y|n)')]
+publish-release: dependencies
+    csctl create --publish --remote oci providers/openstack/scs/
+
 # Remove old branches that had been merged to main 
 [group('git')]
 git-clean:
@@ -237,12 +246,6 @@ git-chore-branches-all:
        done
     fi
 
-# Publish new release of providers/openstack/scs
-[group('Release')]
-[confirm('Are you sure to publish a new stable release? (y|n)')]
-publish-release: dependencies
-    csctl create --publish --remote oci providers/openstack/scs/
-
 # Login to Github with GitHub CLI
 [group('GitHub')]
 gh-login GH_TOKEN="${GH_TOKEN}":
@@ -275,3 +278,103 @@ gh-create-chore-pr VERSION: gh-login
             --base {{ targetBranchPrefix }}{{replace(VERSION, "-", ".") }} \
             --dry-run
     fi
+
+# UNTESTED RECIPE: Create Cluster Stack on Cluster for given Version at $PATH in ./release
+[group('Test')]
+create-clusterstack PATH:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Given directory name
+    directory_name=".release/$PATH"
+    
+    # Extract parts from the directory name
+    IFS='/' read -ra PARTS <<<"$directory_name"
+    IFS='-' read -ra PARTS <<<"${PARTS[1]}"
+    
+    provider="${PARTS[0]}"
+    name="${PARTS[1]}"
+    kubernetes_major_version="${PARTS[2]}"
+    kubernetes_minor_version="${PARTS[3]}"
+    version="${PARTS[4]}-${PARTS[5]}.${PARTS[6]}"
+    channel="custom"
+    
+    if [[ -z ${PARTS[6]} ]]; then
+      version="${PARTS[4]}"
+      channel="stable"
+    fi
+    
+    Create the YAML structure
+    clusterstack_yaml=$(cat <<-EOF
+      ---
+      apiVersion: clusterstack.x-k8s.io/v1alpha1
+      kind: ClusterStack
+      metadata:
+        name: ${provider}-${name}-${kubernetes_major_version}-${kubernetes_minor_version}
+      spec:
+        provider: ${provider}
+        name: ${name}
+        kubernetesVersion: "${kubernetes_major_version}.${kubernetes_minor_version}"
+        channel: ${channel}
+        autoSubscribe: false
+        providerRef:
+          apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
+          kind: OpenStackClusterStackReleaseTemplate
+          name: cspotemplate
+        versions:
+        - ${version}
+      EOF
+    )
+    
+    echo "$clusterstack" | kubectl apply -f -
+
+# UNTESTED RECIPE: Check on Cluster Stack creation
+[group('Test')]
+check-clusterstack NAME:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    declare -i RETRIES
+    RETRIES=20
+    declare -i INTERVAL
+    INTERVAL=5
+    # TODO: Refine Status Command
+    STATUS_CMD="kubectl get clusterstack -n $ ${NAME} -ojson | jq .status"
+    while (( $RETRIES > 0 )); do
+      RETRIES-=1
+      if ${STATUS_CMD}; then
+        STATUS=$(${STATUS_CMD})
+        if true; then
+          echo "Clusterstack creation successful."
+          break
+        else
+          echo "waiting for Cluster Stack creation"
+        fi
+      fi
+      sleep $INTERVAL
+    done
+
+# UNTESTED RECIPE: Create Test Cluster for Kubernetes VERSION and Cluster CLASS
+[group('Test')]
+create-cluster VERSION CLASS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cluster_manifest=<<-EOF
+      ---
+      apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      metadata:
+        name: cs-cluster
+        labels:
+          managed-secret: cloud-config
+      spec:
+        topology:
+          class: {{ CLASS }}
+          controlPlane:
+            replicas: 1
+          version: v{{ VERSION }}
+          workers:
+            machineDeployments:
+              - class: default-worker
+                name: md-0
+                replicas: 1
+      EOF
+    echo "${cluster_manifest}" | kubectl apply -f -
