@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- A CAPI management cluster in an environment which can be reached from extern
+- A CAPI management cluster in an environment which can be reached from external
   - Install CAPO, CSO and CSPO e.g. as described in [the openstack quickstart](./quickstart.md)
 
 ## Installation
