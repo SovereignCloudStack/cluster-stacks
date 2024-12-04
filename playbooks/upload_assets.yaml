@@ -1,0 +1,45 @@
+---
+- name: Upload Assets
+  hosts: all
+  vars:
+    just_version: "1.37.0"
+    install_dir: "{{ ansible_user_dir }}/.local/bin"
+    is_pr: true  # Set to False for Runs after merge.
+    registry_credentials:
+      OCI_REGISTRY: "registry.scs.community"
+      OCI_REPOSITORY: "registry.scs.community/cluster-stacks/scs"
+      OCI_USERNAME: ""
+      OCI_PASSWORD: ""
+  environment:
+    PATH: "{{ install_dir }}:{{ ansible_env.PATH }}"
+  tasks:
+    - name: Install just
+      ansible.builtin.unarchive:
+        src: "https://github.com/casey/just/releases/download/{{ just_version }}/just-{{ just_version }}-x86_64-unknown-linux-musl.tar.gz"
+        dest: "{{ install_dir }}"
+        extra_opts: "--strip-components=1"
+        mode: "+x"
+        remote_src: true
+      args:
+        creates: "{{ install_dir }}/just"
+    - name: Ensure just env file
+      ansible.builtin.copy:
+        src: "just.env.example"
+        dest: "just.env"
+        mode: preserve
+    - name: Set Enviroments variables for just
+      ansible.builtin.lineinfile:
+        path: "just.env"
+        regexp: "^{{ item.key }}="
+        line: "{{ item.key }}={{ item.value }}"
+      loop: "{{ registry_credentials | dict2items }}"
+    - name: Upload Preliminary Assets
+      ansible.builtin.command:
+        cmd: "just publish-test-release"
+      when: is_pr
+      changed_when: false
+    - name: Upload Release Assets
+      ansible.builtin.command:
+        cmd: "just --yes publish-release"
+      when: not is_pr
+      changed_when: false

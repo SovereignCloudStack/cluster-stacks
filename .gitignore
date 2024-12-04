@@ -64,6 +64,7 @@ resp.json
 out
 _releasenotes
 templates/cluster-templates/cluster-template*
+bin
 
 # Helm
 .helm
@@ -74,3 +75,6 @@ __pycache__/
 *$py.class
 /_output
 tmp_*
+
+# just environment
+just.env
