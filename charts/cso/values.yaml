@@ -15,8 +15,8 @@ controllerManager:
       - --leader-elect=true
       - --log-level=info
     image:
-      repository: ghcr.io/sovereigncloudstack/cso-staging
-      tag: sha-c797c2e
+      repository: ghcr.io/sovereigncloudstack/cso
+      tag: v0.1.0-alpha.8
     imagePullPolicy: Always
     resources:
       limits:
