@@ -206,7 +206,7 @@ spec:
             privileged: true
             allowPrivilegeEscalation: true
           imagePullPolicy: Always
-          image: registry.dnation.cloud/test-mg/kubevirt-csi-driver:latest
+          image: quay.io/kubevirt/kubevirt-csi-driver:latest
           args:
             - "--endpoint=unix:/csi/csi.sock"
             - "--node-name=$(KUBE_NODE_NAME)"
