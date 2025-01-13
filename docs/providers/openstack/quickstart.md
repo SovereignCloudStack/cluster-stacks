@@ -206,9 +206,11 @@ spec:
   topology:
     variables:
       - name: controller_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4-20s"
       - name: worker_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4"
+      - name: worker_root_disk
+        value: 30
       - name: external_id
         value: ${CS_EXTERNAL_ID}
     class: ${CS_CLASS_NAME}
