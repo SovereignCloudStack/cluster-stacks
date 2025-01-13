@@ -55,6 +55,7 @@ Install the [envsubst](https://github.com/drone/envsubst) Go package. It is requ
 ```bash
 GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 ```
+Note: On typical Linux distros, you will have a binary `/usr/bin/envsubst` from the gettext package that does *not* work.
 
 Get the latest CSO release version and apply CSO manifests to the management cluster.
 
@@ -176,7 +177,7 @@ export CS_POD_CIDR=192.168.0.0/16
 export CS_SERVICE_CIDR=10.96.0.0/12
 export CS_EXTERNAL_ID=ebfe5546-f09f-4f42-ab54-094e457d42ec # gx-scs
 export CS_CLASS_NAME=openstack-"${CS_NAME}"-"${CS_K8S_VERSION/./-}"-"${CS_VERSION}"
-export CS_K8S_PATCH_VERSION=8
+export CS_K8S_PATCH_VERSION=6
 ```
 
 Create and apply `cluster.yaml` file to the management cluster.
@@ -205,9 +206,11 @@ spec:
   topology:
     variables:
       - name: controller_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4-20s"
       - name: worker_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4"
+      - name: worker_root_disk
+        value: 30
       - name: external_id
         value: ${CS_EXTERNAL_ID}
     class: ${CS_CLASS_NAME}

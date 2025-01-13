@@ -8,16 +8,17 @@ Parses the `Cluster.spec.topology.variables` definitions and
 generates a markdown table for documentation purposes.
 """
 
-
+import argparse
 import subprocess
 from pathlib import Path
+import sys
 
 import yaml
 
 BASE_PATH = Path(__file__).parent.parent
-TEMPLATE_PATH = BASE_PATH.joinpath(
-    "providers", "openstack", "scs", "cluster-class"
-)
+TEMPLATE_PATH = BASE_PATH.joinpath("providers", "openstack", "scs", "cluster-class")
+DOCS_TMPL_PATH = BASE_PATH.joinpath("hack", "config-template.md")
+DOCS_OUT_PATH = BASE_PATH.joinpath("docs", "providers", "openstack", "configuration.md")
 
 
 def generate_row(content: list):
@@ -100,6 +101,13 @@ def parse_object(tmpl: dict) -> list:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Only print result to stdout."
+    )
+
+    args = parser.parse_args()
+
     cmd = [
         "helm",
         "template",
@@ -108,6 +116,9 @@ if __name__ == "__main__":
         "-s",
         "templates/cluster-class.yaml",
     ]
+
+    with open(DOCS_TMPL_PATH, "r") as f:
+        tmpl = f.read()
 
     cmdout = subprocess.run(cmd, capture_output=True, check=False)
     rendered_template = cmdout.stdout.decode("utf-8")
@@ -127,4 +138,12 @@ if __name__ == "__main__":
             parsed = parse_variable(var)
             result_table.append(generate_row(parsed))
 
-    print("\n".join(result_table))
+    output = tmpl.replace("!!table!!", "\n".join(result_table))
+
+    if args.dry_run:
+        print(output)
+        sys.exit()
+
+    print(f"Writing output to file {DOCS_OUT_PATH}")
+    with open(DOCS_OUT_PATH, "w") as f:
+        f.write(output)
