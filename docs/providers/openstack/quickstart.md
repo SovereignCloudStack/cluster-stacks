@@ -181,7 +181,8 @@ export CS_K8S_PATCH_VERSION=6
 ```
 
 The `CS_EXTERNAL_ID` must be the UUID of your OpenStack external network, get it via
-`openstack network list --external`.
+`openstack network list --external`. If there is only one external network, you may
+get away without passing `external_id`.
 
 Create and apply `cluster.yaml` file to the management cluster.
 
