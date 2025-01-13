@@ -55,6 +55,7 @@ Install the [envsubst](https://github.com/drone/envsubst) Go package. It is requ
 ```bash
 GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 ```
+Note: On typical Linux distros, you will have a binary `/usr/bin/envsubst` from the gettext package that does *not* work.
 
 Get the latest CSO release version and apply CSO manifests to the management cluster.
 
