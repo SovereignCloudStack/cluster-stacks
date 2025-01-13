@@ -1,10 +1,68 @@
+# Configuration
+
+This page lists the custom configuration options available, including their default values and if they are optional. The following example shows how these variables can be used inside the `cluster.yaml` file under `spec.topology.variables`.
+
+## Example
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name:
+  namespace:
+  labels:
+    managed-secret: cloud-config
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+        - 10.96.0.0/12
+  topology:
+    variables: // <-- variables from the table can be set here
+      - name: controller_flavor
+        value: "SCS-4V-8-20"
+      - name: worker_flavor
+        value: "SCS-4V-8-20"
+      - name: external_id
+        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+    class: openstack-alpha-1-29-v2
+    controlPlane:
+      replicas: 2
+    version: v1.29.3
+    workers:
+      machineDeployments:
+        - class: openstack-alpha-1-29-v2
+          failureDomain: nova
+          name: openstack-alpha-1-29-v2
+          replicas: 4
+```
+
+Variables from the table containing a `.` are to be used in an object with the part before the dot being the object name and the part behind the dot being the value names. The following example demonstrates this with `oidc_config`.
+
+```yaml
+...
+topology:
+  variables:
+    - name: oidc_config
+      value:
+        issuer_url: "https://dex.k8s.scs.community"
+        client_id: "kubectl"
+...
+```
+
+## Available variables
+
 |Name|Type|Default|Example|Description|Required|
 |----|----|-------|-------|-----------|--------|
 |`external_id`|string|""|"ebfe5546-f09f-4f42-ab54-094e457d42ec"|ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs.|False|
-|`controller_flavor`|string|"SCS-2V-4-20"|"SCS-2V-4-20"|OpenStack instance flavor for control-plane nodes.|False|
-|`worker_flavor`|string|"SCS-2V-4-20"|"SCS-2V-4-20"|OpenStack instance flavor for worker nodes.|False|
-|`controller_root_disk`|integer||20|Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors.|False|
-|`worker_root_disk`|integer||20|Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used also for the diskless flavors.|False|
+|`controller_flavor`|string|"SCS-2V-4-20s"|"SCS-2V-4-20s"|OpenStack instance flavor for control-plane nodes.|False|
+|`worker_flavor`|string|"SCS-2V-4"|"SCS-2V-4"|OpenStack instance flavor for worker nodes.|False|
+|`controller_root_disk`|integer||25|Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should only be used for the diskless flavors.|False|
+|`worker_root_disk`|integer|25|25|Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used for the diskless flavors.|False|
 |`yawol_flavor_id`|string|""|"0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"|ID of the existing flavor used as a default yawol flavor.|False|
 |`yawol_image_id`|string|""|"f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"|ID of the existing imaged used as a default yawol image.|False|
 |`kube_vip_network_id`|string|""|"40a51f6c-9e4b-4b24-9187-49851a410c97"|ID of the existing network. The network should have one subnet with one port reserved as virtual IP.|False|
