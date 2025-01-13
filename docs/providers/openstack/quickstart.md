@@ -55,6 +55,7 @@ Install the [envsubst](https://github.com/drone/envsubst) Go package. It is requ
 ```bash
 GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
 ```
+Note: On typical Linux distros, you will have a binary `/usr/bin/envsubst` from the gettext package that does *not* work.
 
 Get the latest CSO release version and apply CSO manifests to the management cluster.
 
@@ -205,9 +206,11 @@ spec:
   topology:
     variables:
       - name: controller_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4-20s"
       - name: worker_flavor
-        value: "SCS-2V-4-50"
+        value: "SCS-2V-4"
+      - name: worker_root_disk
+        value: 30
       - name: external_id
         value: ${CS_EXTERNAL_ID}
     class: ${CS_CLASS_NAME}
