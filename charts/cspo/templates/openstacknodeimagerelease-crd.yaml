@@ -115,6 +115,13 @@ spec:
                         description: Hidden is whether the image is listed in default
                           image list or not.
                         type: boolean
+                      properties:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          properties is a set of properties, if any, that
+                          are associated with the image.
+                        type: object
                       protected:
                         description: protected is whether the image is not deletable.
                         type: boolean
@@ -197,9 +204,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

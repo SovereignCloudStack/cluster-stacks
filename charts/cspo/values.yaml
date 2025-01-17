@@ -42,8 +42,8 @@ controllerManager:
         drop:
           - ALL
     image:
-      repository: ghcr.io/sovereigncloudstack/cspo
-      tag: v0.1.0-alpha.5
+      repository: ghcr.io/sovereigncloudstack/cspo-staging
+      tag: sha-3f53487
     resources:
       limits:
         cpu: 500m
