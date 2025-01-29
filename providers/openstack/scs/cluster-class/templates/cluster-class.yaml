@@ -113,6 +113,33 @@ spec:
           type: string
           format: "ipv4"
           description: "Public IP address associated with kube_vip_apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
+    - name: registry_mirrors
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: [ { hostname_upstream: "docker.io", url_upstream: "https://registry-1.docker.io", url_mirror: "https://registry.foo.tld/v2/foo", cert_mirror: "" }, { hostname_upstream: "gcr.io", url_upstream: "https://gcr.io", url_mirror: "https://registry.bar.tld/v2/foo", cert_mirror: "" } ]
+          description: "Registry mirrors for upstream registries"
+          items:
+            type: object
+            properties:
+              hostname_upstream:
+                type: string
+                example: "docker.io"
+                description: "The hostname of the upstream registry"
+              url_upstream:
+                type: string
+                example: "https://registry-1.docker.io"
+                description: "The url of the upstream registry"
+              url_mirror:
+                type: string
+                example: "https://registry.xyz.tld/v2/dockerhub"
+                description: "The url of the mirror"
+              cert_mirror:
+                type: string
+                example: "<PEM>"
+                description: "The certificate of mirror in PEM format"
     - name: openstack_security_groups
       required: false
       schema:
@@ -821,3 +848,65 @@ cre ate group names like oidc:engineering and oidc:infra."
                   {{`{{- range .dns_nameservers }}`}}
                                   - {{`{{ . }}`}}
                   {{`{{- end }}`}}
+    - name: registry_mirrors_worker
+      description: "Configure registry mirrors for containerd (worker)."
+      enabledIf: {{ `"{{ if .registry_mirrors }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/files"
+            valueFrom:
+              template: |
+                {{`{{- range $r := .registry_mirrors }}
+                - content: |
+                    server = "{{ $r.url_upstream }}"
+                    [host."{{ $r.url_mirror }}"]
+                      capabilities = ["pull","resolve"]
+                      override_path = true
+                  owner: root:root
+                  path: /etc/containerd/certs.d/{{ $r.hostname_upstream }}/hosts.toml
+                  permissions: "0644"
+                {{- if $r.cert_mirror }}
+                - content: "{{ $r.cert_mirror }}"
+                  owner: root:root
+                  path: /etc/containerd/certs/{{ $r.hostname_upstream }}
+                  permissions: "0644"
+                {{- end }}
+                {{- end }}`}}
+    - name: registry_mirrors_control_plane
+      description: "Configure registry mirrors for containerd (control plane)."
+      enabledIf: {{ `"{{ if .registry_mirrors }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/files"
+            valueFrom:
+              template: |
+                {{`{{- range $r := .registry_mirrors }}
+                - content: |
+                    server = "{{ $r.url_upstream }}"
+                    [host."{{ $r.url_mirror }}"]
+                      capabilities = ["pull","resolve"]
+                      override_path = true
+                  owner: root:root
+                  path: /etc/containerd/certs.d/{{ $r.hostname_upstream }}/hosts.toml
+                  permissions: "0644"
+                {{- if $r.cert_mirror }}
+                - content: "{{ $r.cert_mirror }}"
+                  owner: root:root
+                  path: /etc/containerd/certs/{{ $r.hostname_upstream }}
+                  permissions: "0644"
+                {{- end }}
+                {{- end }}`}}
