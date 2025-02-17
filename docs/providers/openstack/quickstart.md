@@ -175,10 +175,14 @@ export CS_CLUSTER_NAME=cs-cluster
 export CS_POD_CIDR=192.168.0.0/16
 # Note: if you need more than one SERVICE_CIDR, please adjust the yaml file accordingly
 export CS_SERVICE_CIDR=10.96.0.0/12
-export CS_EXTERNAL_ID=ebfe5546-f09f-4f42-ab54-094e457d42ec # gx-scs
+export CS_EXTERNAL_ID=ebfe5546-f09f-4f42-ab54-094e457d42ec # Replace this by your external network ID
 export CS_CLASS_NAME=openstack-"${CS_NAME}"-"${CS_K8S_VERSION/./-}"-"${CS_VERSION}"
 export CS_K8S_PATCH_VERSION=6
 ```
+
+The `CS_EXTERNAL_ID` must be the UUID of your OpenStack external network, get it via
+`openstack network list --external`. If there is only one external network, you may
+get away without passing `external_id`.
 
 Create and apply `cluster.yaml` file to the management cluster.
 
