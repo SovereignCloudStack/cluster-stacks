@@ -30,6 +30,7 @@ export CLUSTER_TOPOLOGY=true
 export EXP_CLUSTER_RESOURCE_SET=true
 export EXP_RUNTIME_SDK=true
 clusterctl init --infrastructure openstack
+kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml
 ```
 
 ### CSO and CSPO variables preparation (CSP)
