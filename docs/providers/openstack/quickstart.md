@@ -34,6 +34,7 @@ kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases
 ```
 
 Note that the manual deployment of the openstack resource controller (ORC) is required since capo-0.12. If you use `clusterctl upgrade` to upgrade capo from earlier version, you'll also need to manually add ORC to the management host/cluster.
+
 ### CSO and CSPO variables preparation (CSP)
 
 The CSO and CSPO must be directed to the Cluster Stacks repository housing releases for the OpenStack provider.
