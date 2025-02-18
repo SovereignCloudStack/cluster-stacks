@@ -1,6 +1,6 @@
 # mirrored from variables.tf
 controller_flavor: SCS-2V-4-20s
-worker_flavor: SCS-2V-4
+worker_flavor: SCS-2V-4-20
 restrict_kubeapi: []
 
 # newly introduced:
