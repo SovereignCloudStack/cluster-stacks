@@ -7,9 +7,9 @@ dependencies:
   version: 1.16.7
 - name: openstack-cloud-controller-manager
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.30.4
+  version: 2.31.1
 - name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.30.2
-digest: sha256:06feb5e63933251c45459c9a6782add984f5369b381f4e454eab45f7a99cd3b2
-generated: "2025-02-27T12:01:13.556210866+01:00"
+  version: 2.31.2
+digest: sha256:3a08db5b48e58ce76effce10da4b4161eadb4c09a912313e8d1d24747a79106d
+generated: "2025-02-27T12:53:55.907755056+01:00"
