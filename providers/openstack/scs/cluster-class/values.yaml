@@ -4,9 +4,9 @@ identityRef:
   name: openstack
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.31.5
+    name: ubuntu-capi-image-v1.32.1
   worker:
-    name: ubuntu-capi-image-v1.31.5
+    name: ubuntu-capi-image-v1.32.1
 openstack_loadbalancer_apiserver: false
 restrict_kubeapi: []
 worker_flavor: SCS-2V-4-20

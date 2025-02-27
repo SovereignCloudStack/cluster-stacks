@@ -11,11 +11,11 @@ dependencies:
 - alias: openstack-cloud-controller-manager
   name: openstack-cloud-controller-manager
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.31.1
+  version: 2.32.0
 - alias: openstack-cinder-csi
   name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.31.2
-name: openstack-scs-1-31-cluster-addon
+  version: 2.32.0
+name: openstack-scs-1-32-cluster-addon
 type: application
 version: v1
