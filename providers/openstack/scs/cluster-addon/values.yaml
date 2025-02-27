@@ -49,6 +49,3 @@ openstack-cinder-csi:
   storageClass:
     delete:
       isDefault: true
-yawol-controller:
-  yawolOSSecretName: cloud-config
-  enabled: false

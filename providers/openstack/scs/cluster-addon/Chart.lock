@@ -11,8 +11,5 @@ dependencies:
 - name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
   version: 2.30.2
-- name: yawol-controller
-  repository: https://stackitcloud.github.io/yawol
-  version: 0.25.0
-digest: sha256:92fd3804e63e8e6aa80e5306b693682932267d7920d7a17e89a1d3512aa17fe5
-generated: "2025-02-27T08:15:56.31201259+01:00"
+digest: sha256:d40af7d428f9b5d3eddce27f400954be2c43c9819ae104080bc3a43de6e7a96f
+generated: "2025-02-27T08:40:21.024509842+01:00"

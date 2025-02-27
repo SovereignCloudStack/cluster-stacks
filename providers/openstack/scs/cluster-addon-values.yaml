@@ -1,34 +1,8 @@
 values: |
-  {{- define "yawol_image_id" -}}
-    {{- range .Cluster.spec.topology.variables -}}
-      {{- if eq .name "yawol_image_id" -}}
-        {{ .value }}
-      {{- end -}}
-    {{- end -}}
-  {{- end }}
-  {{- define "yawol_flavor_id" -}}
-    {{- range .Cluster.spec.topology.variables -}}
-      {{- if eq .name "yawol_flavor_id" -}}
-        {{ .value }}
-      {{- end -}}
-    {{- end -}}
-  {{- end }}
   metrics-server:
     commonLabels:
       domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
       clusterAddonVersion: "v2"
-  {{ range .Cluster.spec.topology.variables }}
-  {{- if and (eq .name "workload_loadbalancer") (eq .value "yawol") }}
-  yawol-controller:
-    enabled: true
-    yawolFloatingID: "{{ $.InfraCluster.status.externalNetwork.id }}"
-    yawolNetworkID: "{{ $.InfraCluster.status.network.id }}"
-    yawolAPIHost: "{{ printf "https://%s:%d" $.Cluster.spec.controlPlaneEndpoint.host $.Cluster.spec.controlPlaneEndpoint.port }}"
-    yawolFlavorID: {{ template "yawol_flavor_id" $}}
-    yawolImageID: {{ template "yawol_image_id" $}}
-  {{- end }}
-  {{- end }}
-
   openstack-cloud-controller-manager:
     cluster:
       name: {{ .Cluster.metadata.name }}
@@ -36,7 +10,7 @@ values: |
       loadBalancer:
       {{- range .Cluster.spec.topology.variables }}
       {{- if eq .name "workload_loadbalancer" }}
-      {{- if or (eq .value "none") (eq .value "yawol") }}
+      {{- if eq .value "none" }}
         enabled: false
       {{ else if eq .value "octavia-amphora" }}
         enabled: true
