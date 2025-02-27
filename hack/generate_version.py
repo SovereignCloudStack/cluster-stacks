@@ -153,7 +153,7 @@ def update_cluster_addon(
             dep["version"] = versions["occm"]
 
     content["name"] = (
-        f"openstack-scs-{get_dash_version(versions["kubernetes"])}-cluster-addon"
+        f"openstack-scs-{get_dash_version(versions['kubernetes'])}-cluster-addon"
     )
 
     writefile(target, content)
@@ -214,8 +214,8 @@ def update_cluster_class(target: PosixPath, **kwargs):
 
     content["images"]["controlPlane"][
         "name"
-    ] = f"ubuntu-capi-image-v{kwargs["kubernetes"]}"
-    content["images"]["worker"]["name"] = f"ubuntu-capi-image-v{kwargs["kubernetes"]}"
+    ] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
+    content["images"]["worker"]["name"] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
 
     writefile(values_file, content)
 
@@ -241,7 +241,7 @@ def update_node_images(target: PosixPath, **kwargs):
 
     content["openStackNodeImages"][0]["createOpts"][
         "name"
-    ] = f"ubuntu-capi-image-v{kwargs["kubernetes"]}"
+    ] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
 
     writefile(target, content)
 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     if args.list:
         print("Supported Kubernetes Versions:")
         for v in sup_versions:
-            print(f"{".".join(v["kubernetes"].split(".")[0:2])}")
+            print(f"{'.'.join(v['kubernetes'].split('.')[0:2])}")
         print("Usage: generate_version.py --target-version VERSION")
         sys.exit()
 
