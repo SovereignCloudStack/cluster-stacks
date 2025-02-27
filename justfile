@@ -95,11 +95,6 @@ diff:
     echo "${toTest[@]}"
 
 # Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
-[group('Building Manifests')]
-build-versions: dependencies
-    #!/usr/bin/env bash
-    set -euxo pipefail
-# Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
 [group('Build Manifests')]
 build-versions: dependencies
     #!/usr/bin/env bash
@@ -144,12 +139,6 @@ build-version VERSION:
     fi
 
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[group('Building Assets')]
-build-assets-local-for VERSION: dependencies
-    #!/usr/bin/env bash
-    export PATH=${path}
-    set -euxo pipefail
-# Build assets for a certain Kubernetes Version. Out directory needs to be present.
 [group('Build Assets')]
 build-assets-local-for VERSION: dependencies
     #!/usr/bin/env bash
@@ -189,7 +178,7 @@ build-assets-all-local: build-versions-all
 publish-assets VERSION:
     #!/usr/bin/env bash
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
-      if [[ -n ${OCI_REGISTRY} && \ 
+      if [[ -n ${OCI_REGISTRY} && \
             -n ${OCI_REPOSITORY} && \
             (( -n ${OCI_USERNAME} && -n ${OCI_PASSWORD} ) || -n ${OCI_ACCESS_TOKEN} ) ]]; then
         csctl create -m hash --publish --remote oci providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
