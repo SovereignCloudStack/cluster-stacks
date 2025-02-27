@@ -1,22 +1,21 @@
 apiVersion: v2
 dependencies:
-- alias: metrics-server
-  name: metrics-server
-  repository: https://kubernetes-sigs.github.io/metrics-server/
-  version: 3.12.2
-- alias: cilium
-  name: cilium
-  repository: https://helm.cilium.io/
-  version: 1.16.3
-- alias: openstack-cloud-controller-manager
-  name: openstack-cloud-controller-manager
-  repository: https://kubernetes.github.io/cloud-provider-openstack
-
-  version: 2.30.4
-- alias: openstack-cinder-csi
-  name: openstack-cinder-csi
-  repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.30.2
+  - alias: metrics-server
+    name: metrics-server
+    repository: https://kubernetes-sigs.github.io/metrics-server/
+    version: 3.12.2
+  - alias: cilium
+    name: cilium
+    repository: https://helm.cilium.io/
+    version: 1.16.7
+  - alias: openstack-cloud-controller-manager
+    name: openstack-cloud-controller-manager
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.30.4
+  - alias: openstack-cinder-csi
+    name: openstack-cinder-csi
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.30.2
 name: openstack-scs-1-30-cluster-addon
 type: application
 version: v1
