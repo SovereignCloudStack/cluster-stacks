@@ -7,11 +7,16 @@ set export := true
 set dotenv-filename := "just.env"
 set dotenv-load := true
 
-path := env_var('PATH') + ":" + justfile_directory() + "/bin"
+PATH := env_var('PATH') + ":" + justfile_directory() + "/bin"
 repo := "https://github.com/SovereignCloudStack/cluster-stacks"
 mainBranch := "main"
 workingBranchPrefix := "chore/update-"
 targetBranchPrefix := "release-"
+
+# For Cluster Stack creation
+
+mgmtcluster := "contextName"
+mgmcluster_namespace := "NamespaceName"
 
 [private]
 default:
@@ -26,7 +31,6 @@ help: default
 dependencies:
     #!/usr/bin/env bash
     set -euo pipefail
-    export PATH=${path}
     if ! which csctl >/dev/null 2>&1; then
       echo -e "\e[33m\e[1mcsctl not found, building it from source.\e[0m"
       mkdir -p bin
@@ -75,7 +79,7 @@ clean:
 [group('General')]
 diff:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     versionsPath="providers/openstack/scs/versions.yaml"
     currentVersions=$(cat ${versionsPath})
     mainVersions=$(git show ${mainBranch}:${versionsPath})
@@ -90,22 +94,26 @@ diff:
     done
     echo "${toTest[@]}"
 
-
 # Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
 [group('Building Manifests')]
 build-versions: dependencies
     #!/usr/bin/env bash
     set -euxo pipefail
+# Build Clusterstacks version directories according to changes in versions.yaml. Builds out directoy
+[group('Build Manifests')]
+build-versions: dependencies
+    #!/usr/bin/env bash
+    set -euo pipefail
     changedVersions=$(just diff)
     for version in ${changedVersions[@]}; do
       just build-version ${version}
     done
 
 # Generate manifest for all Kubernetes Version regardless of changes to versions.
-[group('Building Manifests')]
+[group('Build Manifests')]
 build-versions-all: dependencies
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     versionsPath="providers/openstack/scs/versions.yaml"
     currentVersions=$(cat ${versionsPath})
     kubernetesVersions=$(yq -r '.[].kubernetes' ${versionsPath} | grep -Po "1\.\d+")
@@ -114,12 +122,12 @@ build-versions-all: dependencies
     done
 
 # Generate Manifest for a specific Kubernetes version. Builds out directory
-[group('Building Manifests')]
+[group('Build Manifests')]
 build-version VERSION:
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     echo -e "\e[33m\e[1mBuild Manifests for {{ VERSION }}\e[0m"
-    ## CHECK IF THERE IS A CHANGE IN THE COMPONENT VERSIONS
+    # check if there is a change in the component versions
     if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
       versionsFile="providers/openstack/scs/versions.yaml"
       k8sVersion=$(yq -r ".[] | select(.kubernetes | test(\"{{ replace(VERSION, "-", ".") }}\")).kubernetes" ${versionsFile})
@@ -135,13 +143,17 @@ build-version VERSION:
       ./hack/generate_version.py --target-version {{ replace(VERSION, "-", ".") }}
     fi
 
-
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
 [group('Building Assets')]
 build-assets-local-for VERSION: dependencies
     #!/usr/bin/env bash
     export PATH=${path}
     set -euxo pipefail
+# Build assets for a certain Kubernetes Version. Out directory needs to be present.
+[group('Build Assets')]
+build-assets-local-for VERSION: dependencies
+    #!/usr/bin/env bash
+    set -euo pipefail
     just build-version {{ VERSION }}
     echo -e "\e[33m\e[1mBuild Assets for {{ VERSION }}\e[0m"
     if ! [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }}/cluster-addon/Chart.lock ]]; then
@@ -153,47 +165,91 @@ build-assets-local-for VERSION: dependencies
     csctl create -m hash providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
 
 # Build assets for a certain Kubernetes Version. Out directory needs to be present.
-[group('Building Assets')]
+[group('Build Assets')]
 build-assets-local: build-versions
     #!/usr/bin/env bash
-    export PATH=${path}
+    set -euo pipefail
     changedVersions=$(just diff)
     for version in ${changedVersions[@]}; do
       just build-assets-local-for ${version}
     done
 
 # Build assets for a certain Kubernetes Version.
-[group('Building Assets')]
+[group('Build Assets')]
 build-assets-all-local: build-versions-all
     #!/usr/bin/env bash
-    export PATH=${path}
-    set -euxo pipefail
+    set -euo pipefail
     versions="$(cd providers/openstack/out/ && echo *)"
     for version in ${versions[@]}; do
       just build-assets-local-for ${version}
     done
 
-# Remove old branches that had been merged to main 
+# Publish assets to OCI registry
+[group('Release')]
+publish-assets VERSION:
+    #!/usr/bin/env bash
+    if [[ -e providers/openstack/out/{{ replace(VERSION, ".", "-") }} ]]; then
+      if [[ -n ${OCI_REGISTRY} && \ 
+            -n ${OCI_REPOSITORY} && \
+            (( -n ${OCI_USERNAME} && -n ${OCI_PASSWORD} ) || -n ${OCI_ACCESS_TOKEN} ) ]]; then
+        csctl create -m hash --publish --remote oci providers/openstack/out/{{ replace(VERSION, ".", "-") }}/
+      else
+        echo "Please define OCI_* Variables in just.env"
+      fi
+    else
+      echo "Manifest directory for {{ replace(VERSION, ".", "-") }}" does not exist.
+    fi
+
+# Publish all available assets to OCI registry
+[group('Release')]
+publish-assets-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    versions="$(cd providers/openstack/out/ && echo *)"
+    for version in ${versions[@]}; do
+      just publish-assets ${version}
+    done
+
+# Publish new release of providers/openstack/scs
+[group('Release')]
+publish-test-release: dependencies
+    csctl create -m hash --publish --remote oci providers/openstack/scs/
+
+# Publish new release of providers/openstack/scs
+[confirm('Are you sure to publish a new stable release? (y|n)')]
+[group('Release')]
+publish-release: dependencies
+    csctl create --publish --remote oci providers/openstack/scs/
+
+# Remove old branches that had been merged to main
 [group('git')]
 git-clean:
-    git branch --merged | grep -Ev "(^\*|^\+|master|main|dev)" | xargs --no-run-if-empty git branch -d
+    git branch --merged | grep -Ev "(^\*|^\+|^release/\+|main)" | xargs --no-run-if-empty git branch -d
 
-# Create Chore branch for specific Kubernetes Version
+# Create chore branch and PR for specific Kubernetes Version
 [group('git')]
-git-chore-branch VERSION:
+git-chore-branch VERSION: && (gh-create-chore-pr VERSION)
     #!/usr/bin/env bash
+    set -euo pipefail
     currentBranch=$(git branch --show-current)
-    git switch -c chore/update-{{replace(VERSION, "-", ".") }}
-    cp -r providers/openstack/out/{{replace(VERSION, ".", "-") }}/* providers/openstack/scs/
+    if git show-ref -q  --branches {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}; then
+      # Switch to branch if it exists
+      git switch {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
+    else
+      # Create branch and switch to it
+      git switch -c {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
+    fi
+    cp -r providers/openstack/out/{{ replace(VERSION, ".", "-") }}/* providers/openstack/scs/
     git add providers/openstack/scs/
-    git commit -s -S -m "chore(versions): Update Release for {{replace(VERSION, "-", ".") }}"
-    #git push
+    git commit -s -m "chore(versions): Update Release for {{ replace(VERSION, "-", ".") }}"
+    git push --set-upstream origin {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }}
     git switch ${currentBranch}
 
 # Create chore branches for all available out versions
 [group('git')]
 git-chore-branches-all:
     #!/usr/bin/env bash
+    set -euo pipefail
     if ! [[ -e providers/openstack/out ]]; then
        echo "Error: out directory does not exists."
     else
@@ -204,3 +260,136 @@ git-chore-branches-all:
          just git-chore-branch $version
        done
     fi
+# Login to Github with GitHub CLI
+[group('GitHub')]
+gh-login GH_TOKEN="${GH_TOKEN}":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! which gh >/dev/null 2>&1; then
+      echo "GitHub CLI not installed."
+    else
+      if ! gh auth status >/dev/null 2>&1; then
+        gh config set -h github.com git_protocol https
+        # If TOKEN is empty use WebUI Authentication
+        if [[ -z $GH_TOKEN ]]; then
+          gh auth login --hostname github.com
+        else
+          echo $GH_TOKEN | gh auth login --hostname github.com --with-token
+        fi
+      fi
+    fi
+
+# Create chore PR for given VERSION against correspondend release branch
+[group('GitHub')]
+gh-create-chore-pr VERSION: gh-login
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! which gh >/dev/null 2>&1; then
+      echo "GitHub CLI not installed."
+    else
+      gh pr --title "chore(versions): Update Release for {{ replace(VERSION, "-", ".") }}" \
+            --head {{ workingBranchPrefix }}{{ replace(VERSION, "-", ".") }} \
+            --base {{ targetBranchPrefix }}{{ replace(VERSION, "-", ".") }} \
+            --dry-run
+    fi
+
+# UNTESTED RECIPE: Create Cluster Stack on Cluster for given Version at $PATH in ./release
+[group('Test')]
+create-clusterstack PATH:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Given directory name
+    directory_name=".release/$PATH"
+
+    # Extract parts from the directory name
+    IFS='/' read -ra PARTS <<<"$directory_name"
+    IFS='-' read -ra PARTS <<<"${PARTS[1]}"
+
+    provider="${PARTS[0]}"
+    name="${PARTS[1]}"
+    kubernetes_major_version="${PARTS[2]}"
+    kubernetes_minor_version="${PARTS[3]}"
+    version="${PARTS[4]}-${PARTS[5]}.${PARTS[6]}"
+    channel="custom"
+
+    if [[ -z ${PARTS[6]} ]]; then
+      version="${PARTS[4]}"
+      channel="stable"
+    fi
+
+    Create the YAML structure
+    clusterstack_yaml=$(cat <<-EOF
+      ---
+      apiVersion: clusterstack.x-k8s.io/v1alpha1
+      kind: ClusterStack
+      metadata:
+        name: ${provider}-${name}-${kubernetes_major_version}-${kubernetes_minor_version}
+      spec:
+        provider: ${provider}
+        name: ${name}
+        kubernetesVersion: "${kubernetes_major_version}.${kubernetes_minor_version}"
+        channel: ${channel}
+        autoSubscribe: false
+        providerRef:
+          apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
+          kind: OpenStackClusterStackReleaseTemplate
+          name: cspotemplate
+        versions:
+        - ${version}
+      EOF
+    )
+
+    echo "$clusterstack" | kubectl apply -f -
+
+# UNTESTED RECIPE: Check on Cluster Stack creation
+[group('Test')]
+check-clusterstack NAME:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    declare -i RETRIES
+    RETRIES=20
+    declare -i INTERVAL
+    INTERVAL=5
+    # TODO: Refine Status Command
+    STATUS_CMD="kubectl get clusterstack -n $ ${NAME} -ojson | jq .status"
+    while (( $RETRIES > 0 )); do
+      RETRIES-=1
+      if ${STATUS_CMD}; then
+        STATUS=$(${STATUS_CMD})
+        if true; then
+          echo "Clusterstack creation successful."
+          break
+        else
+          echo "waiting for Cluster Stack creation"
+        fi
+      fi
+      sleep $INTERVAL
+    done
+
+# UNTESTED RECIPE: Create Test Cluster for Kubernetes VERSION and Cluster CLASS
+[group('Test')]
+create-cluster VERSION CLASS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cluster_manifest=$(cat <<-EOF
+      ---
+      apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      metadata:
+        name: cs-cluster
+        labels:
+          managed-secret: cloud-config
+      spec:
+        topology:
+          class: {{ CLASS }}
+          controlPlane:
+            replicas: 1
+          version: v{{ VERSION }}
+          workers:
+            machineDeployments:
+              - class: default-worker
+                name: md-0
+                replicas: 1
+      EOF
+    )
+    echo "${cluster_manifest}" | kubectl apply -f -

@@ -1,10 +1,12 @@
+# mirrored from variables.tf
 controller_flavor: SCS-2V-4-20
-dns_nameservers:
-- 5.1.66.255
-- 185.150.99.255
-identityRef:
-  cloudName: openstack
-  name: openstack
+worker_flavor: SCS-2V-4-20
+restrict_kubeapi: []
+
+# newly introduced:
+openstack_loadbalancer_apiserver: false
+
+# TBD, currently needed:
 images:
   controlPlane:
     name: ubuntu-capi-image-v1.31.2
