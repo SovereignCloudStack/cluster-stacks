@@ -74,45 +74,6 @@ spec:
           default: 25
           example: 25
           description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used for the diskless flavors."
-    - name: yawol_flavor_id
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          format: "uuid4"
-          example: "0a79590e-10d7-4c2c-8f69-ca0a2c6208d2"
-          description: "ID of the existing flavor used as a default yawol flavor."
-    - name: yawol_image_id
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          format: "uuid4"
-          example: "f0b2ef46-f0ff-43d2-9c08-f58a5a6e9060"
-          description: "ID of the existing imaged used as a default yawol image."
-    - name: kube_vip_network_id
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          format: "uuid4"
-          example: "40a51f6c-9e4b-4b24-9187-49851a410c97"
-          description: "ID of the existing network. The network should have one subnet with one port reserved as virtual IP."
-    - name: kube_vip_apiserver_virtual_ip
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          format: "ipv4"
-          example: "10.0.0.197"
-          description: "Virtual IP address reserved in kube_vip_network_id."
-    - name: kube_vip_apiserver_public_ip
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          format: "ipv4"
-          description: "Public IP address associated with kube_vip_apiserver_virtual_ip. It is needed only when the management cluster is on a different network as a workload cluster."
     - name: openstack_security_groups
       required: false
       schema:
@@ -169,7 +130,7 @@ spec:
         openAPIV3Schema:
           type: string
           default: "octavia-amphora"
-          example: "none, octavia-amphora, octavia-ovn, kube-vip"
+          example: "none, octavia-amphora, octavia-ovn"
           description: | 
             "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
             To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
@@ -183,16 +144,6 @@ spec:
             
             octavia-ovn:
               Uses openstack's loadbalancer service (provider:ovn)
-
-            kube-vip:
-              Uses kube-vip as loadbalancer.
-              You have to provide the following additional variables: 
-                kube_vip_network_id
-                kube_vip_apiserver_virtual_ip
-                kube_vip_apiserver_public_ip 
-             
-              Requires Kubernetes version < 1.29
-              Also the settings node_cidr and dns_nameservers will no longer have an effect.
        
     - name: workload_loadbalancer
       required: false
@@ -200,7 +151,7 @@ spec:
         openAPIV3Schema:
           type: string
           default: "octavia-amphora"
-          example: "none, octavia-amphora, octavia-ovn, yawol"
+          example: "none, octavia-amphora, octavia-ovn"
           description: |
             "This setting here is to configure the loadbalancer solution for your services inside your cluster.
             If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
@@ -215,12 +166,6 @@ spec:
             octavia-ovn:
               Uses openstack's loadbalancer service (provider:ovn)
 
-            yawol:
-              Uses yawol as loadbalancer.
-              You have to provide the following additional variables: 
-                yawol_flavor_id
-                yawol_image_id
-              
               Also note this setting does not work with application credentials (only username/password)"
     - name: dns_nameservers
       required: false
@@ -228,9 +173,9 @@ spec:
         openAPIV3Schema:
           type: array
           description: |
-            "DNSNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required.
-            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-            However you can set the dns server when creating the subnet for kube-vip."
+            "DNSNameservers is the list of nameservers for the OpenStack Subnet
+            being created. Set this value when you need to create a new network/subnet
+            while the access through DNS is required."
           default: ["5.1.66.255", "185.150.99.255"]
           example: ["5.1.66.255", "185.150.99.255"]
           items:
@@ -244,9 +189,9 @@ spec:
           default: "10.8.0.0/20"
           example: "10.8.0.0/20"
           description: |
-            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created.
-            This setting has no effect when apiserver_loadbalancer is set to kube-vip.
-            However you can set the node_cidr when creating the subnet for kube-vip."
+            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator
+            will create a network, a subnet with NodeCIDR, and a router
+            connected to this subnet. If you leave this empty, no network will be created."
     - name: certSANs
       required: false
       schema:
@@ -356,7 +301,7 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             value: true
           - op: add
@@ -372,144 +317,12 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: add
+          - op: replace
             path: "/spec/template/spec/apiServerLoadBalancer/enabled"
             value: true
           - op: add
             path: "/spec/template/spec/apiServerLoadBalancer/provider"
             value: "ovn"
-    - name: apiserver_loadbalancer_kube-vip
-      description: "Takes care of the patches that should be applied when variable apiserver_loadbalancer is set to kube-vip."
-      enabledIf: {{ `'{{ eq .apiserver_loadbalancer "kube-vip" }}'` }}
-      definitions:
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackClusterTemplate
-            matchResources:
-              infrastructureCluster: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/network"
-            valueFrom:
-              template: |
-                id: {{"{{"}} .kube_vip_network_id {{"}}"}}
-          - op: add
-            path: "/spec/template/spec/disableAPIServerFloatingIP"
-            value: true
-          - op: add
-            path: "/spec/template/spec/apiServerFixedIP"
-            valueFrom:
-              template: {{ `"{{ if .kube_vip_apiserver_public_ip }}{{.kube_vip_apiserver_public_ip}}{{else}}{{.kube_vip_apiserver_virtual_ip}}{{end}}"` }}
-        - selector:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: OpenStackMachineTemplate
-            matchResources:
-              controlPlane: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/ports"
-            valueFrom:
-              template: |
-                - network:
-                    id: {{"{{"}} .kube_vip_network_id {{"}}"}}
-                  allowedAddressPairs:
-                  - ipAddress: {{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}
-        - selector:
-            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-            kind: KubeadmControlPlaneTemplate
-            matchResources:
-              controlPlane: true
-          jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands"
-            valueFrom:
-              template: |
-                - modprobe --all ip_vs ip_vs_rr nf_conntrack
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/files"
-            valueFrom:
-              template: |
-                - content: |
-                    ip_vs
-                    ip_vs_rr
-                    nf_conntrack
-                  owner: "root:root"
-                  path: /etc/modules-load.d/kube-vip.conf
-                  permissions: "0644"
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/files/-"
-            valueFrom:
-              template: |
-                content: |
-                  # docker run --network host --rm ghcr.io/kube-vip/kube-vip:v0.7.2 manifest pod --address '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}' --controlplane --arp --leaderElection --enableLoadBalancer
-                  apiVersion: v1
-                  kind: Pod
-                  metadata:
-                    creationTimestamp: null
-                    name: kube-vip
-                    namespace: kube-system
-                  spec:
-                    containers:
-                    - args:
-                      - manager
-                      env:
-                      - name: vip_arp
-                        value: "true"
-                      - name: port
-                        value: "6443"
-                      - name: vip_cidr
-                        value: "32"
-                      - name: dns_mode
-                        value: first
-                      - name: cp_enable
-                        value: "true"
-                      - name: cp_namespace
-                        value: kube-system
-                      - name: vip_leaderelection
-                        value: "true"
-                      - name: vip_leasename
-                        value: plndr-cp-lock
-                      - name: vip_leaseduration
-                        value: "5"
-                      - name: vip_renewdeadline
-                        value: "3"
-                      - name: vip_retryperiod
-                        value: "1"
-                      - name: lb_enable
-                        value: "true"
-                      - name: lb_port
-                        value: "6443"
-                      - name: lb_fwdmethod
-                        value: local
-                      - name: address
-                        value: '{{"{{"}} .kube_vip_apiserver_virtual_ip {{"}}"}}'
-                      - name: prometheus_server
-                        value: :2112
-                      image: ghcr.io/kube-vip/kube-vip:v0.7.2
-                      imagePullPolicy: IfNotPresent # Always
-                      name: kube-vip
-                      resources: {}
-                      securityContext:
-                        capabilities:
-                          add:
-                          - NET_ADMIN
-                          - NET_RAW
-                      volumeMounts:
-                      - mountPath: /etc/kubernetes/admin.conf
-                        name: kubeconfig
-                    hostAliases:
-                    - hostnames:
-                      - kubernetes
-                      ip: 127.0.0.1
-                    hostNetwork: true
-                    volumes:
-                    - hostPath:
-                        path: /etc/kubernetes/admin.conf
-                      name: kubeconfig
-                  status: {}
-                owner: "root:root"
-                path: /etc/kubernetes/manifests/kube-vip.yaml
-                permissions: "0644"
     - name: controller_flavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
@@ -804,7 +617,7 @@ cre ate group names like oidc:engineering and oidc:infra."
               variable: oidc_config.groups_prefix
     - name: subnet
       description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
-      enabledIf: {{ `"{{ if and .node_cidr (ne .apiserver_loadbalancer \"kube-vip\")}}true{{end}}"` }}
+      enabledIf: {{ `"{{ if .node_cidr }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -812,7 +625,7 @@ cre ate group names like oidc:engineering and oidc:infra."
             matchResources:
               infrastructureCluster: true
           jsonPatches:
-          - op: replace
+          - op: add
             path: "/spec/template/spec/managedSubnets"
             valueFrom:
               template: |

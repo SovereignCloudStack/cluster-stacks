@@ -1,16 +1,12 @@
-controller_flavor: SCS-2V-4-20
-dns_nameservers:
-- 5.1.66.255
-- 185.150.99.255
+controller_flavor: SCS-2V-4-20s
 identityRef:
   cloudName: openstack
   name: openstack
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.30.6
+    name: ubuntu-capi-image-v1.30.9
   worker:
-    name: ubuntu-capi-image-v1.30.6
-node_cidr: 10.8.0.0/20
+    name: ubuntu-capi-image-v1.30.9
 openstack_loadbalancer_apiserver: false
 restrict_kubeapi: []
 worker_flavor: SCS-2V-4-20
