@@ -1,0 +1,10 @@
+apiVersion: v2
+type: application
+description: Croquette CNI
+name: CNI
+version: v1
+dependencies:
+  - alias: cilium
+    name: cilium
+    repository: https://helm.cilium.io/
+    version: 1.16.6
