@@ -28,11 +28,11 @@ openstack-cloud-controller-manager:
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
-  - key: node.cloudprovider.kubernetes.io/uninitialized
-    value: "true"
-    effect: NoSchedule
-  - key: node-role.kubernetes.io/control-plane
-    effect: NoSchedule
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
 openstack-cinder-csi:
   secret:
     enabled: true
@@ -41,17 +41,11 @@ openstack-cinder-csi:
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
-  - key: node.cloudprovider.kubernetes.io/uninitialized
-    value: "true"
-    effect: NoSchedule
-  - key: node-role.kubernetes.io/control-plane
-    effect: NoSchedule
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
   storageClass:
     delete:
       isDefault: true
-yawol-controller:
-  yawolOSSecretName: cloud-config
-  enabled: false
-cilium:
-  ipam:
-    mode: "kubernetes"
