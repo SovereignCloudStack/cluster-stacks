@@ -12,4 +12,4 @@ dependencies:
   repository: https://kubernetes.github.io/cloud-provider-openstack
   version: 2.30.2
 digest: sha256:0079134a81e34fe1a890745a8438b9e89f382f56a233623519c5d7264d85f645
-generated: "2025-03-07T23:34:47.205574881+01:00"
+generated: "2025-03-07T23:35:34.770335187+01:00"
