@@ -52,3 +52,6 @@ openstack-cinder-csi:
 yawol-controller:
   yawolOSSecretName: cloud-config
   enabled: false
+cilium:
+  ipam:
+    mode: "kubernetes"
