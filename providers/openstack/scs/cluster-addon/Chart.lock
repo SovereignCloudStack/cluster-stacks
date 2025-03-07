@@ -4,12 +4,12 @@ dependencies:
   version: 3.12.2
 - name: cilium
   repository: https://helm.cilium.io/
-  version: 1.16.3
+  version: 1.17.1
 - name: openstack-cloud-controller-manager
   repository: https://kubernetes.github.io/cloud-provider-openstack
   version: 2.30.4
 - name: openstack-cinder-csi
   repository: https://kubernetes.github.io/cloud-provider-openstack
   version: 2.30.2
-digest: sha256:d40af7d428f9b5d3eddce27f400954be2c43c9819ae104080bc3a43de6e7a96f
-generated: "2025-03-07T23:14:56.509875313+01:00"
+digest: sha256:0079134a81e34fe1a890745a8438b9e89f382f56a233623519c5d7264d85f645
+generated: "2025-03-07T23:34:47.205574881+01:00"
