@@ -85,8 +85,10 @@ def create_output_dir(version: str) -> PosixPath:
     # Copy whole tree from src dir and remove "versions.yaml" file
     shutil.copytree(SOURCE_PATH, out_dir)
     out_dir.joinpath("versions.yaml").unlink()
-    out_dir.joinpath("cluster-addon", "Chart.lock").unlink()
-    shutil.rmtree(str(out_dir.joinpath("cluster-addon", "charts")))
+    for file in out_dir.joinpath("cluster-addon").rglob("Chart.lock"):
+      file.unlink()
+    for folder in out_dir.joinpath("cluster-addon").rglob("charts"):
+      shutil.rmtree(folder)
 
     return out_dir
 
@@ -286,12 +288,13 @@ if __name__ == "__main__":
 
     for tv in target_versions:
         output_dir = create_output_dir(tv["kubernetes"])
-        update_cluster_addon(
-            output_dir.joinpath("cluster-addon", "Chart.yaml"),
+        for chart_yaml in output_dir.joinpath("cluster-addon").rglob("Chart.yaml"):
+          update_cluster_addon(
+            chart_yaml,
             args.build,
             args.build_verbose,
             **tv,
-        )
+          )
         update_csctl_conf(output_dir.joinpath("csctl.yaml"), **tv)
         update_cluster_class(output_dir.joinpath("cluster-class"), **tv)
         update_node_images(output_dir.joinpath("node-images", "config.yaml"), **tv)
