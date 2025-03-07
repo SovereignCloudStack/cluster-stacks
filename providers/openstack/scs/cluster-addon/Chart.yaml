@@ -7,20 +7,15 @@ dependencies:
   - alias: cilium
     name: cilium
     repository: https://helm.cilium.io/
-    version: 1.16.3
+    version: 1.17.1
   - alias: openstack-cloud-controller-manager
     name: openstack-cloud-controller-manager
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.28.4
+    version: 2.30.4
   - alias: openstack-cinder-csi
     name: openstack-cinder-csi
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.28.2
-  - alias: yawol-controller
-    condition: yawol-controller.enabled
-    name: yawol-controller
-    repository: https://stackitcloud.github.io/yawol
-    version: 0.25.0
-name: openstack-scs-1-29-cluster-addon
+    version: 2.30.2
+name: openstack-scs-1-30-cluster-addon
 type: application
 version: v1
