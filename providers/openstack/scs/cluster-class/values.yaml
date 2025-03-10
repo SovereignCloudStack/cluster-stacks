@@ -13,4 +13,3 @@ images:
 identityRef:
   name: openstack
   cloudName: openstack
-
