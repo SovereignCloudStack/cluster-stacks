@@ -1,22 +1,5 @@
 metrics-server:
   fullnameOverride: metrics-server
-  replicas: 1
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 0
-      maxUnavailable: 1
-
-  service:
-    labels:
-      kubernetes.io/cluster-service: "true"
-      kubernetes.io/name: "Metrics-server"
-
-  defaultArgs:
-    - --cert-dir=/tmp
-    - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
-    - --kubelet-use-node-status-port
-    - --metric-resolution=15s
 
   args:
     - --kubelet-insecure-tls
@@ -28,11 +11,11 @@ openstack-cloud-controller-manager:
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
-  - key: node.cloudprovider.kubernetes.io/uninitialized
-    value: "true"
-    effect: NoSchedule
-  - key: node-role.kubernetes.io/control-plane
-    effect: NoSchedule
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
 openstack-cinder-csi:
   secret:
     enabled: true
@@ -41,17 +24,20 @@ openstack-cinder-csi:
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
-  - key: node.cloudprovider.kubernetes.io/uninitialized
-    value: "true"
-    effect: NoSchedule
-  - key: node-role.kubernetes.io/control-plane
-    effect: NoSchedule
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      value: "true"
+      effect: NoSchedule
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
   storageClass:
     delete:
       isDefault: true
-yawol-controller:
-  yawolOSSecretName: cloud-config
-  enabled: false
 cilium:
+  tls:
+    secretsNamespace:
+      name: kube-system
+  sessionAffinity: true
+  sctp:
+    enabled: true
   ipam:
     mode: "kubernetes"
