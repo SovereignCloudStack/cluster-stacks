@@ -166,7 +166,6 @@ spec:
             octavia-ovn:
               Uses openstack's loadbalancer service (provider:ovn)
 
-              Also note this setting does not work with application credentials (only username/password)"
     - name: dns_nameservers
       required: false
       schema:
