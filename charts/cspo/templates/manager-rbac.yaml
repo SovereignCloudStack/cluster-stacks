@@ -1,0 +1,70 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cspo.fullname" . }}-manager-role
+  labels:
+  {{- include "cspo.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.clusterstack.x-k8s.io
+  resources:
+  - openstackclusterstackreleases
+  - openstacknodeimagereleases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.clusterstack.x-k8s.io
+  resources:
+  - openstackclusterstackreleases/finalizers
+  - openstacknodeimagereleases/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.clusterstack.x-k8s.io
+  resources:
+  - openstackclusterstackreleases/status
+  - openstacknodeimagereleases/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cspo.fullname" . }}-manager-rolebinding
+  labels:
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: cspo
+    app.kubernetes.io/part-of: cspo
+  {{- include "cspo.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: '{{ include "cspo.fullname" . }}-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "cspo.fullname" . }}-controller-manager'
+  namespace: '{{ .Release.Namespace }}'
