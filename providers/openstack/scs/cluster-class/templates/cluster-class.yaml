@@ -133,8 +133,7 @@ spec:
           example: "none, octavia-amphora, octavia-ovn"
           description: | 
             "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
-            To configure the loadbalancer for the workloads, see variable workload_loadbalancer.
-            You can choose from 4 options:
+            You can choose from 2 options:
 
             none:
               No loadbalancer solution will be deployed
@@ -144,28 +143,6 @@ spec:
             
             octavia-ovn:
               Uses openstack's loadbalancer service (provider:ovn)
-       
-    - name: workload_loadbalancer
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: string
-          default: "octavia-amphora"
-          example: "none, octavia-amphora, octavia-ovn"
-          description: |
-            "This setting here is to configure the loadbalancer solution for your services inside your cluster.
-            If you want to configure the loadbalancer in front of your apiserver, see variable apiserver_loadbalancer instead.
-            You can choose from 4 options:
-
-            none:
-              No loadbalancer solution will be deployed
-
-            octavia-amphora:
-              (default) Uses openstack's loadbalancer service (provider:amphora)
-            
-            octavia-ovn:
-              Uses openstack's loadbalancer service (provider:ovn)
-
     - name: dns_nameservers
       required: false
       schema:
