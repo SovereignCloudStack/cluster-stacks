@@ -1,6 +1,6 @@
 apiVersion: v2
 type: application
-description: Croquette CNI
+description: SCS CNI
 name: CNI
 version: v1
 dependencies:
