@@ -5,7 +5,7 @@
 #### Useful links
 
 - [Quick Start](providers/docker/scs/README.md)
-- [Docs](https://docs.scs.community/docs/container/)
+- [Docs](https://docs.scs.community/docs/category/cluster-stacks)
 
 ## What is Cluster Stacks?
 
