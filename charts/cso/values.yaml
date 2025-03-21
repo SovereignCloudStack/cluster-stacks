@@ -28,6 +28,18 @@ controllerManager:
   replicas: 1
   serviceAccount:
     annotations: {}
+  rbac:
+    additionalRules: []
+    # Example:
+    # additionalRules:
+    #   - apiGroups:
+    #       - "custom.api.group"
+    #     resources:
+    #       - "customresources"
+    #     verbs:
+    #       - "get"
+    #       - "list"
+    #       - "watch"
 hookServerSvc:
   ports:
     - port: 443

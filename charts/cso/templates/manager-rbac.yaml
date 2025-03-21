@@ -32,7 +32,6 @@ rules:
   - controlplane.cluster.x-k8s.io
   - infrastructure.cluster.x-k8s.io
   - infrastructure.clusterstack.x-k8s.io
-  - openstack.k-orc.cloud
   resources:
   - '*'
   verbs:
@@ -106,6 +105,14 @@ rules:
   verbs:
   - delete
   - update
+{{- range .Values.controllerManager.rbac.additionalRules }}
+- apiGroups:
+    {{ toYaml .apiGroups | nindent 2 }}
+  resources:
+    {{ toYaml .resources | nindent 2 }}
+  verbs:
+    {{ toYaml .verbs | nindent 2 }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
