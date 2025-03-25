@@ -1,0 +1,15 @@
+controllerManager:
+  rbac:
+    additionalRules:
+      - apiGroups:
+          - "openstack.k-orc.cloud"
+        resources:
+          - "images"
+        verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
