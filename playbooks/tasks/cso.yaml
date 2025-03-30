@@ -1,7 +1,7 @@
 ---
 - name: Install CSO
   vars:
-    cso_version: "0.1.0-alpha.5"
+    cso_version: "0.1.0-alpha.7"
     cso_dir: "{{ ansible_user_dir }}/cso"
     cso_wait_for_pods: 240
     install_dir: "{{ ansible_user_dir }}/.local/bin"
