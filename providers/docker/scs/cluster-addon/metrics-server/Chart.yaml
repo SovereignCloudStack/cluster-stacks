@@ -1,0 +1,10 @@
+apiVersion: v2
+type: application
+description: SCS Metrics Server
+name: yorizonpoc-metrics-server
+version: v1
+dependencies:
+  - name: "metrics-server"
+    version: "3.12.2"
+    repository: "https://kubernetes-sigs.github.io/metrics-server/"
+    alias: "metrics-server"

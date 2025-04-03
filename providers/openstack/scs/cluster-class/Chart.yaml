@@ -4,7 +4,6 @@ description: 'This chart installs and configures:
   * Openstack scs Cluster Class
 
   '
-
 name: openstack-scs-1-30-cluster-class
 type: application
 version: v1
