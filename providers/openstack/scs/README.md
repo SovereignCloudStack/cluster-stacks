@@ -72,6 +72,7 @@ spec:
   noProvider: true
   versions:
     - v0-sha.lvlvyfw
+EOF
 ```
 
 Check if ClusterClasses exist
@@ -92,6 +93,14 @@ metadata:
   labels:
     managed-secret: cloud-config
 spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - "172.16.0.0/16"
+    serviceDomain: cluster.local
+    services:
+      cidrBlocks:
+      - "10.96.0.0/12"
   topology:
     class: openstack-scs-1-32-v0-sha.lvlvyfw
     controlPlane:
@@ -102,6 +111,7 @@ spec:
         - class: default-worker
           name: md-0
           replicas: 1
+EOF
 ```
 
 ```sh
