@@ -71,7 +71,7 @@ spec:
   autoSubscribe: false
   noProvider: true
   versions:
-    - v2
+    - v3
 EOF
 ```
 
@@ -102,7 +102,7 @@ spec:
       cidrBlocks:
       - "10.96.0.0/12"
   topology:
-    class: openstack-scs-1-31-v2
+    class: openstack-scs-1-31-v3
     controlPlane:
       replicas: 1
     version: v1.30.11
