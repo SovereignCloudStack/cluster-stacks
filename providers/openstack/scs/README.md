@@ -66,7 +66,7 @@ metadata:
 spec:
   provider: openstack
   name: scs
-  kubernetesVersion: "1.30"
+  kubernetesVersion: "1.31"
   channel: stable
   autoSubscribe: false
   noProvider: true
@@ -105,7 +105,7 @@ spec:
     class: openstack-scs-1-31-v2
     controlPlane:
       replicas: 1
-    version: v1.30.11
+    version: v1.31.7
     workers:
       machineDeployments:
         - class: default-worker
