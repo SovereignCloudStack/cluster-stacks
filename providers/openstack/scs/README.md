@@ -66,12 +66,12 @@ metadata:
 spec:
   provider: openstack
   name: scs
-  kubernetesVersion: "1.31"
+  kubernetesVersion: "1.32"
   channel: stable
   autoSubscribe: false
   noProvider: true
   versions:
-    - v2
+    - v1
 EOF
 ```
 
@@ -102,10 +102,10 @@ spec:
       cidrBlocks:
       - "10.96.0.0/12"
   topology:
-    class: openstack-scs-1-31-v2
+    class: openstack-scs-1-32-v2
     controlPlane:
       replicas: 1
-    version: v1.31.7
+    version: v1.32.3
     workers:
       machineDeployments:
         - class: default-worker
