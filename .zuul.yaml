@@ -53,6 +53,41 @@
       scs_compliance:
         enabled: true
 
+## Cluster Stack Asset and Chore Jobs.
+## TODO: Adjust parent to a job that sets up credentials for registry and GH token, i.e. playbook definiton
+# - job:
+#     name: publish-cluster-stack-assets
+#     parent: base
+#     description: |
+#       Creates Cluster Stack Assets and uploads them to the configured OCI Registry.
+#       If used in a PR, Assets with a hashed version will be used. Otherwise, a
+#       new release is build.
+#     timeout: 900 # 15m
+#     pre-run: playbooks/dependencies.yaml
+#     run: playbooks/upload_assets.yaml
+
+# - job:
+#     name: publish-cluster-stack-release-assets
+#     parent: publish-cluster-stack-assets
+#     description: |
+#       Creates Cluster Stack Assets and uploads them to the configured OCI Registry.
+#       If used in a PR, Assets with a hashed version will be used. Otherwise, a
+#       new release is build.
+#     timeout: 900 # 15m
+#     pre-run: playbooks/dependencies.yaml
+#     run: playbooks/upload_assets.yaml
+#     vars:
+#       is_pr: False
+
+# - job:
+#     name: cluster-stacks-chore
+#     parent: base
+#     description: |
+#       Creates Cluster Stack manifests with updated versions and opens chore branches
+#       and PRs against the correspondend release branches.
+#     timeout: 900 # 15m
+#     pre-run: playbooks/dependencies.yaml
+#     run: playbooks/create_chore_branches.yaml
 
 - project:
     name: SovereignCloudStack/cluster-stacks
