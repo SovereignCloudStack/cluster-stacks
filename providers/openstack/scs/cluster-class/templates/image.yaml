@@ -12,7 +12,17 @@ spec:
     properties:
       hardware:
         diskBus: "scsi"
-        scsiModel: "virtio-scsi"      
+        scsiModel: "virtio-scsi"
+        vifModel: virtio
+        qemuGuestAgent: true
+        rngModel: virtio
+      architecture: "x86_64"
+      minDiskGB: 20
+      minMemoryMB: 2048
+      operatingSystem:
+        distro: "ubuntu"
+        version: "22.04"
+    # hypervisorType: kvm
     content:
       diskFormat: qcow2
       download:
