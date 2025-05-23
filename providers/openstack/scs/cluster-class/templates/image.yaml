@@ -10,8 +10,9 @@ spec:
   managementPolicy: managed
   resource:
     properties:
-      diskBus: "scsi"
-      scsiModel: "virtio-scsi"      
+      hardware:
+        diskBus: "scsi"
+        scsiModel: "virtio-scsi"      
     content:
       diskFormat: qcow2
       download:
