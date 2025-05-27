@@ -4,6 +4,6 @@
 - kubernetes: 1.31.7
   cinder_csi: 2.31.7
   occm: 2.31.3
-- kubernetes: 1.32.3
+- kubernetes: 1.32.5
   cinder_csi: 2.32.0
   occm: 2.32.0

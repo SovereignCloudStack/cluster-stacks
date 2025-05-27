@@ -3,13 +3,13 @@ controller_flavor: SCS-2V-4-20s
 worker_flavor: SCS-2V-4-20
 restrict_kubeapi: []
 # newly introduced:
-openstack_loadbalancer_apiserver: false
+# openstack_loadbalancer_apiserver: false
 # TBD, currently needed:
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.32.1
+    name: ubuntu-capi-image-v1.32.5
   worker:
-    name: ubuntu-capi-image-v1.32.1
+    name: ubuntu-capi-image-v1.32.5
 identityRef:
   name: openstack
   cloudName: openstack
