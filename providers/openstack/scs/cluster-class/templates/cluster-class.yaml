@@ -250,6 +250,24 @@ cre ate group names like oidc:engineering and oidc:infra."
           type: boolean
           example: true
           description: "ControlPlaneOmitAvailabilityZone causes availability zone to be omitted when creating control plane nodes, allowing the Nova scheduler to make a decision on which availability zone to use based on other scheduling constraints."
+    - name: additionalBlockDevices
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              sizeGiB:
+                type: integer
+                default: 20
+              type:
+                type: string
+                default: "__DEFAULT__"
+          required: ["name"]
   patches:
     - name: k8s_version
       description: "Sets the openstack node image for workers and the controlplane to the cluster-api image with the version mentioned in spec.topology.version."
@@ -610,3 +628,26 @@ cre ate group names like oidc:engineering and oidc:infra."
                   {{`{{- range .dns_nameservers }}`}}
                                   - {{`{{ . }}`}}
                   {{`{{- end }}`}}
+    - name: additionalBlockDevices
+      enabledIf: {{ `"{{ if .additionalBlockDevices }}true{{end}}"` }}
+      definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: OpenStackMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+              - default-worker
+        jsonPatches:
+        - op: add
+          path: /spec/template/spec/additionalBlockDevices
+          valueFrom:
+            template: |
+              {{`{{- range .additionalBlockDevices }}`}}
+              - name: {{`{{ .name }}`}}
+                sizeGiB: {{`{{ .sizeGiB }}`}}
+                storage:
+                  type: Volume
+                  volume:
+                    type: {{`{{ .type }}`}}
+              {{`{{- end }}`}}
