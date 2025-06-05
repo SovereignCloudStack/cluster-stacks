@@ -8,3 +8,8 @@ description: CNI
 name: openstack-scs-1-32-cluster-addon
 type: application
 version: v1
+dependencies:
+  - alias: cilium
+    name: cilium
+    repository: https://helm.cilium.io/
+    version: 1.17.4
