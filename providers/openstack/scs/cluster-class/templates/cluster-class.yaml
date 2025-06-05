@@ -2,6 +2,8 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
   name: {{ .Release.Name }}-{{ .Chart.Version }}
+  annotations:
+    configStyle: clouds-yaml
 spec:
   controlPlane:
     ref:
