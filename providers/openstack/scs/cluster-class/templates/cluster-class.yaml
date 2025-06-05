@@ -129,7 +129,7 @@ spec:
       schema:
         openAPIV3Schema:
           type: string
-          default: "octavia-amphora"
+          default: "octavia-ovn"
           example: "none, octavia-amphora, octavia-ovn"
           description: | 
             "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
@@ -139,10 +139,10 @@ spec:
               No loadbalancer solution will be deployed
 
             octavia-amphora:
-              (default) Uses openstack's loadbalancer service (provider:amphora)
+              Uses openstack's loadbalancer service (provider:amphora)
             
             octavia-ovn:
-              Uses openstack's loadbalancer service (provider:ovn)
+              (default) Uses openstack's loadbalancer service (provider:ovn)
     - name: dns_nameservers
       required: false
       schema:
