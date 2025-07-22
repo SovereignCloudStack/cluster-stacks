@@ -33,7 +33,7 @@ spec:
             kind: OpenStackMachineTemplate
             name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
   variables:
-    - name: external_id
+    - name: networkExternalID
       required: false
       schema:
         openAPIV3Schema:
@@ -41,7 +41,7 @@ spec:
           example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
           format: "uuid4"
           description: "ExternalNetworkID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-    - name: controller_flavor
+    - name: controlPlaneFlavor
       required: false
       schema:
         openAPIV3Schema:
@@ -49,7 +49,7 @@ spec:
           default: "SCS-2V-4-20s"
           example: "SCS-2V-4-20s"
           description: "OpenStack instance flavor for control-plane nodes."
-    - name: worker_flavor
+    - name: workerFlavor
       required: false
       schema:
         openAPIV3Schema:
@@ -227,7 +227,7 @@ Iss uer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
               description: "Prefix prepended to group claims to prevent clashes
 wit h existing names (such as system: groups). For example, the value oidc: will
 cre ate group names like oidc:engineering and oidc:infra."
-    - name: network_mtu
+    - name: networkMTU
       required: false
       schema:
         openAPIV3Schema:
@@ -299,9 +299,9 @@ cre ate group names like oidc:engineering and oidc:infra."
           - op: add
             path: "/spec/template/spec/apiServerLoadBalancer/provider"
             value: "ovn"
-    - name: controller_flavor
+    - name: controlPlaneFlavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
-      enabledIf: {{ `'{{ ne .controller_flavor "" }}'` }}
+      enabledIf: {{ `'{{ ne .controlPlaneFlavor "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -312,10 +312,10 @@ cre ate group names like oidc:engineering and oidc:infra."
           - op: replace
             path: "/spec/template/spec/flavor"
             valueFrom:
-              variable: controller_flavor
-    - name: worker_flavor
+              variable: controlPlaneFlavor
+    - name: workerFlavor
       description: "Sets the openstack instance flavor for the worker nodes."
-      enabledIf: {{ `'{{ ne .worker_flavor "" }}'` }}
+      enabledIf: {{ `'{{ ne .workerFlavor "" }}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -329,7 +329,7 @@ cre ate group names like oidc:engineering and oidc:infra."
           - op: replace
             path: "/spec/template/spec/flavor"
             valueFrom:
-              variable: worker_flavor
+              variable: workerFlavor
     - name: controller_root_disk
       description: "Sets the root disk size in GiB for control-plane nodes."
       enabledIf: {{ `"{{ if .controller_root_disk }}true{{end}}"` }}
@@ -363,9 +363,9 @@ cre ate group names like oidc:engineering and oidc:infra."
             valueFrom:
               template: |
                 sizeGiB: {{"{{"}} .worker_root_disk {{"}}"}}
-    - name: external_id
+    - name: networkExternalID
       description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
-      enabledIf: {{ `"{{ if .external_id }}true{{end}}"` }}
+      enabledIf: {{ `"{{ if .networkExternalID }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -379,10 +379,10 @@ cre ate group names like oidc:engineering and oidc:infra."
           - op: add
             path: "/spec/template/spec/externalNetwork/id"
             valueFrom:
-              variable: external_id
-    - name: network_mtu
-      description: "Sets the network MTU when variable network_mtu exist in cluster resource."
-      enabledIf: {{ `"{{ if .network_mtu }}true{{end}}"` }}
+              variable: networkExternalID
+    - name: networkMTU
+      description: "Sets the network MTU when variable networkMTU exist in cluster resource."
+      enabledIf: {{ `"{{ if .networkMTU }}true{{end}}"` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -393,7 +393,7 @@ cre ate group names like oidc:engineering and oidc:infra."
           - op: add
             path: "/spec/template/spec/networkMTU"
             valueFrom:
-              variable: network_mtu
+              variable: networkMTU
     - name: controlPlaneAvailabilityZones
       description: "Sets the availability zones which control plane machines may be deployed to."
       enabledIf: {{ `"{{ if .controlPlaneAvailabilityZones }}true{{end}}"` }}
