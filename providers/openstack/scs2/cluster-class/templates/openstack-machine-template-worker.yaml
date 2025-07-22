@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackMachineTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+spec:
+  template:
+    spec:
+      flavor: overridden-by-patch
+      identityRef:
+        cloudName: {{ .Values.identityRef.cloudName }}
+        name: {{ .Values.identityRef.name }}
+      image:
+        filter:
+          name: {{ .Values.images.worker.name }}
