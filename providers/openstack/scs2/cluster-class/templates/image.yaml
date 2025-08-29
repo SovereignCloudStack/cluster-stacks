@@ -26,7 +26,7 @@ spec:
     content:
       diskFormat: qcow2
       download:
-        url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.7.qcow2
+        url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.33/ubuntu-2204-kube-v1.33.4.qcow2
         hash:
           algorithm: sha256
-          value: 1d261cd043f1c16a676be9079984c912df82387be4c6766b122a966e266a080c
+          value: 99ce3a9c1e0d4c97bd54741f38b56750ff1c5fe2e3939d5996cc6c961267215c
