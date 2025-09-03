@@ -1,4 +1,3 @@
-{{- if eq .Values.control_plane.provider "kubeadm" }}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackMachineTemplate
@@ -11,4 +10,3 @@ spec:
       image:
         imageRef:
           name: overridden-by-patch
-{{- end }}
