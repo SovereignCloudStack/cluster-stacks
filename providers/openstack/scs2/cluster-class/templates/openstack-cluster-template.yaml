@@ -1,3 +1,4 @@
+---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: OpenStackClusterTemplate
 metadata:
@@ -6,13 +7,10 @@ spec:
   template:
     spec:
       identityRef:
-        cloudName: {{ .Values.identityRef.cloudName }}
-        name: {{ .Values.identityRef.name }}
+        cloudName: overridden-by-patch
+        name: overridden-by-patch
       apiServerLoadBalancer:
-        enabled: {{ .Values.openstack_loadbalancer_apiserver }}
-{{- if .Values.restrict_kubeapi }}
-        allowedCIDRs: {{ .Values.restrict_kubeapi }}
-{{- end }}
+        enabled: false
       managedSecurityGroups:
         allNodesSecurityGroupRules:
         - remoteManagedGroups:

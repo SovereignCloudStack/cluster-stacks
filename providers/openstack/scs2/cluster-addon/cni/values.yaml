@@ -7,3 +7,5 @@ cilium:
     enabled: true
   ipam:
     mode: "kubernetes"
+  gatewayAPI:
+    enabled: true
