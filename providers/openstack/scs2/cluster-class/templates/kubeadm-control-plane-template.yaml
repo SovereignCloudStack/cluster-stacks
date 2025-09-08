@@ -10,6 +10,7 @@ spec:
           apiServer:
           controllerManager:
             extraArgs:
+              cloud-provider: external
               bind-address: 0.0.0.0
               secure-port: "10257"
           scheduler:
