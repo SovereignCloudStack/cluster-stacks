@@ -9,3 +9,5 @@ cilium:
     mode: "kubernetes"
   gatewayAPI:
     enabled: true
+    secretsNamespace:
+      name: kube-system
