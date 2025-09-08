@@ -8,11 +8,8 @@ spec:
       kubeadmConfigSpec:
         clusterConfiguration:
           apiServer:
-            extraArgs:
-              cloud-provider: external
           controllerManager:
             extraArgs:
-              cloud-provider: external
               bind-address: 0.0.0.0
               secure-port: "10257"
           scheduler:
