@@ -295,17 +295,19 @@ spec:
           default: "octavia-ovn"
           example: "none, octavia-amphora, octavia-ovn"
           description: |
-            In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver.
+            Cluster-API by default places a LoadBalancer in front of the kubernetes API server.
+            (There are also LBs that the CCM creates for a service type LoadBalancer which are configured independently.)
+            This setting here is to configure the LoadBalancer that is placed in front of the apiServer.
             You can choose from 3 options:
 
             none:
-              No loadbalancer solution will be deployed
+              No LoadBalancer solution will be deployed
 
             octavia-amphora:
-              Uses openstack's loadbalancer service (provider:amphora)
+              Uses OpenStack's LoadBalancer service Octavia (provider:amphora)
 
             octavia-ovn:
-              (default) Uses openstack's loadbalancer service (provider:ovn)
+              (default) Uses OpenStack's LoadBalancer service Octavia (provider:ovn)
     - name: apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs
       required: false
       schema:
