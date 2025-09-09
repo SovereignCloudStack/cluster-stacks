@@ -28,6 +28,9 @@ openstack-cinder-csi:
         - name: cloud-conf
           readOnly: true
           mountPath: /etc/kubernetes
+        - name: cloud-conf
+          readOnly: true
+          mountPath: /etc/config
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
