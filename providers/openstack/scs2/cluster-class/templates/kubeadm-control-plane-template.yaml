@@ -7,7 +7,7 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
+          apiServer: {}
           controllerManager:
             extraArgs:
               cloud-provider: external

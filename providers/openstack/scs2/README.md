@@ -95,7 +95,7 @@ spec:
   autoSubscribe: false
   noProvider: true
   versions:
-    - v0-sha.mio2x7r
+    - v0-sha.ksgrnrp
 EOF
 ```
 
@@ -133,7 +133,7 @@ spec:
       value: false
     - name: controlPlaneFlavor
       value: SCS-2V-4-20s
-    class: openstack-scs2-1-33-v0-sha.mio2x7r
+    class: openstack-scs2-1-33-v0-sha.ksgrnrp
     controlPlane:
       replicas: 1
     version: v1.33.4

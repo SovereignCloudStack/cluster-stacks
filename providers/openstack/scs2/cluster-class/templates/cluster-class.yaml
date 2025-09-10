@@ -43,7 +43,7 @@ spec:
             The base name of the OpenStack image used for provisioning servers.
             If `imageIsOrc` is enabled, this name refers to an ORC image resource.
             If `imageIsOrc` is disabled, the name is used to filter images available in the OpenStack project. In this case, the specified image must already exist within the project.
-            If `imageAddVersion` is enabled, the Kubernetes version will be appended to form the complete image name (e.g., imageName-v1.32.5
+            If `imageAddVersion` is enabled, the Kubernetes version will be appended to form the complete image name (e.g., imageName-v1.32.5)
           default: "ubuntu-capi-image"
     - name: imageIsOrc
       required: false
@@ -79,21 +79,20 @@ spec:
           type: string
           example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
           format: "uuid4"
-          description: "NetworkExternalID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+          description: "networkExternalID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs in case there are several external networks."
     - name: networkMTU
       required: false
       schema:
         openAPIV3Schema:
           type: integer
           example: 1500
-          description: "NetworkMTU sets the maximum transmission unit (MTU) value to address fragmentation for the private network ID."
+          description: "networkMTU sets the maximum transmission unit (MTU) value to address fragmentation for the private network ID."
     - name: dnsNameservers
       required: false
       schema:
         openAPIV3Schema:
           type: array
-          description: |
-            "dnsNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet while the access through DNS is required."
+          description: "dnsNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet which requires access to DNS."
           default: ["9.9.9.9", "149.112.112.112"]
           example: ["9.9.9.9", "149.112.112.112"]
           items:
@@ -106,8 +105,11 @@ spec:
           format: "cidr"
           default: "10.8.0.0/20"
           example: "10.8.0.0/20"
-          description: |
-            "NodeCIDR is the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with nodeCIDR, and a router connected to this subnet. If you leave this empty, no network will be created."
+          description: |-
+            nodeCIDR is the OpenStack Subnet to be created.
+            Cluster actuator will create a network, a subnet with nodeCIDR,
+             and a router connected to this subnet.
+            If you leave this empty, no network will be created.
     # Control plane
     - name: controlPlaneFlavor
       required: false
@@ -116,7 +118,9 @@ spec:
           type: string
           default: "SCS-2V-4"
           example: "SCS-2V-4"
-          description: "OpenStack instance flavor for control plane nodes."
+          description: |-
+            OpenStack instance flavor for control plane nodes.
+            (Default: SCS-2V-4, replace by SCS-2V-4-20s or specify a controlPlaneRootDisk.)
     - name: controlPlaneRootDisk
       required: false
       schema:
@@ -124,7 +128,10 @@ spec:
           type: integer
           minimum: 1
           example: 25
-          description: "Root disk size in GiB for control-plane nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should only be used for the diskless flavors."
+          description: |-
+            Root disk size in GiB for control-plane nodes.
+            OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
+            Should only be used for the diskless flavors.
     - name: controlPlaneServerGroupID
       required: false
       schema:
@@ -132,14 +139,14 @@ spec:
           type: string
           default: ""
           example: "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"
-          description: "The server group to assign the control plane nodes to."
+          description: "The server group to assign the control plane nodes to (can be used for anti-affinity)."
     - name: controlPlaneAvailabilityZones
       required: false
       schema:
         openAPIV3Schema:
           type: array
           example: ["nova"]
-          description: "ControlPlaneAvailabilityZones is the set of availability zones which control plane machines may be deployed to."
+          description: "controlPlaneAvailabilityZones is the set of availability zones which control plane machines may be deployed to."
           items:
             type: string
     - name: controlPlaneOmitAvailabilityZone
@@ -148,7 +155,9 @@ spec:
         openAPIV3Schema:
           type: boolean
           example: true
-          description: "ControlPlaneOmitAvailabilityZone causes availability zone to be omitted when creating control plane nodes, allowing the Nova scheduler to make a decision on which availability zone to use based on other scheduling constraints."
+          description: |-
+            controlPlaneOmitAvailabilityZone causes availability zone to be omitted when creating control plane nodes,
+            allowing the Nova scheduler to make a decision on which availability zone to use based on other scheduling constraints.
     # Workers
     - name: workerFlavor
       required: false
@@ -157,7 +166,7 @@ spec:
           type: string
           default: "SCS-4V-8"
           example: "SCS-4V-8"
-          description: "OpenStack instance flavor for worker nodes."
+          description: "OpenStack instance flavor for worker nodes (default: SCS-4V-8, which requires workerRootDisk)."
     - name: workerRootDisk
       required: false
       schema:
@@ -165,7 +174,10 @@ spec:
           type: integer
           minimum: 1
           example: 25
-          description: "Root disk size in GiB for worker nodes. OpenStack volume will be created and used instead of an ephemeral disk defined in flavor. Should be used for the diskless flavors."
+          description: |-
+            Root disk size in GiB for worker nodes.
+            OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
+            Should be used for the diskless flavors.
     - name: workerServerGroupID
       required: false
       schema:
@@ -200,7 +212,7 @@ spec:
           type: string
           default: ""
           example: "capi-keypair"
-          description: "The ssh key name to inject in the nodes."
+          description: "The ssh key name to inject in the nodes (for debugging)."
     - name: securityGroups
       required: false
       schema:
@@ -208,7 +220,9 @@ spec:
           type: array
           default: []
           example: ["security-group-1"]
-          description: "The names of the security groups to assign to worker and control plane nodes"
+          description: |-
+            The names of extra security groups to assign to worker and control plane nodes.
+            Will be ignored if `securityGroupIDs` is used.
           items:
             type: string
     - name: securityGroupIDs
@@ -219,7 +233,7 @@ spec:
           type: array
           default: []
           example: ["9ae2f488-30a3-4629-bd51-07acb8eb4278"]
-          description: "The UUIDs of the security groups to assign to worker and control plane nodes"
+          description: "The UUIDs of extra security groups to assign to worker and control plane nodes"
           items:
             type: string
     - name: workerSecurityGroups
@@ -229,7 +243,9 @@ spec:
           type: array
           default: []
           example: ["security-group-1"]
-          description: "The names of the security groups to assign to the worker nodes. Will be ignored if `workerSecurityGroupIDs` is used."
+          description: |-
+            The names of extra security groups to assign to the worker nodes.
+            Will be ignored if `workerSecurityGroupIDs` is used.
           items:
             type: string
     - name: workerSecurityGroupIDs
@@ -240,7 +256,7 @@ spec:
           type: array
           default: []
           example: ["9ae2f488-30a3-4629-bd51-07acb8eb4278"]
-          description: "The UUIDs of the security groups to assign to the worker nodes"
+          description: "The UUIDs of extra security groups to assign to the worker nodes"
           items:
             type: string
     - name: identityRef
@@ -254,7 +270,7 @@ spec:
               type: string
               example: "openstack"
               default: "openstack"
-              description: "The name of the secret that caries the OpenStack clouds.yaml"
+              description: "The name of the secret that carries the OpenStack clouds.yaml"
             cloudName:
               type: string
               example: "openstack"
@@ -279,27 +295,30 @@ spec:
           default: "octavia-ovn"
           example: "none, octavia-amphora, octavia-ovn"
           description: |
-            "In this cluster-stack we have two kind of loadbalancers. Each of them has its own configuration variable. This setting here is to configure the loadbalancer that is placed in front of the apiserver."
+            Cluster-API by default places a LoadBalancer in front of the kubernetes API server.
+            (There are also LBs that the CCM creates for a service type LoadBalancer which are configured independently.)
+            This setting here is to configure the LoadBalancer that is placed in front of the apiServer.
             You can choose from 3 options:
 
             none:
-              No loadbalancer solution will be deployed
+              No LoadBalancer solution will be deployed
 
             octavia-amphora:
-              (default) Uses openstack's loadbalancer service (provider:amphora)
+              Uses OpenStack's LoadBalancer service Octavia (provider:amphora)
 
             octavia-ovn:
-              Uses openstack's loadbalancer service (provider:ovn)
+              (default) Uses OpenStack's LoadBalancer service Octavia (provider:ovn)
     - name: apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs
       required: false
       schema:
         openAPIV3Schema:
           type: array
           example: ["192.168.10.0/24"]
-          description: "apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs restrict access to the Kubernetes API server on a network level.
-Ensure, that at least the outgoing IP of your Management Cluster is added to the list of allowed CIDRs.
-Otherwise CAPO can’t reconcile the target Cluster correctly.
-This requires amphora as load balancer provider in version >= v2.12."
+          description: |-
+            apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs restrict access to the Kubernetes API server on a network level.
+            Ensure that at least the outgoing IP of your Management Cluster is added to the list of allowed CIDRs.
+            Otherwise CAPO can’t reconcile the target Cluster correctly.
+            This requires amphora as load balancer provider in version >= v2.12.
           items:
             type: string
     - name: oidcConfig
@@ -315,42 +334,45 @@ This requires amphora as load balancer provider in version >= v2.12."
             issuerURL:
               type: string
               example: "https://dex.k8s.scs.community"
-              description: "URL of the provider that allows the API server to
-dis cover public signing keys. Only URLs that use the https:// scheme are
-acc epted. This is typically the provider's discovery URL, changed to have an
-emp ty path"
+              description: >-
+                URL of the provider that allows the API server to
+                discover public signing keys. Only URLs that use the https:// scheme are
+                accepted. This is typically the provider's discovery URL, changed to have an
+                empty path.
             usernameClaim:
               type: string
               example: "preferred_username"
               default: "preferred_username"
-              description: "JWT claim to use as the user name. By default sub,
-whi ch is expected to be a unique identifier of the end user. Admins can choose
-oth er claims, such as email or name, depending on their provider. However,
-cla ims other than email will be prefixed with the issuer URL to prevent naming
-cla shes with other plugins."
+              description: >-
+                JWT claim to use as the user name. By default sub,
+                which is expected to be a unique identifier of the end user. Admins can choose
+                other claims, such as email or name, depending on their provider. However,
+                claims other than email will be prefixed with the issuer URL to prevent naming
+                clashes with other plugins.
             groupsClaim:
               type: string
               example: "groups"
               default: "groups"
-              description: "JWT claim to use as the user's group. If the claim
-is  present it must be an array of strings."
+              description: "JWT claim to use as the user's group. If the claim is present it must be an array of strings."
             usernamePrefix:
               type: string
               example: "oidc:"
               default: "oidc:"
-              description: "Prefix prepended to username claims to prevent
-cla shes with existing names (such as system: users). For example, the value
-oid c: will create usernames like oidc:jane.doe. If this flag isn't provided and
---o idc-username-claim is a value other than email the prefix defaults to (
-Iss uer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
-- c an be used to disable all prefixing."
+              description: >-
+                Prefix prepended to username claims to prevent
+                clashes with existing names (such as system: users). For example, the value
+                oidc: will create usernames like oidc:jane.doe. If this flag isn't provided and
+                --oidc-username-claim is a value other than email the prefix defaults to (
+                Issuer URL )# where ( Issuer URL ) is the value of --oidc-issuer-url. The value
+                - can be used to disable all prefixing.
             groupsPrefix:
               type: string
               example: "oidc:"
               default: "oidc:"
-              description: "Prefix prepended to group claims to prevent clashes
-wit h existing names (such as system: groups). For example, the value oidc: will
-cre ate group names like oidc:engineering and oidc:infra."
+              description: >-
+                Prefix prepended to group claims to prevent clashes
+                with existing names (such as system: groups). For example, the value oidc: will
+                create group names like oidc:engineering and oidc:infra.
   #
   # Patches
   #
@@ -477,7 +499,10 @@ cre ate group names like oidc:engineering and oidc:infra."
               valueFrom:
                 variable: identityRef
     - name: nodeCIDRSubnet
-      description: "Sets the NodeCIDR for the OpenStack Subnet to be created. Cluster actuator will create a network, a subnet with NodeCIDR, and a router connected to this subnet."
+      description: |-
+        Sets the NodeCIDR for the OpenStack Subnet to be created.
+        Cluster actuator will create a network, a subnet with NodeCIDR,
+        and a router connected to this subnet.
       enabledIf: {{ `'{{ if .nodeCIDR }}true{{end}}'` }}
       definitions:
         - selector:
