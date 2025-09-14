@@ -54,7 +54,7 @@ spec:
             Indicates whether the image name refers to an ORC image resource.
             If set to true (default), the `imageName` is interpreted as a reference to an ORC image.
             If set to false, the `imageName` is used to filter images in the OpenStack project instead.
-          default: true
+          default: false
     - name: imageAddVersion
       required: false
       schema:
@@ -128,6 +128,7 @@ spec:
           type: integer
           minimum: 1
           example: 25
+          default: 50
           description: |-
             Root disk size in GiB for control-plane nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
@@ -174,6 +175,7 @@ spec:
           type: integer
           minimum: 1
           example: 25
+          default: 50
           description: |-
             Root disk size in GiB for worker nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
