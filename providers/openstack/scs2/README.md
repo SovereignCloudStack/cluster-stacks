@@ -18,8 +18,6 @@ kubectl -n capo-system rollout status deployment
 
 ```
 
-values.yaml
-
 ```
 # Install CSO and CSPO
 cat <<EOF | helm upgrade -i cso \
@@ -30,6 +28,13 @@ oci://registry.scs.community/cluster-stacks/cso \
 clusterStackVariables:
   ociRepository: registry.scs.community/kaas/cluster-stacks
 controllerManager:
+  manager:
+    extraEnv:
+    - name: HELM_CACHE_HOME
+      value: /tmp/downloads/cluster-stacks/.helm/cache
+    image:
+      repository: ghcr.io/sovereigncloudstack/cso-staging
+      tag: sha-5b1840a
   rbac:
     additionalRules:
       - apiGroups:
@@ -46,20 +51,25 @@ controllerManager:
           - watch
 EOF
 ```
+
 ```sh
-kubectl create namespace cluster
+export CLUSTER_NAMESPACE=cluster
+export CLUSTER_NAME=my-cluster
+export CLUSTERSTACK_NAMESPACE=cluster
+export CLUSTERSTACK_VERSION=v0-sha.ksgrnrp
+export OS_CLIENT_CONFIG_FILE=${PWD}/clouds.yaml
+kubectl create namespace $CLUSTER_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ```sh
 # Create secret for CAPO
-export OS_CLIENT_CONFIG_FILE=<path to clouds.yaml>
-kubectl create secret -n cluster generic openstack --from-file=clouds.yaml=$OS_CLIENT_CONFIG_FILE
+kubectl create secret -n $CLUSTER_NAMESPACE generic openstack --from-file=clouds.yaml=$OS_CLIENT_CONFIG_FILE
 
 # Prepare the Secret as it will be deployed in the Workload Cluster
 kubectl create secret -n kube-system generic clouds-yaml --from-file=clouds.yaml=$OS_CLIENT_CONFIG_FILE --dry-run=client -oyaml > clouds-yaml-secret
 
 # Add the Secret to the ClusterResourceSet Secret in the Management Cluster
-kubectl create -n cluster secret generic clouds-yaml --from-file=clouds-yaml-secret --type=addons.cluster.x-k8s.io/resource-set
+kubectl create -n $CLUSTER_NAMESPACE secret generic clouds-yaml --from-file=clouds-yaml-secret --type=addons.cluster.x-k8s.io/resource-set
 ```
 
 ```yaml
@@ -68,7 +78,7 @@ apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
 metadata:
   name: clouds-yaml
-  namespace: cluster
+  namespace: $CLUSTER_NAMESPACE
 spec:
   strategy: "Reconcile"
   clusterSelector:
@@ -81,12 +91,13 @@ EOF
 ```
 
 ```sh
+# Apply ClusterStack resource
 cat <<EOF | kubectl apply -f -
 apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
 metadata:
   name: openstack
-  namespace: cluster
+  namespace: $CLUSTERSTACK_NAMESPACE
 spec:
   provider: openstack
   name: scs2
@@ -95,25 +106,19 @@ spec:
   autoSubscribe: false
   noProvider: true
   versions:
-    - v0-sha.ksgrnrp
+    - $CLUSTERSTACK_VERSION
 EOF
 ```
 
-Check if ClusterClasses exist
-
 ```sh
-kubectl get clusterclass -n cluster
-```
-
-cluster.yaml
-
-```sh
+# Apply Cluster resource
 cat <<EOF | kubectl apply -f -
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: my-cluster
-  namespace: cluster
+  namespace: $CLUSTER_NAMESPACE
+
   labels:
     managed-secret: clouds-yaml
 spec:
@@ -127,13 +132,8 @@ spec:
       - "10.96.0.0/12"
   topology:
     variables:
-    - name: apiServerLoadBalancer
-      value: octavia-ovn
-    - name: imageIsOrc
-      value: false
-    - name: controlPlaneFlavor
-      value: SCS-2V-4-20s
-    class: openstack-scs2-1-33-v0-sha.ksgrnrp
+    class: openstack-scs2-1-33-$CLUSTERSTACK_VERSION
+    classNamespace: $CLUSTERSTACK_NAMESPACE
     controlPlane:
       replicas: 1
     version: v1.33.4
@@ -146,6 +146,6 @@ EOF
 ```
 
 ```sh
-clusterctl get kubeconfig -n cluster openstack-testcluster > /tmp/kubeconfig
+clusterctl get kubeconfig -n $CLUSTER_NAMESPACE openstack-testcluster > /tmp/kubeconfig
 kubectl get nodes --kubeconfig /tmp/kubeconfig
 ```
