@@ -1,6 +1,0 @@
-dependencies:
-- name: openstack-cinder-csi
-  repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.33.1
-digest: sha256:58367e397af4040813dc09b12f187c2492d2c799f79f2ae70a4f312f053465b7
-generated: "2025-09-03T22:20:38.976011859+02:00"

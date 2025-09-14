@@ -1,7 +1,8 @@
 cilium:
+  namespaceOverride: kube-system
   tls:
     secretsNamespace:
-      name: kube-system
+      name: "kube-system"
   sessionAffinity: true
   sctp:
     enabled: true
@@ -10,4 +11,4 @@ cilium:
   gatewayAPI:
     enabled: true
     secretsNamespace:
-      name: kube-system
+      name: "kube-system"
