@@ -52,8 +52,12 @@ kubectl create namespace cluster
 ```
 
 ```
-# Add secret using csp-helper chart
-helm upgrade -i openstack-secrets -n cluster --create-namespace https://github.com/SovereignCloudStack/openstack-csp-helper/releases/latest/download/openstack-csp-helper.tgz -f <PATH TO CLOUDS YAML>
+# Prepare the Secret as it will be deployed in the Workload Cluster
+kubectl create secret -n kube-system generic clouds-yaml --from-file=<PATH TO clouds.yaml> --dry-run=client -oyaml > clouds-yaml-secret
+
+# Add the Secret to the ClusterResourceSet Secret in the Management Cluster
+kubectl create -n cluster secret generic clouds-yaml --from-file=clouds-yaml-secret --type=addons.cluster.x-k8s.io/resource-set
+
 ```
 
 ```sh

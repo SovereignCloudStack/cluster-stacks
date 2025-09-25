@@ -1,8 +1,33 @@
 openstack-cinder-csi:
   secret:
     enabled: true
-    name: cloud-config
-    create: false
+    name: csi-cloud-config
+    create: true
+    filename: cloud.conf
+    data:
+      cloud.conf: |-
+        [Global]
+        use-clouds = "true"
+        clouds-file = /etc/openstack/clouds.yaml
+  storageClass:
+    delete:
+      isDefault: true
+  csi:
+    plugin:
+      volumes:
+        - name: clouds-yaml
+          secret:
+            secretName: clouds-yaml
+        - name: cloud-conf
+          secret:
+            secretName: csi-cloud-config
+      volumeMounts:
+        - name: clouds-yaml
+          readOnly: true
+          mountPath: /etc/openstack
+        - name: cloud-conf
+          readOnly: true
+          mountPath: /etc/kubernetes
   nodeSelector:
     node-role.kubernetes.io/control-plane: ""
   tolerations:
@@ -11,6 +36,3 @@ openstack-cinder-csi:
       effect: NoSchedule
     - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
-  storageClass:
-    delete:
-      isDefault: true
