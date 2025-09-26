@@ -1,6 +1,6 @@
 dependencies:
 - name: openstack-cloud-controller-manager
   repository: https://kubernetes.github.io/cloud-provider-openstack
-  version: 2.31.1
-digest: sha256:37581a55204e3d55a12413fec097c8f8ab2fa6e3c43f0c6b2a13ad5f94e366ab
-generated: "2025-01-31T08:56:58.099398117+01:00"
+  version: 2.32.0
+digest: sha256:251e0efadca5de3ef39707c196a64a5d5292427faf4163ce8295d416d6e8c355
+generated: "2025-05-28T21:50:59.574735035+02:00"
