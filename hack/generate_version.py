@@ -19,6 +19,7 @@ import sys
 from pathlib import Path, PosixPath
 
 import yaml
+import requests
 
 BASE_PATH = Path(__file__).parent.parent
 SOURCE_PATH = BASE_PATH.joinpath("providers", "openstack", "scs")
@@ -238,12 +239,18 @@ def update_node_images(target: PosixPath, **kwargs):
 
     # TODO: can this magic URL be 'removed'?
     # pylint: disable=locally-disabled, line-too-long
-    url = f'https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v{kwargs["kubernetes"][0:4]}/ubuntu-2204-kube-v{kwargs["kubernetes"]}.qcow2'
-    content["openStackNodeImages"][0]["url"] = url
+    url = f"https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v{kwargs['kubernetes'][0:4]}/ubuntu-2204-kube-v{kwargs['kubernetes']}.qcow2"
+    content["spec"]["resource"]["content"]["download"]["url"] = url
 
-    content["openStackNodeImages"][0]["createOpts"][
-        "name"
-    ] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
+    checksum_url = f"{url}.CHECKSUM"
+    response = requests.get(checksum_url, timeout=30)
+    response.raise_for_status()
+
+    checksum_line = response.text.strip()
+    checksum = checksum_line.split()[0]
+
+    content["spec"]["resource"]["content"]["download"]["hash"]["value"] = checksum
+    logger.info("Updated checksum: %s", checksum)
 
     writefile(target, content)
 
@@ -297,4 +304,6 @@ if __name__ == "__main__":
           )
         update_csctl_conf(output_dir.joinpath("csctl.yaml"), **tv)
         update_cluster_class(output_dir.joinpath("cluster-class"), **tv)
-        update_node_images(output_dir.joinpath("node-images", "config.yaml"), **tv)
+        update_node_images(
+            output_dir.joinpath("cluster-class", "templates", "image.yaml"), **tv
+        )
