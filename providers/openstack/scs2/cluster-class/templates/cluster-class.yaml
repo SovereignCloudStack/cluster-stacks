@@ -117,7 +117,7 @@ spec:
         openAPIV3Schema:
           type: string
           default: "SCS-2V-4"
-          example: "SCS-2V-4"
+          example: "SCS-2V-4-20s"
           description: |-
             OpenStack instance flavor for control plane nodes.
             (Default: SCS-2V-4, replace by SCS-2V-4-20s or specify a controlPlaneRootDisk.)
@@ -126,13 +126,13 @@ spec:
       schema:
         openAPIV3Schema:
           type: integer
-          minimum: 1
+          minimum: 0
           example: 25
           default: 50
           description: |-
             Root disk size in GiB for control-plane nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
-            Should only be used for the diskless flavors.
+            Should only be used for the diskless flavors (>= 20), otherwise set to 0.
     - name: controlPlaneServerGroupID
       required: false
       schema:
@@ -173,13 +173,13 @@ spec:
       schema:
         openAPIV3Schema:
           type: integer
-          minimum: 1
+          minimum: 0
           example: 25
           default: 50
           description: |-
             Root disk size in GiB for worker nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
-            Should be used for the diskless flavors.
+            Should be used for the diskless flavors (>= 20), otherwise set to 0.
     - name: workerServerGroupID
       required: false
       schema:
