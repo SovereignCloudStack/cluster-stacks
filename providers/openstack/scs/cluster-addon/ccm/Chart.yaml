@@ -1,10 +1,10 @@
 apiVersion: v2
-type: application
-description: CCM
-name: CCM
-version: v1
 dependencies:
-  - alias: openstack-cloud-controller-manager
-    name: openstack-cloud-controller-manager
-    repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.31.1
+- alias: openstack-cloud-controller-manager
+  name: openstack-cloud-controller-manager
+  repository: https://kubernetes.github.io/cloud-provider-openstack
+  version: 2.32.0
+description: CCM
+name: openstack-scs-1-32-cluster-addon
+type: application
+version: v1

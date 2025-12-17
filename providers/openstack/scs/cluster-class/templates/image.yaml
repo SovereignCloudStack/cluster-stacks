@@ -1,32 +1,30 @@
----
 apiVersion: openstack.k-orc.cloud/v1alpha1
 kind: Image
 metadata:
-  name: "{{ .Values.images.worker.name }}"
+  name: '{{ .Values.images.worker.name }}'
 spec:
   cloudCredentialsRef:
-    cloudName: "{{ .Values.identityRef.cloudName }}"
-    secretName: "{{ .Values.identityRef.name }}"
+    cloudName: '{{ .Values.identityRef.cloudName }}'
+    secretName: '{{ .Values.identityRef.name }}'
   managementPolicy: managed
   resource:
+    content:
+      diskFormat: qcow2
+      download:
+        hash:
+          algorithm: sha256
+          value: 8bfad5cb331480a7530952d8d6ff41155c28b2941f8be7a3f0318ebd1569cf83
+        url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.5.qcow2
     properties:
+      architecture: x86_64
       hardware:
         diskBus: scsi
-        scsiModel: virtio-scsi
-        vifModel: virtio
         qemuGuestAgent: true
         rngModel: virtio
-      architecture: x86_64
+        scsiModel: virtio-scsi
+        vifModel: virtio
       minDiskGB: 20
       minMemoryMB: 2048
       operatingSystem:
         distro: ubuntu
-        version: "22.04"
-    # hypervisorType: kvm # kvm not officially supported, could use qemu
-    content:
-      diskFormat: qcow2
-      download:
-        url: https://swift.services.a.regiocloud.tech/swift/v1/AUTH_b182637428444b9aa302bb8d5a5a418c/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.1.qcow2
-        hash:
-          algorithm: sha256
-          value: 1d261cd043f1c16a676be9079984c912df82387be4c6766b122a966e266a080c
+        version: '22.04'
