@@ -9,6 +9,7 @@ spec:
     secretName: "openstack"
   managementPolicy: managed
   resource:
+    visibility: private
     properties:
       hardware:
         diskBus: scsi
