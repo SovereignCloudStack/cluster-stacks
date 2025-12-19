@@ -2,13 +2,13 @@
 
 ## Getting started
 
-At first you need a Ready installed Rancher Management Dashboard (without any existing Downstreamclusters installed via custom-cluster. The cso will breake the management).
+To begin, ensure you have a functional Rancher Management Dashboard. Note that there must be no existing downstream clusters installed via the "custom-cluster" method, as the Cluster Stacks Operator (CSO) will conflict with the cluster management.
 
-For Rancher Version < 2.13 you must install the Rancher Turtles to open the preinstalled capi. https://ranchermanager.docs.rancher.com/integrations-in-rancher/cluster-api/overview
+For Rancher versions prior to 2.13, you must manually install Rancher Turtles to enable the preinstalled Cluster API (CAPI) functionality. Refer to the Rancher CAPI Overview for more details. <https://ranchermanager.docs.rancher.com/integrations-in-rancher/cluster-api/overview>
 
-For Rancher Version >= 2.13 the Rancher Turtles is preinstalled and enabled by default. Only the Rancher Turtles UI must be installed sepratly. https://turtles.docs.rancher.com/turtles/v0.24/en/tutorials/quickstart.html#_capi_ui_extension_installation
+For Rancher versions 2.13 and later, Rancher Turtles is preinstalled and enabled by default. However, the Rancher Turtles UI extension must be installed separately. Installation instructions can be found in the Turtles Quickstart Guide. <https://turtles.docs.rancher.com/turtles/v0.24/en/tutorials/quickstart.html#_capi_ui_extension_installation>
 
-Now you must install following providers (via GUI Cluster Management > CAPI > Provider > Create)
+Once the environment is prepared, install the required providers via the GUI by navigating to Cluster Management > CAPI > Provider > Create
 
 |Key|Value bootstrap|Value controlplane|Value infrastructure|
 |---|---|---|--|
@@ -119,7 +119,7 @@ spec:
   topology:
     variables:
       - name: clusterCNI
-        value: "cilium" # also calicio is posible, but musst be manual patched after install: kubectl patch ippools.crd.projectcalico.org default-ipv4-ippool --type='json' -p '[{"op": "replace", "path": "/spec/ipipMode", "value":"CrossSubnet"}]'
+        value: "cilium" # Calicio is also possible, but must be manually patched after installation.: kubectl patch ippools.crd.projectcalico.org default-ipv4-ippool --type='json' -p '[{"op": "replace", "path": "/spec/ipipMode", "value":"CrossSubnet"}]'
       - name: apiServerLoadBalancer
         value: "octavia-ovn"
       - name: imageAddVersion
@@ -150,9 +150,7 @@ EOF
 ```sh
 clusterctl get kubeconfig -n $CLUSTER_NAMESPACE $CLUSTER_NAME > /tmp/kubeconfig
 kubectl get nodes --kubeconfig /tmp/kubeconfig
-# Enable rke2-ingress-loadbalancer
-kubectl --kubeconfig /tmp/kubeconfig -n kube-system patch HelmChart.helm.cattle.io rke2-ingress-nginx --type='json' -p '[{"op": "add", "path": "/spec/set/'controller.service.enabled'", "value":"true"}]'
-# Set rke2-ingress-loadbalancer-IP
-kubectl --kubeconfig /tmp/kubeconfig -n kube-system patch HelmChart.helm.cattle.io rke2-ingress-nginx --type='json' -p '[{"op": "add", "path": "/spec/set/'controller.service.loadBalancerIP'", "value":"xxx.xxx.xxx.xxx"}]'
+# Enable rke2-ingress-loadbalancer and set loadBalancerIP
+kubectl --kubeconfig /tmp/kubeconfig -n kube-system patch HelmChart.helm.cattle.io rke2-ingress-nginx --type='json' -p '[{"op": "add", "path": "/spec/set/'controller.service.enabled'", "value":"true"}, {"op": "add", "path": "/spec/set/'controller.service.loadBalancerIP'", "value":"xxx.xxx.xxx.xxx"}]'
 
 ```
