@@ -2,6 +2,9 @@
 
 ## Getting started
 
+
+### Prepare a management Cluster using kind
+
 ```sh
 # Create bootstrap cluster
 kind create cluster
@@ -17,13 +20,16 @@ kubectl -n capi-system rollout status deployment
 kubectl -n capo-system rollout status deployment
 ```
 
+### Install the Cluster Stack Operator
+
 ```
-# Install CSO and CSPO
 helm upgrade -i cso \
 -n cso-system \
 --create-namespace \
 oci://registry.scs.community/cluster-stacks/cso
 ```
+
+### Prepare some environment variables for reuse
 
 ```sh
 export CLUSTER_NAMESPACE=cluster
@@ -33,6 +39,8 @@ export CLUSTERSTACK_VERSION=v1
 export OS_CLIENT_CONFIG_FILE=${PWD}/clouds.yaml
 kubectl create namespace $CLUSTER_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+### Add clouds.yaml as Secret
 
 ```sh
 # Create secret for CAPO
@@ -63,8 +71,9 @@ spec:
 EOF
 ```
 
+### Install the Cluster Stack resource
+
 ```sh
-# Apply ClusterStack resource
 cat <<EOF | kubectl apply -f -
 apiVersion: clusterstack.x-k8s.io/v1alpha1
 kind: ClusterStack
@@ -83,8 +92,15 @@ spec:
 EOF
 ```
 
+### Prepare the Node Images
+
+These Cluster Stacks do not contain fixed image to make it possible to provide the images in different ways.  
+Recommended is to add all images using the [Image Manager](https://docs.scs.community/docs/iaas/components/image-manager/) pointing to the file `kubernetes.yaml` next to this README.
+If you can't add images publicly you can change the visibility in the file to `private`. But in that case it's simpler to just apply the `image.yaml`. Since the OpenStack Resource Controller is a dependency to ClusterAPI Provider OpenStack this will import the image in your project using the same clouds.yaml file from the `openstack` Secret.
+
+### Apply the Cluster resource
+
 ```sh
-# Apply Cluster resource
 cat <<EOF | kubectl apply -f -
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
@@ -117,6 +133,8 @@ spec:
           replicas: 1
 EOF
 ```
+
+### Get the Workload Cluster kubeconfig and try it
 
 ```sh
 clusterctl get kubeconfig -n $CLUSTER_NAMESPACE openstack-testcluster > /tmp/kubeconfig
