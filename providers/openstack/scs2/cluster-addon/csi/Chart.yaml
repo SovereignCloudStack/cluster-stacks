@@ -7,4 +7,4 @@ dependencies:
   - alias: openstack-cinder-csi
     name: openstack-cinder-csi
     repository: https://kubernetes.github.io/cloud-provider-openstack
-    version: 2.33.1
+    version: 2.34.1
