@@ -18,7 +18,7 @@ Kubernetes environments. For detailed information see [docs.scs.community](https
 ## Releases
 
 Releases for the providers openstack/scs and openstack/scs2 are published in
-the [SCS regsitry](oci://registry.scs.community/kaas/cluster-stacks).
+the [SCS registry](oci://registry.scs.community/kaas/cluster-stacks).
 
 ## Community
 
