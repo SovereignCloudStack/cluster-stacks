@@ -1,0 +1,101 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackClusterTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+spec:
+  template:
+    spec:
+      identityRef:
+        cloudName: overridden-by-patch
+        name: overridden-by-patch
+      apiServerLoadBalancer:
+        enabled: false
+      bastion:
+        enabled: false
+        spec:
+          flavor: overridden-by-patch
+          image:
+            filter:
+              name: overridden-by-patch
+          sshKeyName: overridden-by-patch
+      managedSecurityGroups:
+        allNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: RKE2 Node registration
+          portRangeMin: 9345
+          portRangeMax: 9345
+          protocol: tcp
+          description: "Allow RKE2 node registration (server and agent)"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Calico Typha
+          portRangeMin: 5473
+          portRangeMax: 5473
+          protocol: tcp
+          description: "Allow Calico-node pod connecting to typha pod"
+        - remoteIPPrefix: 0.0.0.0/0
+          direction: ingress
+          etherType: IPv4
+          name: SSH
+          portRangeMin: 22
+          portRangeMax: 22
+          protocol: tcp
+          description: "Allow SSH for node driver provisioning"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: VXLAN (Cilium)
+          portRangeMin: 8472
+          portRangeMax: 8472
+          protocol: udp
+          description: "Allow VXLAN traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: HealthCheck (Cilium)
+          portRangeMin: 4240
+          portRangeMax: 4240
+          protocol: tcp
+          description: "Allow HealthCheck traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Hubble (Cilium)
+          portRangeMin: 4244
+          portRangeMax: 4244
+          protocol: tcp
+          description: "Allow Hubble traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Rancher webhook (8443)
+          portRangeMin: 8443
+          portRangeMax: 8443
+          protocol: tcp
+          description: "Allow Rancher webhook traffic"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Rancher webhook (9443)
+          portRangeMin: 9443
+          portRangeMax: 9443
+          protocol: tcp
+          description: "Allow Rancher webhook traffic"
