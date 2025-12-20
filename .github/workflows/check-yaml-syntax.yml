@@ -1,5 +1,7 @@
 ---
 name: Check yaml syntax
+permissions:
+  contents: read
 
 "on":
   push:
