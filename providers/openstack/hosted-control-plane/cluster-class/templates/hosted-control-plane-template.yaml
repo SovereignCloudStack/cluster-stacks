@@ -1,0 +1,10 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: HostedControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      gateway:
+        namespace:
+        name:
