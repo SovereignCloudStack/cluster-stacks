@@ -1,15 +1,12 @@
-# mirrored from variables.tf
 controller_flavor: SCS-2V-4-20s
-worker_flavor: SCS-2V-4-20
-restrict_kubeapi: []
-# newly introduced:
-openstack_loadbalancer_apiserver: false
-# TBD, currently needed:
+identityRef:
+  cloudName: openstack
+  name: openstack
 images:
   controlPlane:
-    name: ubuntu-capi-image-v1.32.1
+    name: ubuntu-capi-image-v1.32.5
   worker:
-    name: ubuntu-capi-image-v1.32.1
-identityRef:
-  name: openstack
-  cloudName: openstack
+    name: ubuntu-capi-image-v1.32.5
+openstack_loadbalancer_apiserver: false
+restrict_kubeapi: []
+worker_flavor: SCS-2V-4-20
