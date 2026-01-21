@@ -1,7 +1,0 @@
-apiVersion: v2
-description: |
-  This chart installs and configures:
-  * Hetzner Baremetal Cluster Class
-name: hetzner-baremetal-1-30-cluster-class
-type: application
-version: v1
