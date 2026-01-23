@@ -4,26 +4,30 @@
 Generate version-specific hierarchy of the cluster-stacks repo.
 
 This is a helper script to generate a version-specific folder structure
-of the base cluster-stacks implementation. The source directory is in
-`cluster-stacks/providers/openstack/scs` and supported versions are maintained
-in a file `versions.yaml` within the source directory. The source directory is a 
-valid variant of this repo, pinned to the smallest supported version.
+of the base cluster-stacks implementation. The source directory is provider
+and stack specific (e.g., providers/openstack/scs2). Supported versions are
+maintained in a file `versions.yaml` within the source directory.
 """
 
 
 import argparse
 import logging
+import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import yaml
 import requests
 
 BASE_PATH = Path(__file__).parent.parent
-SOURCE_PATH = BASE_PATH.joinpath("providers", "openstack", "scs")
-DEFAULT_TARGET_PATH = BASE_PATH.joinpath("providers", "openstack", "out")
+
+# These will be set by command-line arguments in __main__
+SOURCE_PATH: Path
+DEFAULT_TARGET_PATH: Path
+PROVIDER: str
+STACK: str
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +65,7 @@ def get_dash_version(version: str) -> str:
     return "-".join(version.split(".")[0:2])
 
 
-def create_output_dir(version: str) -> PosixPath:
+def create_output_dir(version: str) -> Path:
     """
     Prepare output directory by creating it and copying the source files over.
     This overwrites files existing inside the output directory, as those
@@ -94,7 +98,7 @@ def create_output_dir(version: str) -> PosixPath:
     return out_dir
 
 
-def readfile(path: PosixPath):
+def readfile(path: Path):
     """
     Helper function to read yaml configuration files.
 
@@ -104,18 +108,19 @@ def readfile(path: PosixPath):
         Returns:
             Content of the yaml configuration file.
     """
-    # TODO: yaml.safe_load either returns a list or dict,
-    # depending on the structure of the yaml file. This can be improved / refactored.
+# TODO: yaml.safe_load either returns a list or dict,
+    # depending on the structure of yaml file. This can be improved / refactored.
     with open(path, encoding="utf-8") as stream:
         try:
             content = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
+            return content
 
     return content
 
 
-def writefile(path: PosixPath, content):
+def writefile(path: Path, content):
     """
     Helper function to write content to a yaml configuration file.
 
@@ -131,7 +136,7 @@ def writefile(path: PosixPath, content):
 
 
 def update_cluster_addon(
-    target: PosixPath, build: bool, build_verbose: bool, **versions
+    target: Path, build: bool, build_verbose: bool, **versions
 ):
     """
     Update relevant files inside the cluster-stacks/<path>/cluster-addon subdirectory
@@ -148,16 +153,22 @@ def update_cluster_addon(
     logger.info("Updating %s", target)
     content = readfile(target)
 
-    for dep in content["dependencies"]:
-        if dep["name"] == "openstack-cinder-csi":
-            dep["version"] = versions["cinder_csi"]
-
-        if dep["name"] == "openstack-cloud-controller-manager":
-            dep["version"] = versions["occm"]
-
-    content["name"] = (
-        f"openstack-scs-{get_dash_version(versions['kubernetes'])}-cluster-addon"
-    )
+    # Update provider-specific dependencies
+    if PROVIDER == "openstack":
+        for dep in content["dependencies"]:
+            if dep["name"] == "openstack-cinder-csi":
+                dep["version"] = versions.get("cinder_csi", dep["version"])
+            if dep["name"] == "openstack-cloud-controller-manager":
+                dep["version"] = versions.get("occm", dep["version"])
+        # Add other provider-specific logic here as needed
+    
+    # Update chart name with provider/stack info
+    k8s_ver = get_dash_version(versions['kubernetes'])
+    content["name"] = f"{PROVIDER}-{STACK}-{k8s_ver}-cluster-addon"
+    
+    # Update chart name with provider/stack info
+    k8s_ver = get_dash_version(versions['kubernetes'])
+    content["name"] = f"{PROVIDER}-{STACK}-{k8s_ver}-cluster-addon"
 
     writefile(target, content)
 
@@ -172,7 +183,7 @@ def update_cluster_addon(
         )
 
 
-def update_csctl_conf(target: PosixPath, **versions):
+def update_csctl_conf(target: Path, **versions):
     """
     Function to update csctl configuration file.
 
@@ -191,7 +202,7 @@ def update_csctl_conf(target: PosixPath, **versions):
     writefile(target, content)
 
 
-def update_cluster_class(target: PosixPath, **kwargs):
+def update_cluster_class(target: Path, **kwargs):
     """
     Update relevant files inside the cluster-stacks/<path>/cluster-class subdirectory.
 
@@ -208,22 +219,26 @@ def update_cluster_class(target: PosixPath, **kwargs):
     logger.info("Updating %s", chart_file)
     content = readfile(chart_file)
     version = get_dash_version(kwargs["kubernetes"])
-    content["name"] = f"openstack-scs-{version}-cluster-class"
+    content["name"] = f"{PROVIDER}-{STACK}-{version}-cluster-class"
 
     writefile(chart_file, content)
 
-    logger.info("Updating %s", values_file)
-    content = readfile(values_file)
+    # Update values.yaml (provider-specific)
+    if values_file.exists():
+        logger.info("Updating %s", values_file)
+        content = readfile(values_file)
+        
+        # OpenStack-specific image updates (only if content exists and has images)
+        if content and PROVIDER == "openstack" and "images" in content:
+            if "controlPlane" in content["images"]:
+                content["images"]["controlPlane"]["name"] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
+            if "worker" in content["images"]:
+                content["images"]["worker"]["name"] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
+            
+            writefile(values_file, content)
 
-    content["images"]["controlPlane"][
-        "name"
-    ] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
-    content["images"]["worker"]["name"] = f"ubuntu-capi-image-v{kwargs['kubernetes']}"
 
-    writefile(values_file, content)
-
-
-def update_node_images(target: PosixPath, **kwargs):
+def update_node_images(target: Path, **kwargs):
     """
     Update relevant files inside the cluster-stacks/<path>/node-images subdirectory.
 
@@ -258,8 +273,26 @@ def update_node_images(target: PosixPath, **kwargs):
 if __name__ == "__main__":
     LOGFORMAT = "%(asctime)s - %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, encoding="utf-8", format=LOGFORMAT)
+    
     # Initialize arg parser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Generate version-specific cluster stack manifests"
+    )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=os.environ.get("PROVIDER", "openstack"),
+        help="Provider name (e.g., openstack, docker). Can be set via PROVIDER env var.",
+    )
+    parser.add_argument(
+        "--cluster-stack",
+        "--cs-name",
+        "--stack",  # Keep --stack for backwards compatibility
+        dest="stack",
+        type=str,
+        default=os.environ.get("CLUSTER_STACK", os.environ.get("STACK", "scs2")),
+        help="Cluster stack name (e.g., scs2, scs, ferrol). Can be set via CLUSTER_STACK or STACK env var.",
+    )
     parser.add_argument(
         "-t",
         "--target-version",
@@ -274,6 +307,23 @@ if __name__ == "__main__":
         "--build-verbose", action="store_false", help="Show output of helm build"
     )
     args = parser.parse_args()
+    
+    # Set global provider/stack paths
+    PROVIDER = args.provider
+    STACK = args.stack
+    SOURCE_PATH = BASE_PATH / "providers" / PROVIDER / STACK
+    DEFAULT_TARGET_PATH = BASE_PATH / "providers" / PROVIDER / "out"
+    
+    # Validate source path exists
+    if not SOURCE_PATH.exists():
+        print(f"❌ Source directory not found: {SOURCE_PATH}")
+        print(f"   Available stacks for {PROVIDER}:")
+        provider_path = BASE_PATH.joinpath("providers", PROVIDER)
+        if provider_path.exists():
+            for stack_dir in provider_path.iterdir():
+                if stack_dir.is_dir() and stack_dir.name != "out":
+                    print(f"     - {stack_dir.name}")
+        sys.exit(1)
 
     # Load supported target versions
     sup_versions = load_supported_versions()
@@ -304,6 +354,8 @@ if __name__ == "__main__":
           )
         update_csctl_conf(output_dir.joinpath("csctl.yaml"), **tv)
         update_cluster_class(output_dir.joinpath("cluster-class"), **tv)
-        update_node_images(
-            output_dir.joinpath("cluster-class", "templates", "image.yaml"), **tv
-        )
+        
+        # Update node images only if image.yaml exists (OpenStack-specific)
+        image_yaml = output_dir.joinpath("cluster-class", "templates", "image.yaml")
+        if image_yaml.exists():
+            update_node_images(image_yaml, **tv)
