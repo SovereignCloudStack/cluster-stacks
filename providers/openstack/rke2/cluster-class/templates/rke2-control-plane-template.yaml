@@ -1,0 +1,24 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: RKE2ControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      agentConfig:
+        kubelet:
+          extraArgs:
+          - provider-id=openstack:///{{ `{{ instance_id }}` }} # Data from Openstack metadata-service
+        nodeName: '{{ `{{ local_hostname }}` }}' # Data from Openstack metadata-service
+      gzipUserData: false
+      version: ""
+      rolloutStrategy:
+        type: "RollingUpdate"
+        rollingUpdate:
+          maxSurge: 1
+      registrationMethod: "internal-first"
+      serverConfig:
+        cni: cilium
+        disableComponents: 
+          kubernetesComponents:
+            - cloudController # We use use openstack-cloud-controller-manager 
