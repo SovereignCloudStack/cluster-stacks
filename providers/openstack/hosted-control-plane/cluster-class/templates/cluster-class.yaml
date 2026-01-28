@@ -307,7 +307,7 @@ spec:
             matchResources:
               controlPlane: true
           jsonPatches:
-            - op: replace
+            - op: add
               path: "/spec/template/spec/replicas"
               valueFrom:
                 variable: controlPlaneReplicas

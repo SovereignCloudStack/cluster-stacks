@@ -6,5 +6,5 @@ spec:
   template:
     spec:
       gateway:
-        namespace:
-        name:
+        namespace: overridden-by-patch
+        name: overridden-by-patch
