@@ -1,9 +1,9 @@
-- kubernetes: 1.31.12
-  cinder_csi: 2.31.7
-  occm: 2.31.3
 - kubernetes: 1.32.8
   cinder_csi: 2.32.2
   occm: 2.32.0
-- kubernetes: 1.33.6
+- kubernetes: 1.33.7
   cinder_csi: 2.33.1
   occm: 2.33.1
+- kubernetes: 1.34.3
+  cinder_csi: 2.34.1
+  occm: 2.34.1
