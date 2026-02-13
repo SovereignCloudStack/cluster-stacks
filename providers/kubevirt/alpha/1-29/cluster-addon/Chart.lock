@@ -1,9 +1,0 @@
-dependencies:
-- name: metrics-server
-  repository: https://kubernetes-sigs.github.io/metrics-server/
-  version: 3.12.1
-- name: cilium
-  repository: https://helm.cilium.io/
-  version: 1.15.4
-digest: sha256:0f2643fe4bad1a49d555cc630f24ee9582d82f5807b7ca832a0791fcc35495e1
-generated: "2024-05-28T09:13:21.475025057+02:00"
