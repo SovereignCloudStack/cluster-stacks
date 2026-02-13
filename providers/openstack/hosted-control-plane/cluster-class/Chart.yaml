@@ -1,0 +1,9 @@
+apiVersion: v2
+description: "This chart installs and configures:
+
+  * OpenStack hosted-control-plane Cluster Class
+
+  "
+name: openstack-hosted-control-plane-1-34-cluster-class
+type: application
+version: v1
