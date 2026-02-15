@@ -1,0 +1,509 @@
+version: '3'
+
+dotenv: ['task.env']
+
+vars:
+  PROVIDER: '{{.PROVIDER | default "openstack"}}'
+  # Support both CLUSTER_STACK (preferred) and STACK (backwards compat)
+  CLUSTER_STACK: '{{.CLUSTER_STACK | default .STACK | default "scs2"}}'
+  VERSIONS_FILE: 'providers/{{.PROVIDER}}/{{.CLUSTER_STACK}}/versions.yaml'
+  OUT_DIR: 'providers/{{.PROVIDER}}/out'
+  STACK_DIR: 'providers/{{.PROVIDER}}/{{.CLUSTER_STACK}}'
+  # Container support (similar to Makefile BUILD_IN_CONTAINER)
+  BUILD_IN_CONTAINER: '{{.BUILD_IN_CONTAINER | default "false"}}'
+  BUILDER_IMAGE: '{{.BUILDER_IMAGE | default "ghcr.io/sovereigncloudstack/cluster-stack-builder:latest"}}'
+
+tasks:
+
+  # ============================================
+  # General / Setup
+  # ============================================
+
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  deps:
+    desc: Check required dependencies
+    silent: true
+    cmds:
+      - |
+        if [[ "{{.BUILD_IN_CONTAINER}}" == "true" ]]; then
+          echo "ℹ️  BUILD_IN_CONTAINER=true - dependencies will run in container"
+          exit 0
+        fi
+
+        errors=0
+        which helm > /dev/null || { echo "❌ helm not found - https://helm.sh/docs/intro/install/"; errors=1; }
+        which yq > /dev/null || { echo "❌ yq not found - https://github.com/mikefarah/yq#install"; errors=1; }
+        which git > /dev/null || { echo "❌ git not found"; errors=1; }
+        which python3 > /dev/null || { echo "❌ python3 not found"; errors=1; }
+        which oras > /dev/null || echo "⚠️  oras not found (needed for OCI publish) - https://oras.land/docs/installation"
+        which jq > /dev/null || echo "⚠️  jq not found (recommended) - https://jqlang.github.io/jq/download/"
+
+        if [[ $errors -gt 0 ]]; then
+          echo ""
+          echo "💡 Tip: Use BUILD_IN_CONTAINER=true to run in Docker/Podman"
+          echo "   Example: BUILD_IN_CONTAINER=true task build-assets"
+          exit 1
+        fi
+
+        echo "✅ All required dependencies found"
+
+  build-image:
+    desc: Build the builder Docker/Podman image
+    cmds:
+      - |
+        if command -v podman >/dev/null 2>&1; then
+          podman build -t {{.BUILDER_IMAGE}} .
+        else
+          docker build -t {{.BUILDER_IMAGE}} .
+        fi
+        echo "✅ Built image: {{.BUILDER_IMAGE}}"
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.OUT_DIR}}
+      - rm -rf .release
+      - echo "✅ Cleaned {{.OUT_DIR}} and .release"
+
+  # ============================================
+  # Version Management
+  # ============================================
+
+  update-addons:
+    desc: Interactively update addon Helm chart versions
+    deps: [deps]
+    cmds:
+      - |
+        # Detect latest K8s version from versions.yaml for OpenStack chart filtering
+        K8S_VERSION=""
+        if [[ -f "{{.VERSIONS_FILE}}" ]]; then
+          K8S_VERSION=$(yq -r '.[0].kubernetes' {{.VERSIONS_FILE}} | grep -oP '1\.\d+' || echo "")
+        fi
+        ./hack/update-addon-versions.sh {{.PROVIDER}} {{.STACK}} "$K8S_VERSION"
+
+  check-versions:
+    desc: Show current addon versions
+    cmds:
+      - |
+        echo "Current versions in {{.STACK_DIR}}/cluster-addon:"
+        echo ""
+        for chart in {{.STACK_DIR}}/cluster-addon/*/Chart.yaml; do
+          if [[ ! -f "$chart" ]]; then continue; fi
+
+          addon=$(basename $(dirname "$chart"))
+          num_deps=$(yq '.dependencies | length' "$chart" 2>/dev/null || echo "0")
+
+          echo "  📦 $addon:"
+          if [[ "$num_deps" == "0" ]] || [[ "$num_deps" == "null" ]]; then
+            echo "     (no dependencies)"
+          else
+            for ((i=0; i<num_deps; i++)); do
+              name=$(yq ".dependencies[$i].name" "$chart")
+              version=$(yq ".dependencies[$i].version" "$chart")
+              echo "     - $name @ $version"
+            done
+          fi
+        done
+
+  # ============================================
+  # Build Manifests
+  # ============================================
+
+  diff:
+    desc: Show which K8s versions changed vs main branch
+    cmds:
+      - |
+        if [[ ! -f "{{.VERSIONS_FILE}}" ]]; then
+          echo "❌ versions.yaml not found: {{.VERSIONS_FILE}}"
+          exit 1
+        fi
+
+        current=$(cat {{.VERSIONS_FILE}})
+        main=$(git show main:{{.VERSIONS_FILE}} 2>/dev/null || echo "$current")
+        versions=$(yq -r '.[].kubernetes' {{.VERSIONS_FILE}} | grep -oP '1\.\d+' | sort -u)
+
+        changed=""
+        for version in $versions; do
+          curr=$(echo "$current" | yq ".[] | select(.kubernetes | test(\"$version\"))" | yq -P)
+          base=$(echo "$main" | yq ".[] | select(.kubernetes | test(\"$version\"))" | yq -P)
+
+          if ! diff -q <(echo "$curr") <(echo "$base") >/dev/null 2>&1; then
+            changed="$changed $version"
+          fi
+        done
+
+        if [[ -n "$changed" ]]; then
+          echo "$changed" | xargs
+        fi
+
+  build-version:
+    desc: Generate manifest for specific K8s version (Usage - task build-version -- 1.34)
+    vars:
+      VERSION: '{{.CLI_ARGS}}'
+    cmds:
+      - |
+        if [[ -z "{{.VERSION}}" ]]; then
+          echo "❌ Usage: task build-version -- 1.34"
+          echo ""
+          echo "Available versions in {{.VERSIONS_FILE}}:"
+          yq -r '.[].kubernetes' {{.VERSIONS_FILE}} | grep -oP '1\.\d+' | sort -u | sed 's/^/  - /'
+          exit 1
+        fi
+
+        echo "🔨 Generating manifests for {{.PROVIDER}}/{{.CLUSTER_STACK}} k8s {{.VERSION}}"
+        ./hack/generate_version.py \
+          --provider {{.PROVIDER}} \
+          --cluster-stack {{.CLUSTER_STACK}} \
+          --target-version {{.VERSION}}
+
+  build-versions:
+    desc: Build manifests for all changed versions
+    deps: [deps]
+    cmds:
+      - |
+        changed=$(task diff)
+
+        if [[ -z "$changed" ]]; then
+          echo "ℹ️  No version changes detected in {{.VERSIONS_FILE}}"
+          echo "   (compared to main branch)"
+          exit 0
+        fi
+
+        echo "📦 Building manifests for changed versions: $changed"
+        for version in $changed; do
+          task build-version -- $version
+        done
+
+  build-versions-all:
+    desc: Build manifests for ALL versions (ignore changes)
+    deps: [deps]
+    cmds:
+      - |
+        versions=$(yq -r '.[].kubernetes' {{.VERSIONS_FILE}} | grep -oP '1\.\d+' | sort -u)
+        echo "📦 Building ALL versions: $versions"
+        for version in $versions; do
+          task build-version -- $version
+        done
+
+  # ============================================
+  # Build Assets
+  # ============================================
+
+  build-assets-for:
+    desc: Build release assets for specific version (Usage - task build-assets-for -- 1.34)
+    vars:
+      VERSION: '{{.CLI_ARGS}}'
+      VERSION_DIR: '{{.OUT_DIR}}/{{.VERSION | replace "." "-"}}'
+    cmds:
+      - |
+        if [[ -z "{{.VERSION}}" ]]; then
+          echo "❌ Usage: task build-assets-for -- 1.34"
+          exit 1
+        fi
+
+        if [[ ! -d "{{.VERSION_DIR}}" ]]; then
+          echo "⚠️  Manifest directory not found: {{.VERSION_DIR}}"
+          echo "   Building manifest first..."
+          task build-version -- {{.VERSION}}
+        fi
+
+        echo "🔨 Building release assets for {{.VERSION}}"
+        ./hack/build-stack.sh {{.VERSION_DIR}}
+
+  build-assets:
+    desc: Build assets for all changed versions
+    deps: [build-versions]
+    cmds:
+      - |
+        changed=$(task diff)
+
+        if [[ -z "$changed" ]]; then
+          echo "ℹ️  No changed versions to build"
+          exit 0
+        fi
+
+        for version in $changed; do
+          task build-assets-for -- $version
+        done
+
+  build-assets-all:
+    desc: Build assets for ALL versions
+    deps: [build-versions-all]
+    cmds:
+      - |
+        if [[ ! -d "{{.OUT_DIR}}" ]]; then
+          echo "❌ Output directory not found: {{.OUT_DIR}}"
+          exit 1
+        fi
+
+        versions=$(cd {{.OUT_DIR}} && ls -1d */ 2>/dev/null | sed 's|/||g' || echo "")
+
+        if [[ -z "$versions" ]]; then
+          echo "❌ No version directories found in {{.OUT_DIR}}"
+          exit 1
+        fi
+
+        echo "📦 Building assets for: $versions"
+        for version_dir in $versions; do
+          version=$(echo "$version_dir" | tr '-' '.')
+          task build-assets-for -- $version
+        done
+
+  # ============================================
+  # Publish to OCI
+  # ============================================
+
+  publish-for:
+    desc: Publish specific version to OCI (Usage - task publish-for -- 1.34)
+    vars:
+      VERSION: '{{.CLI_ARGS}}'
+      VERSION_DIR: '{{.OUT_DIR}}/{{.VERSION | replace "." "-"}}'
+    cmds:
+      - |
+        if [[ -z "{{.VERSION}}" ]]; then
+          echo "❌ Usage: task publish-for -- 1.34"
+          exit 1
+        fi
+
+        if [[ ! -d "{{.VERSION_DIR}}" ]]; then
+          echo "❌ Version directory not found: {{.VERSION_DIR}}"
+          echo "   Run: task build-assets-for -- {{.VERSION}}"
+          exit 1
+        fi
+
+        if [[ -z "$OCI_REGISTRY" ]] || [[ -z "$OCI_REPOSITORY" ]]; then
+          echo "❌ OCI configuration missing"
+          echo "   Set OCI_REGISTRY and OCI_REPOSITORY in task.env"
+          exit 1
+        fi
+
+        echo "📤 Publishing {{.VERSION}} to $OCI_REGISTRY/$OCI_REPOSITORY"
+        ./hack/build-stack.sh {{.VERSION_DIR}} --publish
+
+  publish-all:
+    desc: Publish all built versions to OCI
+    cmds:
+      - |
+        if [[ ! -d ".release" ]]; then
+          echo "❌ No releases found in .release/"
+          echo "   Run: task build-assets-all"
+          exit 1
+        fi
+
+        releases=$(cd .release && ls -1d */ 2>/dev/null | sed 's|/||g' || echo "")
+
+        if [[ -z "$releases" ]]; then
+          echo "❌ No release directories found"
+          exit 1
+        fi
+
+        echo "📤 Publishing releases: $releases"
+        for release_dir in $releases; do
+          # Extract version from release dir name
+          # Format: openstack-scs2-1-34-v0-bbb4ae57
+          version=$(echo "$release_dir" | grep -oP '1-\d+' | tr '-' '.')
+          task publish-for -- $version
+        done
+
+  refresh-ttl:
+    desc: Re-push to ttl.sh to extend 24h expiry window
+    cmds:
+      - |
+        if [[ "${OCI_REGISTRY:-}" != "ttl.sh" ]]; then
+          echo "❌ Not using ttl.sh registry"
+          echo "   Current registry: ${OCI_REGISTRY:-not set}"
+          echo ""
+          echo "   This task only works with ttl.sh"
+          echo "   To use ttl.sh, set in task.env:"
+          echo "     OCI_REGISTRY=ttl.sh"
+          echo "     OCI_REPOSITORY=  # Leave empty for auto-generation"
+          exit 1
+        fi
+
+        echo "🔄 Re-pushing to ttl.sh to refresh 24h expiry window..."
+        echo ""
+
+        task publish-all
+
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ Artifacts re-pushed successfully"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "   24h expiry window has been refreshed"
+        echo "   Artifacts will now be available for another 24 hours"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  ttl-list:
+    desc: List all versions in today's ttl.sh repository
+    cmds:
+      - |
+        DATE_YYYYMMDD="${OCI_DATE:-$(date +%Y%m%d)}"
+        TTL_REPO="ttl.sh/clusterstacks-${DATE_YYYYMMDD}"
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📦 TTL.sh Repository Tags"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "   Repository: ${TTL_REPO}"
+        echo "   Date:       ${DATE_YYYYMMDD}$([ -n "${OCI_DATE:-}" ] && echo " (override)")"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+
+        if ! command -v oras >/dev/null 2>&1; then
+          echo "❌ oras not installed"
+          echo "   Install: https://oras.land/docs/installation"
+          exit 1
+        fi
+
+        echo "Available tags:"
+        if oras repo tags "${TTL_REPO}" 2>/dev/null; then
+          echo ""
+          echo "✅ Found tags in ${TTL_REPO}"
+        else
+          echo "   (repository not found or empty)"
+          echo ""
+          echo "💡 Tip: Build and publish to create repository"
+          echo "   task build-assets-for -- 1.34"
+        fi
+
+  ttl-generate-clusterstack:
+    desc: Generate ClusterStack Kubernetes resources for today's ttl.sh versions
+    cmds:
+      - |
+        NAMESPACE="${NAMESPACE:-cluster}"
+        PROVIDER="${PROVIDER:-{{.PROVIDER}}}"
+        STACK="${CLUSTER_STACK:-{{.CLUSTER_STACK}}}"
+        K8S_VERSION="${K8S_VERSION:-1.34}"
+
+        ./hack/generate-clusterstack-ttl.sh \
+          "$NAMESPACE" "$PROVIDER" "$STACK" "$K8S_VERSION"
+
+  ttl-info:
+    desc: Show current ttl.sh repository information
+    cmds:
+      - |
+        echo "📦 OCI Registry Information"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+        if [[ "${OCI_REGISTRY:-}" == "ttl.sh" ]]; then
+          # Generate what the auto-name would be
+          if command -v git >/dev/null 2>&1; then
+            GIT_HASH_SHORT=$(git rev-parse HEAD 2>/dev/null | cut -c1-8 || echo "unknown")
+          else
+            GIT_HASH_SHORT="unknown"
+          fi
+          TIMESTAMP=$(date +%s)
+          AUTO_REPO="cs-${GIT_HASH_SHORT}-${TIMESTAMP}"
+          CURRENT_REPO="${OCI_REPOSITORY:-$AUTO_REPO}"
+
+          echo "   Registry:      ttl.sh"
+          echo "   Repository:    ${CURRENT_REPO}"
+          echo "   Expiry:        24 hours from last push"
+          echo "   Auto-cleanup:  Yes"
+          echo ""
+          echo "🔗 Artifact Paths:"
+          echo "   ttl.sh/${CURRENT_REPO}:openstack-scs2-1-XX-v0-HASH"
+          echo ""
+          echo "💡 Useful Commands:"
+          echo "   task build-assets    - Build cluster stack artifacts"
+          echo "   task publish-all     - Publish to ttl.sh"
+          echo "   task refresh-ttl     - Extend 24h expiry window"
+          echo ""
+          echo "⚠️  Remember: Artifacts expire after 24 hours!"
+          echo "   Run 'task refresh-ttl' to extend the window"
+        else
+          REGISTRY="${OCI_REGISTRY:-not set}"
+          REPO="${OCI_REPOSITORY:-not set}"
+
+          echo "   Registry:      ${REGISTRY}"
+          echo "   Repository:    ${REPO}"
+          echo "   Type:          Production/Long-term"
+          echo ""
+
+          if [[ "$REGISTRY" == "not set" ]]; then
+            echo "⚠️  No registry configured"
+            echo ""
+            echo "   To use ttl.sh for testing, set in task.env:"
+            echo "     OCI_REGISTRY=ttl.sh"
+            echo "     OCI_REPOSITORY=  # Leave empty for auto-generation"
+            echo ""
+            echo "   Or configure SCS production registry:"
+            echo "     OCI_REGISTRY=registry.scs.community"
+            echo "     OCI_REPOSITORY=kaas/cluster-stacks"
+          fi
+        fi
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  generate-image-manifests:
+    desc: Generate OpenStack Image manifests for all K8s versions
+    cmds:
+      - mkdir -p manifests/images
+      - ./hack/generate-image-manifest.py --output-dir manifests/images/
+      - echo "✅ Generated image manifests in manifests/images/"
+
+  # ============================================
+  # Convenience Workflows
+  # ============================================
+
+  workflow:full:
+    desc: Complete workflow - check updates, build, show results
+    cmds:
+      - |
+        echo "🚀 Starting full workflow for {{.PROVIDER}}/{{.STACK}}"
+        echo ""
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 Current Addon Versions"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        task check-versions
+        echo ""
+
+        read -p "Check for addon updates? [y/N] " -n 1 -r
+        echo ""
+        if [[ $$REPLY =~ ^[Yy]$$ ]]; then
+          task update-addons
+        fi
+        echo ""
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 Changed K8s Versions"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        changed=$(task diff)
+        if [[ -z "$changed" ]]; then
+          echo "  ℹ️  No changes detected"
+        else
+          echo "  Changed: $changed"
+          echo ""
+          read -p "Build assets for changed versions? [y/N] " -n 1 -r
+          echo ""
+          if [[ $$REPLY =~ ^[Yy]$$ ]]; then
+            task build-assets
+          fi
+        fi
+        echo ""
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ Workflow Complete"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # ============================================
+  # Provider Shortcuts
+  # ============================================
+
+  openstack:scs2:
+    desc: Quick build for openstack/scs2
+    cmds:
+      - task build-assets PROVIDER=openstack STACK=scs2
+
+  openstack:scs:
+    desc: Quick build for openstack/scs
+    cmds:
+      - task build-assets PROVIDER=openstack STACK=scs
+
+  docker:scs:
+    desc: Quick build for docker/scs
+    cmds:
+      - task build-assets PROVIDER=docker STACK=scs
