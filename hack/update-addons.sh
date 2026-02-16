@@ -7,14 +7,19 @@
 # K8s-tied addon list from versions.yaml keys. Works for any provider/stack.
 #
 # Usage:
-#   ./hack/update-addons.sh <stack-dir>
-#   ./hack/update-addons.sh <stack-dir> --k8s-version 1.34
-#   ./hack/update-addons.sh <stack-dir> --yes          # auto-approve all updates
+#   ./hack/update-addons.sh [stack-dir] [options]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
+#
+# Options:
+#   --k8s-version X.Y   Target K8s minor for version-tied chart filtering
+#   --yes / -y           Auto-approve all updates
 #
 # Examples:
 #   ./hack/update-addons.sh providers/openstack/scs2
-#   ./hack/update-addons.sh providers/openstack/scs2 --yes
-#   ./hack/update-addons.sh providers/docker/scs
+#   ./hack/update-addons.sh --yes
+#   PROVIDER=docker CLUSTER_STACK=scs ./hack/update-addons.sh
 
 set -euo pipefail
 
@@ -42,8 +47,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$STACK_DIR" ]]; then
-    echo "Usage: $0 <stack-dir> [--k8s-version X.Y] [--yes]"
-    exit 1
+    STACK_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}"
 fi
 
 if [[ ! -d "$STACK_DIR/cluster-addon" ]]; then

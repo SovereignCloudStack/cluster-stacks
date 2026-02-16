@@ -6,14 +6,18 @@ Generate markdown documentation from ClusterClass variable definitions.
 Renders the cluster-class Helm template, parses the topology variables
 (openAPIV3Schema), and outputs a markdown table of all configurable options.
 
+If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+(default: providers/openstack/scs2).
+
 Usage:
-    ./hack/docugen.py <stack-dir>
-    ./hack/docugen.py <stack-dir> --output docs/configuration.md
-    ./hack/docugen.py <stack-dir> --template hack/config-template.md
-    ./hack/docugen.py <stack-dir> --dry-run
+    ./hack/docugen.py [stack-dir]
+    ./hack/docugen.py --output docs/configuration.md
+    ./hack/docugen.py providers/docker/scs2 --template hack/config-template.md
+    ./hack/docugen.py --dry-run
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -109,8 +113,8 @@ def main():
         description="Generate docs from ClusterClass variables",
     )
     parser.add_argument(
-        "stack_dir", type=Path,
-        help="Path to the cluster stack directory",
+        "stack_dir", type=Path, nargs="?", default=None,
+        help="Path to the cluster stack directory (default: providers/$PROVIDER/$CLUSTER_STACK)",
     )
     parser.add_argument(
         "--template", type=Path, default=None,
@@ -125,6 +129,11 @@ def main():
         help="Print to stdout even if --output is set",
     )
     args = parser.parse_args()
+
+    if args.stack_dir is None:
+        provider = os.environ.get("PROVIDER", "openstack")
+        cluster_stack = os.environ.get("CLUSTER_STACK", "scs2")
+        args.stack_dir = Path("providers") / provider / cluster_stack
 
     # Render and parse
     template = render_cluster_class(args.stack_dir)

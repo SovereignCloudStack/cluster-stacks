@@ -1,23 +1,16 @@
-export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml
+# direnv configuration — copy to .envrc and adjust
+# The justfile and hack/ scripts also read from .env (dotenv-load)
 
-export PATH=$PWD/hack/tools/bin:$PATH
+# Cluster stack selection
+export PROVIDER=openstack
+export CLUSTER_STACK=scs2
 
-export PROVIDER=docker
+# OCI registry (optional, defaults to ttl.sh for dev builds)
+# export OCI_REGISTRY=ghcr.io
+# export OCI_REPOSITORY=SovereignCloudStack/cluster-stacks
 
-# Versions
-export K8S_VERSION=1-27
-export CAPI_VERSION=v1.5.1
-export CAPD_VERSION=$CAPI_VERSION
+# GitHub token for higher API rate limits (optional)
+# export GITHUB_TOKEN=ghp_xxx
 
-# Names
-export NAMESPACE=scs-cs
-export CLUSTER_CLASS_NAME=ferrol
-export CLUSTER_NAME=cs-cluster
-export CLUSTER_TOPOLOGY=true
-
-# Debugging
-export DISABLE_VERSIONCHECK="true"
-
-# Release
-export RELEASE_CLUSTER_CLASS=$CLUSTER_CLASS_NAME
-export RELEASE_KUBERNETES_VERSION=1-27
+# Management cluster (optional, for testing)
+# export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml
