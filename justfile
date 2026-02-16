@@ -1,13 +1,15 @@
 # Cluster Stacks build system
 # Usage: just <recipe> [args...]
-# Config: set PROVIDER and CLUSTER_STACK, or use defaults (openstack/scs2)
+# Config: set PROVIDER and CLUSTER_STACK env vars or in .env (default: openstack/scs2)
+#
+# All hack/ scripts derive the stack directory from $PROVIDER and $CLUSTER_STACK
+# automatically. You can also pass a stack-dir as first argument to override.
 
 set dotenv-load
 set positional-arguments
 
-PROVIDER := env("PROVIDER", "openstack")
-CLUSTER_STACK := env("CLUSTER_STACK", "scs2")
-STACK_DIR := "providers" / PROVIDER / CLUSTER_STACK
+export PROVIDER := env("PROVIDER", "openstack")
+export CLUSTER_STACK := env("CLUSTER_STACK", "scs2")
 CONTAINER_IMAGE := "cluster-stack-tools"
 
 # Show available recipes
@@ -20,19 +22,19 @@ default:
 
 # Build cluster-stack for a K8s version (e.g., just build 1.34)
 build version:
-    ./hack/build.sh {{STACK_DIR}} --version {{version}}
+    ./hack/build.sh --version {{version}}
 
 # Build cluster-stack for all K8s versions
 build-all:
-    ./hack/build.sh {{STACK_DIR}} --all
+    ./hack/build.sh --all
 
 # Build and publish for a K8s version (e.g., just publish 1.34)
 publish version:
-    ./hack/build.sh {{STACK_DIR}} --version {{version}} --publish
+    ./hack/build.sh --version {{version}} --publish
 
 # Build and publish all K8s versions
 publish-all:
-    ./hack/build.sh {{STACK_DIR}} --all --publish
+    ./hack/build.sh --all --publish
 
 # Clean build artifacts
 clean:
@@ -45,7 +47,7 @@ clean:
 
 # Check upstream Helm repos for newer addon versions (pass --yes to auto-approve)
 update-addons *FLAGS:
-    ./hack/update-addons.sh {{STACK_DIR}} {{FLAGS}}
+    ./hack/update-addons.sh {{FLAGS}}
 
 # Check upstream addon versions for ALL stacks (pass --yes to auto-approve)
 update-addons-all *FLAGS:
@@ -60,7 +62,7 @@ update-addons-all *FLAGS:
 
 # Check for K8s patch updates, new minors, and addon version bumps
 update-versions *FLAGS:
-    ./hack/update-versions.sh {{STACK_DIR}} {{FLAGS}}
+    ./hack/update-versions.sh {{FLAGS}}
 
 # Check for version updates across ALL stacks
 update-versions-all *FLAGS:
@@ -79,11 +81,11 @@ update-versions-all *FLAGS:
 
 # Generate ClusterStack + Cluster YAML for testing (e.g., just generate-resources 1.34)
 generate-resources version:
-    ./hack/generate-resources.sh {{STACK_DIR}} --version {{version}}
+    ./hack/generate-resources.sh --version {{version}}
 
 # Generate OpenStack Image CRD manifests
 generate-image-manifests:
-    ./hack/generate-image-manifests.sh {{STACK_DIR}}
+    ./hack/generate-image-manifests.sh
 
 # ============================================
 # Info
@@ -91,11 +93,11 @@ generate-image-manifests:
 
 # Show version matrix for all K8s versions and addons
 matrix:
-    ./hack/show-matrix.sh {{STACK_DIR}}
+    ./hack/show-matrix.sh
 
 # Generate configuration docs from ClusterClass variables
 generate-docs:
-    ./hack/docugen.py {{STACK_DIR}} --template hack/config-template.md
+    ./hack/docugen.py --template hack/config-template.md
 
 # ============================================
 # Container
@@ -132,7 +134,7 @@ container-run *ARGS:
     $runtime run --rm -it \
         -v "$(pwd):/workspace" \
         -w /workspace \
-        -e PROVIDER="${PROVIDER:-openstack}" \
-        -e CLUSTER_STACK="${CLUSTER_STACK:-scs2}" \
+        -e PROVIDER="$PROVIDER" \
+        -e CLUSTER_STACK="$CLUSTER_STACK" \
         {{CONTAINER_IMAGE}} \
         just {{ARGS}}

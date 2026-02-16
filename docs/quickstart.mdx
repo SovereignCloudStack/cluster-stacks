@@ -1,0 +1,322 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Quickstart
+
+This guide walks you through deploying a Kubernetes workload cluster using Cluster Stacks. You'll create a local management cluster with `kind`, install the required operators, and provision a workload cluster.
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [Helm](https://helm.sh/docs/intro/install/)
+- [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start#install-clusterctl)
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+You also need:
+- An OpenStack cloud with application credentials
+- A `clouds.yaml` file configured for your project
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+No additional prerequisites. The Docker provider runs workload clusters as containers on your machine using `kindest/node` images.
+
+</TabItem>
+</Tabs>
+
+## 1. Create the management cluster
+
+```bash
+kind create cluster --name capi-management
+```
+
+## 2. Initialize Cluster API
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+```bash
+clusterctl init --infrastructure openstack
+
+# ORC is required since CAPO 0.12
+kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml
+```
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+```bash
+clusterctl init --infrastructure docker
+```
+
+</TabItem>
+</Tabs>
+
+## 3. Install the Cluster Stack Operator (CSO)
+
+GitHub rate limits unauthenticated API requests. Configure a [personal access token](https://github.com/settings/personal-access-tokens/new) (fine-grained, `Public Repositories (read-only)`) for better reliability:
+
+```bash
+export GIT_PROVIDER_B64=Z2l0aHVi                          # github
+export GIT_ORG_NAME_B64=U292ZXJlaWduQ2xvdWRTdGFjaw==      # SovereignCloudStack
+export GIT_REPOSITORY_NAME_B64=Y2x1c3Rlci1zdGFja3M=       # cluster-stacks
+export GIT_ACCESS_TOKEN_B64=$(echo -n '<your-token>' | base64 -w0)
+```
+
+Install [envsubst](https://github.com/drone/envsubst) (Go version — the system `envsubst` from gettext does **not** work):
+
+```bash
+GOBIN=/tmp go install github.com/drone/envsubst/v2/cmd/envsubst@latest
+```
+
+Deploy CSO:
+
+```bash
+curl -sSL https://github.com/SovereignCloudStack/cluster-stack-operator/releases/latest/download/cso-infrastructure-components.yaml \
+  | /tmp/envsubst | kubectl apply -f -
+```
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+Deploy the Cluster Stack Provider OpenStack (CSPO):
+
+```bash
+curl -sSL https://github.com/SovereignCloudStack/cluster-stack-provider-openstack/releases/latest/download/cspo-infrastructure-components.yaml \
+  | /tmp/envsubst | kubectl apply -f -
+```
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+For the Docker provider, CSO handles everything directly — no additional provider component is needed.
+
+</TabItem>
+</Tabs>
+
+## 4. Create a namespace and credentials
+
+```bash
+export CS_NAMESPACE=my-tenant
+kubectl create namespace "${CS_NAMESPACE}"
+```
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+Deploy the CSP-helper chart to create the OpenStack credentials secret:
+
+```bash
+helm upgrade -i csp-helper-"${CS_NAMESPACE}" \
+  -n "${CS_NAMESPACE}" \
+  https://github.com/SovereignCloudStack/openstack-csp-helper/releases/latest/download/openstack-csp-helper.tgz \
+  -f path/to/clouds.yaml
+```
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+No credentials needed for the Docker provider.
+
+</TabItem>
+</Tabs>
+
+## 5. Create the ClusterStack resource
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+```bash
+export CS_NAME=scs2
+export CS_K8S_VERSION=1.34
+export CS_VERSION=v1
+```
+
+```yaml
+apiVersion: clusterstack.x-k8s.io/v1alpha1
+kind: ClusterStack
+metadata:
+  name: clusterstack
+  namespace: ${CS_NAMESPACE}
+spec:
+  provider: openstack
+  name: ${CS_NAME}
+  kubernetesVersion: "${CS_K8S_VERSION}"
+  channel: stable
+  autoSubscribe: false
+  providerRef:
+    apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
+    kind: OpenStackClusterStackReleaseTemplate
+    name: cspotemplate
+  versions:
+    - ${CS_VERSION}
+---
+apiVersion: infrastructure.clusterstack.x-k8s.io/v1alpha1
+kind: OpenStackClusterStackReleaseTemplate
+metadata:
+  name: cspotemplate
+  namespace: ${CS_NAMESPACE}
+spec:
+  template:
+    spec:
+      identityRef:
+        kind: Secret
+        name: openstack
+```
+
+```bash
+envsubst < clusterstack.yaml | kubectl apply -f -
+```
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+```bash
+export CS_NAME=scs2
+export CS_K8S_VERSION=1.35
+export CS_VERSION=v0
+```
+
+```yaml
+apiVersion: clusterstack.x-k8s.io/v1alpha1
+kind: ClusterStack
+metadata:
+  name: clusterstack
+  namespace: ${CS_NAMESPACE}
+spec:
+  provider: docker
+  name: ${CS_NAME}
+  kubernetesVersion: "${CS_K8S_VERSION}"
+  channel: custom
+  autoSubscribe: false
+  versions:
+    - ${CS_VERSION}
+```
+
+```bash
+envsubst < clusterstack.yaml | kubectl apply -f -
+```
+
+</TabItem>
+</Tabs>
+
+## 6. Create a workload cluster
+
+<Tabs groupId="provider">
+<TabItem value="openstack" label="OpenStack" default>
+
+```bash
+export CS_CLUSTER_NAME=my-cluster
+export CS_CLASS_NAME=openstack-${CS_NAME}-${CS_K8S_VERSION/./-}-${CS_VERSION}
+```
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: ${CS_CLUSTER_NAME}
+  namespace: ${CS_NAMESPACE}
+  labels:
+    managed-secret: cloud-config
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    serviceDomain: cluster.local
+  topology:
+    class: ${CS_CLASS_NAME}
+    version: v${CS_K8S_VERSION}.3
+    controlPlane:
+      replicas: 3
+    workers:
+      machineDeployments:
+        - class: default-worker
+          name: default-worker
+          replicas: 3
+    variables:
+      - name: controlPlaneFlavor
+        value: "SCS-2V-4-20s"
+      - name: workerFlavor
+        value: "SCS-4V-8"
+      - name: workerRootDisk
+        value: 50
+```
+
+```bash
+envsubst < cluster.yaml | kubectl apply -f -
+```
+
+</TabItem>
+<TabItem value="docker" label="Docker (local dev)">
+
+```bash
+export CS_CLUSTER_NAME=my-cluster
+export CS_CLASS_NAME=docker-${CS_NAME}-${CS_K8S_VERSION/./-}-${CS_VERSION}
+```
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: ${CS_CLUSTER_NAME}
+  namespace: ${CS_NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    serviceDomain: cluster.local
+  topology:
+    class: ${CS_CLASS_NAME}
+    version: v${CS_K8S_VERSION}.1
+    controlPlane:
+      replicas: 1
+    workers:
+      machineDeployments:
+        - class: default-worker
+          name: default-worker
+          replicas: 1
+```
+
+```bash
+envsubst < cluster.yaml | kubectl apply -f -
+```
+
+</TabItem>
+</Tabs>
+
+## 7. Monitor and access the cluster
+
+Watch the cluster provisioning:
+
+```bash
+clusterctl -n "${CS_NAMESPACE}" describe cluster "${CS_CLUSTER_NAME}"
+```
+
+Once ready, retrieve the kubeconfig:
+
+```bash
+clusterctl -n "${CS_NAMESPACE}" get kubeconfig "${CS_CLUSTER_NAME}" > kubeconfig.yaml
+kubectl --kubeconfig kubeconfig.yaml get nodes
+```
+
+Verify addons are running:
+
+```bash
+kubectl --kubeconfig kubeconfig.yaml get pods -A
+```
+
+You should see Cilium, metrics-server, and (on OpenStack) the cloud-controller-manager and Cinder CSI running.
+
+## Next steps
+
+- [Configuration reference](providers/openstack/configuration.md) — all available ClusterClass variables
+- [Build system](build-system.md) — how to build and publish cluster stacks
+- [Versioning](versioning.md) — how cluster stack versioning works

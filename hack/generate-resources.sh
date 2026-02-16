@@ -2,7 +2,10 @@
 # Generate ClusterStack and Cluster YAML resources for testing.
 #
 # Usage:
-#   ./hack/generate-resources.sh <stack-dir> --version 1.34 [options]
+#   ./hack/generate-resources.sh [stack-dir] --version 1.34 [options]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
 #
 # Options:
 #   --version <X.Y>        K8s minor version (required)
@@ -44,8 +47,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$STACK_DIR" || -z "$K8S_VERSION" ]]; then
-    echo "Usage: $0 <stack-dir> --version X.Y [--namespace ns] [--cluster-name name]" >&2
+if [[ -z "$STACK_DIR" ]]; then
+    STACK_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}"
+fi
+
+if [[ -z "$K8S_VERSION" ]]; then
+    echo "Usage: $0 [stack-dir] --version X.Y [--namespace ns] [--cluster-name name]" >&2
     exit 1
 fi
 
@@ -59,7 +66,7 @@ fi
 # ============================================
 
 PROVIDER=$(yq '.config.provider.type' "$STACK_DIR/csctl.yaml")
-STACK_NAME=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
+CLUSTER_STACK=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
 K8S_DASH="${K8S_VERSION//./-}"
 
 # Resolve full K8s version from versions.yaml if available
@@ -72,7 +79,7 @@ fi
 # Try to find the latest CS version from OCI registry
 CS_VERSION="v1"
 if [[ -n "${OCI_REGISTRY:-}" && -n "${OCI_REPOSITORY:-}" ]] && command -v oras >/dev/null 2>&1; then
-    TAG_PREFIX="${PROVIDER}-${STACK_NAME}-${K8S_DASH}"
+    TAG_PREFIX="${PROVIDER}-${CLUSTER_STACK}-${K8S_DASH}"
     LATEST=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" 2>/dev/null | \
         grep -oP "^${TAG_PREFIX}-v\K[0-9]+" | sort -n | tail -1 || echo "")
     [[ -n "$LATEST" ]] && CS_VERSION="v${LATEST}"
@@ -92,7 +99,7 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   provider: ${PROVIDER}
-  name: ${STACK_NAME}
+  name: ${CLUSTER_STACK}
   kubernetesVersion: "${K8S_VERSION}"
   channel: custom
   autoSubscribe: false
@@ -106,7 +113,7 @@ fi
 # ============================================
 
 if [[ "$CLUSTERSTACK_ONLY" != "true" ]]; then
-    CLUSTER_CLASS="${PROVIDER}-${STACK_NAME}-${K8S_DASH}-${CS_VERSION}"
+    CLUSTER_CLASS="${PROVIDER}-${CLUSTER_STACK}-${K8S_DASH}-${CS_VERSION}"
 
     cat <<EOF
 ---

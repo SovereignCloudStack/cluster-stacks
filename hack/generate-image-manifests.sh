@@ -8,12 +8,19 @@
 # Entries without an "ubuntu" field are skipped (e.g., docker provider stacks).
 #
 # Usage:
-#   ./hack/generate-image-manifests.sh <stack-dir>                        # All versions
-#   ./hack/generate-image-manifests.sh <stack-dir> --version 1.34         # Specific version
-#   ./hack/generate-image-manifests.sh <stack-dir> --output-dir manifests/ # Write to files
-#   ./hack/generate-image-manifests.sh <stack-dir> --skip-checksum        # Skip checksum fetch
+#   ./hack/generate-image-manifests.sh [stack-dir] [options]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
+#
+# Options:
+#   --version X.Y         Generate for a specific K8s minor version only
+#   --output-dir <dir>    Write individual YAML files instead of stdout
+#   --skip-checksum       Skip fetching SHA256 checksums
 #
 # Environment:
+#   PROVIDER          Provider name (default: openstack)
+#   CLUSTER_STACK     Cluster stack name (default: scs2)
 #   IMAGE_BASE_URL    Base URL for images (default: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images)
 #   CLOUD_NAME        CloudCredentialsRef cloud name (default: openstack)
 #   SECRET_NAME       CloudCredentialsRef secret name (default: openstack)
@@ -51,8 +58,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$STACK_DIR" ]]; then
-    echo "Usage: $0 <stack-dir> [--version X.Y] [--output-dir dir] [--skip-checksum]" >&2
-    exit 1
+    STACK_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}"
 fi
 
 if [[ ! -f "$STACK_DIR/versions.yaml" ]]; then

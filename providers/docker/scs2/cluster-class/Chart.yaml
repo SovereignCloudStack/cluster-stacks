@@ -1,0 +1,7 @@
+apiVersion: v2
+name: docker-scs2-cluster-class
+description: |
+  SCS2 Cluster Class for the Docker infrastructure provider.
+  Uses CAPI v1beta2 for core/kubeadm resources, v1beta1 for Docker infra resources.
+type: application
+version: v1

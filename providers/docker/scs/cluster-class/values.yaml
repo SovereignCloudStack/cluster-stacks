@@ -3,3 +3,8 @@ images:
     - name: registry.scs.community/docker.io/kindest/node:v1.30.10
   worker:
     - name: registry.scs.community/docker.io/kindest/node:v1.30.10
+
+# ClusterClass variable defaults
+# These are referenced by the ClusterClass template and can be overridden per deployment.
+variables:
+  imageRepository: ""

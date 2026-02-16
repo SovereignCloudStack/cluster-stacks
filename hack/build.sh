@@ -2,7 +2,10 @@
 # Build and optionally publish cluster-stack release artifacts.
 #
 # Usage:
-#   ./hack/build.sh <stack-dir> [options]
+#   ./hack/build.sh [stack-dir] [options]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
 #
 # Options:
 #   --version <X.Y>   Build for a specific K8s minor version (e.g., 1.34)
@@ -13,6 +16,8 @@
 # Without --version or --all, builds for the version in csctl.yaml.
 #
 # Environment:
+#   PROVIDER          Provider name (default: openstack)
+#   CLUSTER_STACK     Cluster stack name (default: scs2)
 #   OCI_REGISTRY      OCI registry (default: ttl.sh)
 #   OCI_REPOSITORY    OCI repository (auto-generated for ttl.sh)
 #   OCI_USERNAME      OCI auth username (optional)
@@ -53,8 +58,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$STACK_DIR" ]]; then
-    echo "Usage: $0 <stack-dir> [--version X.Y] [--all] [--publish] [--validate]"
-    exit 1
+    STACK_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}"
 fi
 
 if [[ ! -d "$STACK_DIR" ]]; then
@@ -72,7 +76,7 @@ fi
 # ============================================
 
 PROVIDER=$(yq '.config.provider.type' "$STACK_DIR/csctl.yaml")
-STACK_NAME=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
+CLUSTER_STACK=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
 OUTPUT_DIR="${OUTPUT_DIR:-.release}"
 
 # ============================================
@@ -123,7 +127,7 @@ setup_oci() {
 get_release_version() {
     local k8s_short="$1"
     local k8s_dash="${k8s_short//./-}"
-    local tag_prefix="${PROVIDER}-${STACK_NAME}-${k8s_dash}"
+    local tag_prefix="${PROVIDER}-${CLUSTER_STACK}-${k8s_dash}"
 
     if [[ "${OCI_REGISTRY:-}" == "ttl.sh" ]] || [[ -z "${OCI_REPOSITORY:-}" ]]; then
         # Dev version
@@ -158,7 +162,7 @@ build_version() {
     local k8s_dash="${k8s_short//./-}"
 
     echo ""
-    echo "Building ${PROVIDER}-${STACK_NAME} for K8s ${k8s_version}"
+    echo "Building ${PROVIDER}-${CLUSTER_STACK} for K8s ${k8s_version}"
     echo "---"
 
     # Get release version
@@ -167,7 +171,7 @@ build_version() {
     fi
     local release_version
     release_version=$(get_release_version "$k8s_short")
-    local release_dir="${OUTPUT_DIR}/${PROVIDER}-${STACK_NAME}-${k8s_dash}-${release_version}"
+    local release_dir="${OUTPUT_DIR}/${PROVIDER}-${CLUSTER_STACK}-${k8s_dash}-${release_version}"
 
     mkdir -p "$release_dir"
 
@@ -181,7 +185,7 @@ build_version() {
 
     # Patch cluster-class Chart.yaml: set name and version
     local class_chart="$work_dir/cluster-class/Chart.yaml"
-    yq -i ".name = \"${PROVIDER}-${STACK_NAME}-${k8s_dash}-cluster-class\"" "$class_chart"
+    yq -i ".name = \"${PROVIDER}-${CLUSTER_STACK}-${k8s_dash}-cluster-class\"" "$class_chart"
     yq -i ".version = \"${release_version}\"" "$class_chart"
 
     # Patch csctl.yaml kubernetes version
@@ -253,7 +257,7 @@ build_version() {
         exit 1
     fi
 
-    local addon_tgz="${PROVIDER}-${STACK_NAME}-${k8s_dash}-cluster-addon-${release_version}.tgz"
+    local addon_tgz="${PROVIDER}-${CLUSTER_STACK}-${k8s_dash}-cluster-addon-${release_version}.tgz"
     (cd "$addon_temp" && tar -czf "$(cd "$REPO_ROOT" && pwd)/$release_dir/$addon_tgz" */)
     rm -rf "$addon_temp"
     echo "  cluster-addon packaged ($addon_count addons)"
@@ -329,7 +333,7 @@ publish_version() {
     local release_dir="$1"
     local k8s_dash="$2"
     local release_version="$3"
-    local oci_tag="${PROVIDER}-${STACK_NAME}-${k8s_dash}-${release_version}"
+    local oci_tag="${PROVIDER}-${CLUSTER_STACK}-${k8s_dash}-${release_version}"
 
     if [[ -z "${OCI_REGISTRY:-}" || -z "${OCI_REPOSITORY:-}" ]]; then
         echo "  OCI_REGISTRY or OCI_REPOSITORY not set"
@@ -370,7 +374,7 @@ publish_version() {
 # Main
 # ============================================
 
-echo "Cluster Stack: ${PROVIDER}/${STACK_NAME}"
+echo "Cluster Stack: ${PROVIDER}/${CLUSTER_STACK}"
 echo "K8s versions:  $(echo "$VERSIONS" | tr '\n' ' ')"
 echo ""
 
