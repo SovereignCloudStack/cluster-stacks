@@ -1,7 +1,0 @@
-apiVersion: v2
-description: |
-  This chart installs and configures:
-  * KubeVirt Alpha Cluster Class
-name: kubevirt-alpha-1-29-cluster-class
-type: application
-version: v1
