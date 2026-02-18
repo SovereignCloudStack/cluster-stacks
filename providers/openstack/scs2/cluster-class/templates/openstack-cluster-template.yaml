@@ -43,3 +43,30 @@ spec:
           portRangeMax: 4244
           protocol: tcp
           description: "Allow Hubble traffic for Cilium"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus Kubernetes exporters
+          portRangeMin: 10249
+          portRangeMax: 10259
+          protocol: tcp
+          description: "Allow Prometheus traffic for scraping different Kubernetes exporters on nodes"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus node exporter
+          portRangeMin: 9100
+          portRangeMax: 9100
+          protocol: tcp
+          description: "Allow Prometheus traffic for scraping node exporter"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus etcd exporter
+          portRangeMin: 2379
+          portRangeMax: 2379
+          protocol: tcp
+          description: "Allow Prometheus traffic for scraping etcd exporter"
