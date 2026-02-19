@@ -4,15 +4,20 @@
 # Shows K8s versions, cluster-stack versions (from OCI), and all addon versions.
 #
 # Usage:
-#   ./hack/show-matrix.sh <stack-dir>
+#   ./hack/show-matrix.sh [stack-dir]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
 #
 # Environment:
+#   PROVIDER        Provider name (default: openstack)
+#   CLUSTER_STACK   Cluster stack name (default: scs2)
 #   OCI_REGISTRY    OCI registry to query for CS versions (optional)
 #   OCI_REPOSITORY  OCI repository to query for CS versions (optional)
 
 set -euo pipefail
 
-STACK_DIR="${1:?Usage: $0 <stack-dir>}"
+STACK_DIR="${1:-providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}}"
 
 if [[ ! -f "$STACK_DIR/csctl.yaml" ]]; then
     echo "csctl.yaml not found in: $STACK_DIR" >&2
@@ -20,7 +25,7 @@ if [[ ! -f "$STACK_DIR/csctl.yaml" ]]; then
 fi
 
 PROVIDER=$(yq '.config.provider.type' "$STACK_DIR/csctl.yaml")
-STACK_NAME=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
+CLUSTER_STACK=$(yq '.config.clusterStackName' "$STACK_DIR/csctl.yaml")
 
 # ============================================
 # Collect universal addon versions (from Chart.yaml)
@@ -44,7 +49,7 @@ done
 # Build the matrix
 # ============================================
 
-echo "Cluster Stack: ${PROVIDER}/${STACK_NAME}"
+echo "Cluster Stack: ${PROVIDER}/${CLUSTER_STACK}"
 echo ""
 
 if [[ ! -f "$STACK_DIR/versions.yaml" ]]; then
@@ -98,7 +103,7 @@ for ((i=0; i<ENTRY_COUNT; i++)); do
     # Query OCI for CS version
     CS_VERSION="-"
     if [[ -n "${OCI_REGISTRY:-}" && -n "${OCI_REPOSITORY:-}" ]] && command -v oras >/dev/null 2>&1; then
-        TAG_PREFIX="${PROVIDER}-${STACK_NAME}-${K8S_DASH}"
+        TAG_PREFIX="${PROVIDER}-${CLUSTER_STACK}-${K8S_DASH}"
         LATEST=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" 2>/dev/null | \
             grep -oP "^${TAG_PREFIX}-v\K[0-9]+" | sort -n | tail -1 || echo "")
         [[ -n "$LATEST" ]] && CS_VERSION="v${LATEST}"

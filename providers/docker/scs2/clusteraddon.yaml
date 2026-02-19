@@ -6,25 +6,13 @@ addonStages:
       action: apply
     - name: metrics-server
       action: apply
-    - name: csi
-      action: apply
-    - name: ccm
-      action: apply
   BeforeClusterUpgrade:
     - name: cni
       action: apply
     - name: metrics-server
       action: apply
-    - name: csi
-      action: apply
-    - name: ccm
-      action: apply
   AfterClusterUpgrade:
     - name: cni
       action: apply
     - name: metrics-server
-      action: apply
-    - name: csi
-      action: apply
-    - name: ccm
       action: apply

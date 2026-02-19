@@ -1,148 +1,110 @@
 # Overview
 
-## Cluster Stacks
+Cluster Stacks is the reference implementation for defining and managing Kubernetes clusters via [Cluster API](https://cluster-api.sigs.k8s.io/) (CAPI). Each **cluster stack** is a versioned, self-contained package that bundles everything needed to create production-grade Kubernetes clusters on a given infrastructure provider.
 
-Cluster Stacks is a comprehensive framework and reference implementations for defining and managing Kubernetes clusters via the Cluster API. It is designed to cater to multiple providers and supports a broad range of Kubernetes versions, offering a standardized approach to managing and configuring Kubernetes clusters.
+## Architecture
 
-It encapsulates multiple layers, including node configuration, Cluster API setup, and application-level configurations, such as the Container Network Interface (CNI). By packaging these interdependent configurations, the cluster stack allows for efficient management and deployment of Kubernetes clusters, offering standardized, resilient, and self-managed Kubernetes environments.
+A cluster stack lives in `providers/{provider}/{stack}/` and consists of two main components:
 
-## 🔧 Usage
+```
+providers/openstack/scs2/
+  csctl.yaml               # Stack metadata (provider, name, K8s version)
+  clusteraddon.yaml        # Addon lifecycle hooks (when to install what)
+  versions.yaml            # K8s version -> addon version mapping + metadata
+  cluster-class/           # Helm chart: ClusterClass CRD
+    Chart.yaml
+    values.yaml            # Variable defaults + image references
+    templates/
+      cluster-class.yaml
+      kubeadm-control-plane-template.yaml
+      kubeadm-config-template-worker-*.yaml
+      *-machine-template-*.yaml
+      *-cluster-template.yaml
+  cluster-addon/           # Collection of Helm sub-charts
+    cni/                   # Cilium
+    metrics-server/
+    occm/                  # OpenStack Cloud Controller Manager (provider-specific)
+    cinder-csi/            # Cinder CSI (provider-specific)
+```
 
-Follow our [quickstart guide](providers/openstack/quickstart.md) for an introduction on how to deploy cluster stacks on openstack.
+### Cluster Class
 
-## Layers of a Cluster Stack
+The **cluster-class** is a single Helm chart that defines the [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/) CRD. It contains:
 
-In essence, a cluster stack is an amalgamation of various components each of which serves a crucial role in setting up, maintaining, and operating a Kubernetes cluster. In the context of our framework, we categorize these components into three core layers: `cluster-class`, `cluster-addons`, and `node-images`. Let's delve deeper into understanding each of these layers:
+- The ClusterClass resource with variables, patches, and template references
+- Infrastructure templates (e.g. OpenStackMachineTemplate, DockerClusterTemplate)
+- Control plane template (KubeadmControlPlaneTemplate)
+- Worker bootstrap template (KubeadmConfigTemplate)
 
-### 📚 Cluster Class
+Variables declared in the ClusterClass allow per-cluster customization (flavors, disk sizes, security groups, OIDC, etc.) without modifying the stack itself. Default values are defined in `values.yaml` and referenced via `{{ .Values.variables.* }}` in the templates.
 
-The Cluster Class serves as a blueprint for creating and configuring Kubernetes clusters consistently. It encapsulates various aspects of a cluster, including:
+### Cluster Addons
 
-* The infrastructure provider details
-* Networking configurations
-* Cluster-class templating
-* Other cluster-specific settings
+**Cluster addons** are core components installed onto the workload cluster by the [cluster-stack-operator](https://github.com/SovereignCloudStack/cluster-stack-operator). They are **not** user applications — they are foundational services:
 
-Essentially, it defines the desired configuration and properties of a Kubernetes cluster. It leverages the [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/) feature of Cluster API, which provides a declarative, Kubernetes-style API for cluster creation, configuration, and management. Any change in this layer or in the node-image or cluster-addon layers triggers a version bump in the cluster class, hence the cluster stack.
+| Addon | Purpose | Present in |
+|-------|---------|------------|
+| **Cilium** (CNI) | Pod networking and network policy | All stacks |
+| **metrics-server** | Node/pod resource metrics, enables HPA | All stacks |
+| **OCCM** | OpenStack Cloud Controller Manager | OpenStack stacks |
+| **Cinder CSI** | Persistent volume provisioning via OpenStack Cinder | OpenStack stacks |
 
-### 🎁 Cluster Addons
+Addon installation timing is controlled by `clusteraddon.yaml` using [CAPI lifecycle hooks](https://cluster-api.sigs.k8s.io/tasks/experimental-features/runtime-sdk/implement-lifecycle-hooks):
 
-Cluster Addons are core components or services required for the Kubernetes cluster to function correctly and efficiently. These are not user-facing applications but rather foundational services critical to the operation and management of a Kubernetes cluster. They're usually installed and configured after the cluster infrastructure has been provisioned and before the cluster is ready to serve workloads.
+- `AfterControlPlaneInitialized` — CNI (required before workers can join)
+- `BeforeClusterUpgrade` — all addons (ensures compatibility during upgrades)
 
-Cluster addons encompass a variety of functionalities, including but not limited to:
+### Node Images
 
-* Container Network Interfaces (CNI): These are plugins that facilitate container networking. A CNI is integral to setting up network connectivity and ensuring communication between pods in a Kubernetes cluster.
-* Cloud Controller Manager (CCM): The CCM is a Kubernetes control plane component that embeds the cloud-specific control logic. Its role is to manage the communication with the underlying cloud services.
-* Konnectivity service: This is a network proxy that enables connectivity from the control plane to nodes and vice versa. It is a critical component that supports Kubernetes API server connectivity.
-* Metrics Server: A cluster-wide aggregator of resource usage data, Metrics Server collects CPU, memory, and other metrics from nodes and pods, enabling features like Horizontal Pod Autoscaling.
+For OpenStack, node images are pre-built Ubuntu images with containerd and kubelet. The image name encodes the Kubernetes version (e.g. `ubuntu-capi-image-v1.32.5`). The `versions.yaml` file maps Kubernetes versions to Ubuntu releases:
 
-It's important to note that cluster addons are not user-provided applications or services that can be installed multiple times, such as ingress controllers, application-level monitoring tools, or user-facing APIs. Those are left to the discretion and responsibility of the users, who install and manage them according to their specific needs and preferences.
+- K8s 1.32 and earlier: Ubuntu 22.04
+- K8s 1.33+: Ubuntu 24.04
 
-Each addon version is independent and can be updated separately. However, a change in this layer also necessitates a version bump in the cluster class and the cluster stack, which is reflected in the metadata.yaml.
+For Docker (development/testing), the `kindest/node` images from the kind project are used.
 
-### 🎞️ Node Images
+## Available Stacks
 
-Node images provide the foundation for the operating system environment on each node of a Kubernetes cluster. They are typically a minimal operating system distribution, like a lightweight Linux distro, which may also include container runtime components such as Docker or containerd.
+| Provider | Stack | API Version | Description |
+|----------|-------|-------------|-------------|
+| `openstack` | `scs` | v1beta1 | Legacy OpenStack stack |
+| `openstack` | `scs2` | v1beta2 | Production OpenStack stack with updated variable names and v1beta2 core resources |
+| `docker` | `scs` | v1beta1 | Legacy Docker stack for local development |
+| `docker` | `scs2` | v1beta2 | Docker stack with v1beta2 core resources, production tuning, OIDC support |
 
-Node images are responsible for providing the necessary environment and dependencies to support Kubernetes components and workloads. This includes components like kubelet, kube-proxy, and other necessary system utilities and libraries.
+> **Note:** "v1beta2" refers to CAPI core resources (ClusterClass, KubeadmControlPlaneTemplate, KubeadmConfigTemplate). Infrastructure provider resources (OpenStackMachineTemplate, DockerMachineTemplate) remain at their provider's own API version (currently v1beta1).
 
-The version of a node image can be different from that of the cluster stack or the cluster class. However, an update to a node image will trigger a version bump in the cluster class and hence the cluster stack.
+## Versioning
 
-In the cluster-stacks repository's directory structure, the build instructions for Node Images are always placed within the respective directory. The instructions outline the steps and configurations required to create the Node Image automatically. The specific method for releasing the Node Image may vary based on the provider's capabilities and requirements.
+Release artifacts follow the naming scheme:
 
-During the development phase, the build instructions serve as a reference within the repository itself. These instructions may utilize tools like Packer or other image-building techniques. This allows for flexibility and customization, enabling users to define their Node Images according to specific needs and requirements.
+```
+{provider}-{stack}-{k8s-major}-{k8s-minor}-{cluster-stack-version}
+```
 
-However, when it comes to the release of the cluster stack, the Node Image can be provided in different ways depending on the capabilities of the provider or the desired deployment method. Here are a few examples:
+Examples:
+- `openstack-scs2-1-34-v1` — first stable release for K8s 1.34
+- `docker-scs2-1-35-v0` — dev release for K8s 1.35
 
-1. **URL on a remote endpoint**: In some cases, `providers` may support deploying a Node Image directly from a URL. In this scenario, the Node Image referenced in the `cluster stack`, specifically in the `cluster class`, would be provided as a URL pointing to a pre-built image accessible remotely.
-1. **Artifact**: If the provider supports artifacts, the Node Image can be released as an artifact, such as a qcow2 file. The artifact would be uploaded to the provider, and the `cluster stack` references the artifact for node provisioning.
-1. **Build Instructions**: In cases where the provider doesn't support direct URL deployment or artifact-based provisioning, the build instructions defined within the repository become critical. The build instructions serve as a comprehensive guide to build the Node Image, specifying all the necessary steps and configurations.
+Version semantics:
+- **`v0`** = development version (published to ttl.sh with 24h TTL or git hash tag)
+- **`v1`, `v2`, ...** = stable versions (auto-incremented by querying the OCI registry)
 
-Regardless of the release method, the cluster stack, specifically the cluster class, references the appropriate Node Image to be used for node provisioning.
+Any change to the cluster-class, cluster-addons, or node images triggers a version bump of the entire cluster stack.
 
-By allowing flexibility in the release and deployment methods of Node Images, the cluster stack framework caters to various provider capabilities and user requirements. This adaptability ensures the cluster stack can be deployed in diverse environments while maintaining a consistent and manageable approach to managing Kubernetes clusters.
-
-## 🌐 IaaS Provider, Kubernetes Service Provider, and Cluster API
-In the context of the `cluster-stacks`, we distinguish between two types of providers:
-
-An **IaaS Provider**, in general, offers Infrastructure as a Service - providing the fundamental compute, storage, and network resources on which workloads can be run. In the context of cluster-stacks, an IaaS Provider specifically refers to an entity that owns an API for their infrastructure. If an organization uses a common infrastructure API, such as OpenStack, they are not considered an IaaS Provider in this context. However, if the organization owns the API for its infrastructure, it becomes an IaaS Provider for the purposes of cluster-stacks.
-
-A **Kubernetes Service Provider**, on the other hand, is an entity that implements a cluster stack. They do so on top of the IaaS Providers, potentially spanning across multiple IaaS Providers. They use the IaaS Provider's infrastructure services and integrate them into their cluster stack implementations.
-
-The **Cluster API (CAPI)** is a Kubernetes project aimed at simplifying the process of managing Kubernetes clusters. It offers a declarative API that automates the creation, configuration, and management of clusters, providing a standardized way to interact with Kubernetes. The cluster stack approach leverages CAPI to deliver self-managed Kubernetes clusters.
-
-## 📌 Defining and Adding Providers
-The structure of this repository is specifically designed to handle multiple providers, multiple cluster stacks per provider, and multiple Kubernetes versions per cluster stack. This organized structure allows us to effectively manage, develop, and maintain multiple cluster stacks across various Kubernetes versions and providers, all in a single repository.
-
-### 📁 Repository Structure
-The repository maintains a specific structure:
-
-* Each IaaS Provider has a directory under providers.
-* Each IaaS Provider can have multiple cluster stack implementations.
-* Each cluster stack supports multiple Kubernetes major and minor versions.
+## Repository Structure
 
 ```
 providers/
-└── <provider_name>/
-    └── <cluster_stack_name>/
-        └── <k8s_major_minor_version>/
+  docker/
+    scs/                   # v1beta1 Docker stack
+    scs2/                  # v1beta2 Docker stack
+  openstack/
+    scs/                   # v1beta1 OpenStack stack (legacy)
+    scs2/                  # v1beta2 OpenStack stack (production)
+hack/                      # Build and utility scripts
+docs/                      # Documentation (consumed by Docusaurus)
+Taskfile.yml               # Task runner definitions
+justfile                   # Just runner definitions
+Containerfile              # Build container image
 ```
-
-The directory structure for adding a new provider would look something like this:
-
-```
-providers/<provider_name>/<cluster_stack_name>/<k8s_major_minor_version>
-# example
-providers/openstack/scs/1-28
-```
-This granular, hierarchical structure allows us to manage different versions of Kubernetes and their associated cluster stacks across different providers.
-
-We decided to support multiple Kubernetes major and minor versions to provide the flexibility to accommodate different implementation requirements of the provider. However, we deliberately chose not to support Kubernetes patch versions directly. The reason is the high frequency of patch versions release (often weekly), which would complicate maintenance efforts significantly.
-
-Instead, we represent Kubernetes patch version updates through changes in our cluster stack version. For instance, if a patch version of Kubernetes necessitates a change in the node-image or the cluster-class configuration, this would trigger a version bump in the corresponding cluster stack, hence the cluster class, as reflected in the metadata.yaml.
-
-In this way, our versioning system, our directory structure, and our approach to Kubernetes versioning are all interlinked, providing us a comprehensive, manageable, and resilient framework for maintaining various Kubernetes distributions or cluster stacks across multiple providers and versions.
-
-## 📑 Versioning
-
-Note: This section is subject to change, as our new tool [csctl](https://github.com/SovereignCloudStack/csctl) will incorporate future versioning capabilities.
-
-A fundamental aspect of the cluster stack approach is the encapsulation of versioning within a cluster stack distribution. Each of the components can be updated independently, leading to a flexible and maintainable system.
-
-However, the critical point to understand here is the relationship between these component versions and the cluster stack version. Whenever there's a change or an update to either the cluster addon or the node image, the version of the cluster stack must be bumped. And due to the connection between the cluster class and the cluster stack, the cluster class version must be updated to match the new cluster stack version.
-
-The cluster stack version doesn't simply mirror the versions of its components, but rather, it reflects the "version of change". In essence, the cluster stack version is a reflection of the state of the entire stack as a whole at a particular point in time. Any change in the components warrants a new state, and therefore a new version of the cluster stack.
-
-So, an update to the cluster addon component will bump the version of the cluster stack, irrespective of the existing version of the node image. The same applies vice versa. When such an update occurs, the version of the cluster class is also incremented to align with the new cluster stack version, maintaining the unity of the cluster stack framework.
-
-This versioning approach ensures a clear and precise track of changes, promoting efficient management, and isolated testing. It offers enhanced resilience for the Kubernetes distribution or the cluster stack, ensuring safe and secure upgrades even in rapid update cycles. It's an efficient method of maintaining stability in the rapidly changing environment of a Kubernetes stack.
-
-The versioning of the cluster stack is primarily managed through a file named metadata.yaml, located at the root directory of each cluster stack. This file serves as the source of truth for the versioning information of the cluster stack, cluster class, node images, and cluster addons.
-
-Here is an example of how metadata.yaml could look like:
-```
-apiVersion: metadata.clusterstack.x-k8s.io/v1alpha1
-versions:
-  clusterStack: v3
-  kubernetes: v1.27.3
-  components:
-    clusterAddon: v2
-    nodeImage: v1
-```
-In this example, the cluster stack (and thus the cluster class) is on version 3, while the cluster addon is on version 2 and node image is on version 1.
-
-When there's a change or update in the node images or cluster addons, we would bump the version of the cluster stack and cluster class, while leaving the unaffected component's version intact. So if the node image was updated, the metadata.yaml might then look like this:
-
-```
-apiVersion: metadata.clusterstack.x-k8s.io/v1alpha1
-versions:
-  clusterStack: v4
-  kubernetes: v1.27.3
-  components:
-    clusterAddon: v2
-    nodeImage: v2
-```
-
-Here, the cluster stack and cluster class versions were updated to v4, the node image version was bumped to v2 due to the changes, while the cluster addon remained on v2 as it was not affected by the update.
-
-This versioning approach allows us to keep track of changes across different components, manage these components effectively, and conduct isolated testing. This ensures that our Kubernetes distribution or cluster stack remains resilient, and we can perform safe and secure upgrades even in the face of rapid update cycles. The metadata.yaml plays a critical role in maintaining this structure and providing an accurate representation of the state of the whole stack at any given time.

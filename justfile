@@ -79,17 +79,9 @@ update-versions-all *FLAGS:
 # Resource Generation
 # ============================================
 
-# Generate both ClusterStack + Cluster YAML (e.g., just generate-resources 1.34)
-generate-resources version *FLAGS:
-    ./hack/generate-resources.sh --version {{version}} {{FLAGS}}
-
-# Generate only the ClusterStack resource (e.g., just generate-clusterstack 1.34)
-generate-clusterstack version *FLAGS:
-    ./hack/generate-resources.sh --version {{version}} --clusterstack-only {{FLAGS}}
-
-# Generate only the Cluster resource (e.g., just generate-cluster 1.34)
-generate-cluster version *FLAGS:
-    ./hack/generate-resources.sh --version {{version}} --cluster-only {{FLAGS}}
+# Generate ClusterStack + Cluster YAML for testing (e.g., just generate-resources 1.34)
+generate-resources version:
+    ./hack/generate-resources.sh --version {{version}}
 
 # Generate OpenStack Image CRD manifests
 generate-image-manifests:
@@ -128,7 +120,7 @@ container-build:
     echo "Building {{CONTAINER_IMAGE}} with $runtime..."
     $runtime build -t {{CONTAINER_IMAGE}} -f Containerfile .
 
-# Run any just recipe inside the container (e.g., just container-run build-all)
+# Run any just recipe inside the container (e.g., just container run build-all)
 container-run *ARGS:
     #!/usr/bin/env bash
     set -euo pipefail

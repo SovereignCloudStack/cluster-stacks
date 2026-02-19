@@ -8,7 +8,10 @@ set -euo pipefail
 # image mappings, adds new minor versions and removes EOL ones.
 #
 # Usage:
-#   ./hack/update-versions.sh <stack-dir> [--check|--apply] [--supported-minors N]
+#   ./hack/update-versions.sh [stack-dir] [--check|--apply] [--supported-minors N]
+#
+# If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
+# (default: providers/openstack/scs2).
 #
 # Options:
 #   --check              Show available updates without modifying files (default)
@@ -16,13 +19,15 @@ set -euo pipefail
 #   --supported-minors N Keep the N most recent K8s minor versions (default: 4)
 #
 # Environment:
+#   PROVIDER        Provider name (default: openstack)
+#   CLUSTER_STACK   Cluster stack name (default: scs2)
 #   GITHUB_TOKEN    Optional. GitHub personal access token for higher API rate limits.
 #                   Without token: 60 requests/hour. With token: 5000 requests/hour.
 #
 # Examples:
-#   ./hack/update-versions.sh providers/openstack/scs2 --check
+#   ./hack/update-versions.sh --check
 #   ./hack/update-versions.sh providers/openstack/scs2 --apply
-#   GITHUB_TOKEN=ghp_xxx ./hack/update-versions.sh providers/openstack/scs2 --apply
+#   PROVIDER=docker CLUSTER_STACK=scs ./hack/update-versions.sh --apply
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -162,31 +167,35 @@ detect_addons() {
 # --- Main logic ---
 
 parse_args() {
-    if [[ $# -lt 1 ]]; then
-        usage
-    fi
+    STACK_DIR=""
 
-    STACK_DIR="$1"
-    shift
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --check)  MODE="check"; shift ;;
+            --apply)  MODE="apply"; shift ;;
+            --supported-minors)
+                SUPPORTED_MINORS="$2"; shift 2
+                ;;
+            -h|--help) usage ;;
+            -*)  echo "Unknown option: $1" >&2; usage ;;
+            *)
+                if [[ -z "$STACK_DIR" ]]; then
+                    STACK_DIR="$1"; shift
+                else
+                    echo "Unexpected argument: $1" >&2; usage
+                fi
+                ;;
+        esac
+    done
+
+    if [[ -z "$STACK_DIR" ]]; then
+        STACK_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs2}"
+    fi
 
     # Resolve relative path
     if [[ ! "$STACK_DIR" = /* ]]; then
         STACK_DIR="$REPO_ROOT/$STACK_DIR"
     fi
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --check)  MODE="check" ;;
-            --apply)  MODE="apply" ;;
-            --supported-minors)
-                shift
-                SUPPORTED_MINORS="$1"
-                ;;
-            -h|--help) usage ;;
-            *) echo "Unknown option: $1" >&2; usage ;;
-        esac
-        shift
-    done
 }
 
 main() {

@@ -7,9 +7,9 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
-            - name: cloud-provider
-              value: external
-            - name: provider-id
-              value: 'openstack:///{{ `{{ instance_id }}` }}'
-          name: '{{ `{{ local_hostname }}` }}'
+            - name: eviction-hard
+              value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+            - name: fail-swap-on
+              value: "false"
