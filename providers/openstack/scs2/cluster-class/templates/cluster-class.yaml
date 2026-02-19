@@ -790,6 +790,32 @@ spec:
                   permissions: "0644"
                 {{ `{{- end }}` }}
                 {{ `{{- end }}` }}
+                - path: /etc/kube-proxy-config.yaml
+                  owner: root:root
+                  permissions: "0644"
+                  content: |
+                    ---
+                    apiVersion: kubeproxy.config.k8s.io/v1alpha1
+                    kind: KubeProxyConfiguration
+                    metricsBindAddress: "0.0.0.0:10249"
+
+                - path: /etc/kube-proxy-patch.sh
+                  owner: root:root
+                  permissions: "0755"
+                  content: |
+                    #!/usr/bin/env bash
+                    set -euo pipefail
+                    dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+                    kubeadm_file="/etc/kubeadm.yml"
+                    [[ -f ${kubeadm_file} ]] || kubeadm_file="/run/kubeadm/kubeadm.yaml"
+                    [[ -f ${kubeadm_file} ]] || exit 0
+                    [[ -f ${dir}/kube-proxy-config.yaml ]] || exit 0
+                    cat "${dir}/kube-proxy-config.yaml" >> "${kubeadm_file}"
+                    rm -f "${dir}/kube-proxy-config.yaml"
+                    echo success > /tmp/kube-proxy-patch
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-"
+            value: "bash /etc/kube-proxy-patch.sh"
     - name: registryMirrorsWorker
       description: "Configure registry mirrors on worker nodes (containerd + CRI-O)."
       enabledIf: {{ `'{{ if .registryMirrors }}true{{end}}'` }}
