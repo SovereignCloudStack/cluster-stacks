@@ -25,4 +25,3 @@ the [SCS registry](oci://registry.scs.community/kaas/cluster-stacks).
 - [Matrix](https://matrix.to/#/!NZpJdPGjAHISXnHUil:matrix.org)
 - [notes](https://input.scs.community/2025-scs-team-container)
 
-
