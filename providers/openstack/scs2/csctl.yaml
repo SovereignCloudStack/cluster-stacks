@@ -1,7 +1,7 @@
 apiVersion: csctl.clusterstack.x-k8s.io/v1alpha1
 config:
   clusterStackName: scs2
-  kubernetesVersion: v1.34.3
+  kubernetesVersion: v1.34.4
   provider:
     apiVersion: openstack.csctl.clusterstack.x-k8s.io/v1alpha1
     type: openstack
