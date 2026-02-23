@@ -1,0 +1,5 @@
+apiVersion: v2
+description: "OpenStack HCP (Hosted Control Plane) Cluster Class for K8s 1.35"
+name: openstack-hcp-1-35-cluster-class
+type: application
+version: v1
