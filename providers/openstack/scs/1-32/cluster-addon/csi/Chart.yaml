@@ -1,0 +1,10 @@
+apiVersion: v2
+dependencies:
+  - alias: openstack-cinder-csi
+    name: openstack-cinder-csi
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.32.2
+description: CSI
+name: openstack-scs-1-32-cluster-addon
+type: application
+version: v1

@@ -1,0 +1,21 @@
+openstack-cloud-controller-manager:
+  secret:
+    enabled: true
+    name: ccm-cloud-config
+    create: true
+  nodeSelector:
+  tolerations:
+    - key: node.cloudprovider.kubernetes.io/uninitialized
+      value: "true"
+      effect: NoSchedule
+  extraVolumes:
+    - name: clouds-yaml
+      secret:
+        secretName: clouds-yaml
+  extraVolumeMounts:
+    - name: clouds-yaml
+      readOnly: true
+      mountPath: /etc/openstack
+  cloudConfig:
+    global:
+      use-clouds: true
