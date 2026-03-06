@@ -171,6 +171,32 @@ spec:
           description: |-
             controlPlaneOmitAvailabilityZone causes availability zone to be omitted when creating control plane nodes,
             allowing the Nova scheduler to make a decision on which availability zone to use based on other scheduling constraints.
+    - name: controlPlaneETCDBackupS3
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+              example: false
+              default: false
+              descripytion: "if true then rke2 backup etcd to s3"
+            endpoint:
+              type: string
+              default: ""
+              example: "xxxxxxx.xx:6780"
+              description: "define the Endpoint of S3 store"
+            region:
+              type: string
+              default: ""
+              example: "us-west"
+              description: "define the Region of S3 store"
+            bucket:
+              type: string
+              default: ""
+              example: "backup"
+              description: "define the Bucket of S3 store"
     # Workers
     - name: workerFlavor
       required: false
@@ -956,3 +982,27 @@ spec:
               path: "/spec/template/spec/serverConfig/tlsSAN"
               valueFrom:
                 variable: certSANs
+
+    - name: controlPlaneETCDBackupS3
+      description: "enable S3 Backups"
+      enabledIf: {{ `'{{ .controlPlaneETCDBackupS3.enabled }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: RKE2ControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/etcd/backupConfig"
+              valueFrom:
+                template: |
+                  s3:
+                    endpoint: {{ `{{ .controlPlaneETCDBackupS3.endpoint }}` }}
+                    s3CredentialSecret:
+                      apiVersion: v1
+                      kind: Secret
+                      name: etcd-backup-secret
+                      namespace: {{ `{{ .builtin.cluster.namespace }}` }}
+                    region: {{ `{{ .controlPlaneETCDBackupS3.region }}` }}
+                    bucket: {{ `{{ .controlPlaneETCDBackupS3.bucket }}` }}

@@ -17,6 +17,8 @@ spec:
         rollingUpdate:
           maxSurge: 1
       registrationMethod: "internal-first"
+      etcd:
+        backupConfig: {}
       serverConfig:
         cni: cilium
         disableComponents: 
