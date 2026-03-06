@@ -197,6 +197,11 @@ spec:
               default: ""
               example: "backup"
               description: "define the Bucket of S3 store"
+            folder:
+              type: string
+              default: ""
+              example: "rke2-backup"
+              description: "define the Folder of S3 store"
     # Workers
     - name: workerFlavor
       required: false
@@ -1006,3 +1011,4 @@ spec:
                       namespace: {{ `{{ .builtin.cluster.namespace }}` }}
                     region: {{ `{{ .controlPlaneETCDBackupS3.region }}` }}
                     bucket: {{ `{{ .controlPlaneETCDBackupS3.bucket }}` }}
+                    folder: {{ `{{ .controlPlaneETCDBackupS3.folder }}` }}
