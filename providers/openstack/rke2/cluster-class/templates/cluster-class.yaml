@@ -202,6 +202,14 @@ spec:
               default: ""
               example: "rke2-backup"
               description: "define the Folder of S3 store"
+    - name: controlPlaneTaints
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          items:
+            type: string
     # Workers
     - name: workerFlavor
       required: false
@@ -999,7 +1007,7 @@ spec:
               controlPlane: true
           jsonPatches:
             - op: add
-              path: "/spec/template/spec/etcd/backupConfig"
+              path: "/spec/template/spec/serverConfig/etcd/backupConfig"
               valueFrom:
                 template: |
                   s3:
@@ -1012,3 +1020,17 @@ spec:
                     region: {{ `{{ .controlPlaneETCDBackupS3.region }}` }}
                     bucket: {{ `{{ .controlPlaneETCDBackupS3.bucket }}` }}
                     folder: {{ `{{ .controlPlaneETCDBackupS3.folder }}` }}
+    - name: controlPlaneTaints
+      description: "add Taints to ControlPlane"
+      enableIf: {{ `'{{ if .controlPlaneTaints }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+            kind: RKE2ControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/agentConfig/nodeTaints"
+              valueFrom:
+                variable: controlPlaneTaints

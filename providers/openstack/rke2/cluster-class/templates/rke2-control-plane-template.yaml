@@ -10,6 +10,7 @@ spec:
           extraArgs:
           - provider-id=openstack:///{{ `{{ instance_id }}` }} # Data from Openstack metadata-service
         nodeName: '{{ `{{ local_hostname }}` }}' # Data from Openstack metadata-service
+        nodeTaints: []
       gzipUserData: false
       version: ""
       rolloutStrategy:
@@ -17,9 +18,9 @@ spec:
         rollingUpdate:
           maxSurge: 1
       registrationMethod: "internal-first"
-      etcd:
-        backupConfig: {}
       serverConfig:
+        etcd:
+          backupConfig: {}
         cni: cilium
         disableComponents: 
           kubernetesComponents:
