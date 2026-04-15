@@ -2,6 +2,8 @@ export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml
 
 export PATH=$PWD/hack/tools/bin:$PATH
 
+# Legacy variables from the previous workflow. They are currently not consumed by hack scripts, but are kept here for compatibility/reference.
+
 export PROVIDER=docker
 
 # Versions
@@ -21,3 +23,18 @@ export DISABLE_VERSIONCHECK="true"
 # Release
 export RELEASE_CLUSTER_CLASS=$CLUSTER_CLASS_NAME
 export RELEASE_KUBERNETES_VERSION=1-27
+
+# Current workflow: the build scripts derive the stack from PROVIDER and
+
+export PROVIDER=openstack
+export CLUSTER_STACK=scs
+
+# OCI registry (leave unset for auto-configured ttl.sh during development)
+# export OCI_REGISTRY=registry.example.com
+# export OCI_REPOSITORY=kaas/cluster-stacks
+# export OCI_USERNAME=user
+# export OCI_PASSWORD=password
+# export OCI_ACCESS_TOKEN=token
+
+# Optional: GitHub token for higher API rate limits during version resolution
+# export GITHUB_TOKEN=ghp_...
