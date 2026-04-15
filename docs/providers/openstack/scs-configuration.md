@@ -5,7 +5,7 @@ This page lists the custom configuration options available, including their defa
 ## Version matrix
 
 | Version | K8s | CS Version | cilium | metrics-server | os-csi | os-ccm |
-|---------|-----|----------|---------|---------|---------|---------|
+| ------- | --- | ---------- | ------ | -------------- | ------ | ------ |
 | 1-32 | 1.32 | - | 1.19.1 | 3.13.0 | 2.32.x | 2.32.x |
 | 1-33 | 1.33 | - | 1.19.1 | 3.13.0 | 2.33.x | 2.33.x |
 | 1-34 | 1.34 | - | 1.19.1 | 3.13.0 | 2.34.x | 2.34.x |
@@ -69,35 +69,37 @@ In v1beta2, per-role overrides (e.g. different flavors for control plane and wor
 ## Available variables
 
 > **Note:** This table documents the **1-35** (v1beta2) variable set with unified
-> variable names. Older versions (1-32, 1-33) use role-prefixed names like
-> `controlPlaneFlavor` / `workerFlavor` instead of the unified `flavor`.
+> variable names. The other currently maintained SCS minors in this repo use the
+> same unified variable model and `ClusterClass`-based configuration pattern.
 
-|Name|Type|Default|Example|Description|Required|
-|----|----|-------|-------|-----------|--------|
-|`imageName`|string|"ubuntu-capi-image"|"ubuntu-capi-image"|Base name of the OpenStack image for cluster nodes.|False|
-|`imageIsOrc`|boolean|false|true|Whether the image name refers to an ORC (OpenStack Resource Controller) image resource instead of a Glance image.|False|
-|`imageAddVersion`|boolean|true|false|Append the Kubernetes version suffix to the image name (e.g. `ubuntu-capi-image-v1.35`).|False|
-|`networkExternalID`|string|""|"ebfe5546-f09f-4f42-ab54-094e457d42ec"|ID of the external OpenStack network for public internet access.|False|
-|`networkMTU`|integer||1500|Maximum transmission unit (MTU) for the private cluster network.|False|
-|`dnsNameservers`|array|["5.1.66.255", "185.150.99.255"]|["8.8.8.8"]|DNS nameservers for the cluster subnet.|False|
-|`nodeCIDR`|string|"10.8.0.0/20"|"10.8.0.0/20"|CIDR for the cluster subnet. A network, subnet, and router will be created.|False|
-|`flavor`|string|"SCS-2V-4-20s"|"SCS-4V-8-20"|OpenStack instance flavor for all nodes. Override per role using topology variable overrides.|False|
-|`rootDisk`|integer|0|50|Root disk size in GiB. When set, an OpenStack volume is used instead of the ephemeral disk from the flavor.|False|
-|`serverGroupID`|string|""|"3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3"|Server group for anti-affinity placement. Override per role using topology variable overrides.|False|
-|`additionalBlockDevices`|array|[]|[{"name": "data", "sizeGiB": 100, "type": "Volume"}]|Additional Cinder volumes to attach to nodes.|False|
-|`sshKey`|string|""|"capi-keypair"|SSH key pair name to inject into nodes.|False|
-|`apiServerLoadBalancer`|string|"octavia-ovn"|"none"|Load balancer for the API server. Options: `none`, `octavia-amphora`, `octavia-ovn`.|False|
-|`apiServerAllowedCIDRs`|array|[]|["10.0.0.0/8"]|CIDRs allowed to access the API server load balancer.|False|
-|`disableAPIServerFloatingIP`|boolean|false|true|Disable floating IP for the API server.|False|
-|`certSANs`|array|[]|["mydomain.example"]|Extra Subject Alternative Names for the API server certificate.|False|
-|`controlPlaneAvailabilityZones`|array|[]|["nova"]|Availability zones for control plane nodes.|False|
-|`controlPlaneOmitAvailabilityZone`|boolean|false|true|Omit availability zone when creating control plane nodes, letting Nova schedule freely.|False|
-|`identityRef.name`|string|"openstack"|"openstack"|Name of the Secret containing OpenStack credentials.|False|
-|`identityRef.cloudName`|string|"openstack"|"openstack"|Cloud name within the credentials Secret.|False|
-|`oidcConfig.clientID`|string||"kubectl"|OIDC client ID for API server authentication.||
-|`oidcConfig.issuerURL`|string||"https://dex.example.com"|OIDC provider discovery URL (must be HTTPS).||
-|`oidcConfig.usernameClaim`|string|"preferred_username"|"email"|JWT claim to use as the username.||
-|`oidcConfig.groupsClaim`|string|"groups"|"groups"|JWT claim to use as groups.||
-|`oidcConfig.usernamePrefix`|string|"oidc:"|"oidc:"|Prefix for OIDC usernames.||
-|`oidcConfig.groupsPrefix`|string|"oidc:"|"oidc:"|Prefix for OIDC group names.||
-|`registryMirrors`|array|[]|[{"hostnameUpstream": "docker.io", "urlMirror": "https://mirror.example.com"}]|Container registry mirrors for node containerd configuration.||
+| Name | Type | Default | Example | Description | Required |
+| ---- | ---- | ------- | ------- | ----------- | -------- |
+| `imageName` | string | "ubuntu-capi-image" | "ubuntu-capi-image" | Base name of the OpenStack image for cluster nodes. | False |
+| `imageIsOrc` | boolean | false | true | Whether the image name refers to an ORC (OpenStack Resource Controller) image resource instead of a Glance image. | False |
+| `imageAddVersion` | boolean | true | false | Append the Kubernetes version suffix to the image name (e.g. `ubuntu-capi-image-v1.35`). | False |
+| `networkExternalID` | string | "" | "ebfe5546-f09f-4f42-ab54-094e457d42ec" | ID of the external OpenStack network for public internet access. | False |
+| `networkMTU` | integer | (provider default) | 1500 | Maximum transmission unit (MTU) for the private cluster network. | False |
+| `dnsNameservers` | array | ["9.9.9.9", "149.112.112.112"] | ["8.8.8.8"] | DNS nameservers for the cluster subnet. | False |
+| `nodeCIDR` | string | "10.8.0.0/20" | "10.8.0.0/20" | CIDR for the cluster subnet. A network, subnet, and router will be created. | False |
+| `flavor` | string | "SCS-2V-4" | "SCS-4V-8-20" | OpenStack instance flavor for all nodes. Override per role using topology variable overrides. | False |
+| `rootDisk` | integer | 50 | 50 | Root disk size in GiB. When set, an OpenStack volume is used instead of the ephemeral disk from the flavor. | False |
+| `serverGroupID` | string | "" | "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3" | Server group for anti-affinity placement. Override per role using topology variable overrides. | False |
+| `additionalBlockDevices` | array | [] | [{"name": "data", "sizeGiB": 100, "type": "Volume"}] | Additional Cinder volumes to attach to nodes. | False |
+| `sshKeyName` | string | "" | "capi-keypair" | SSH key pair name to inject into nodes. | False |
+| `securityGroups` | array | [] | ["security-group-1"] | Extra security groups by name for all nodes. Ignored if `securityGroupIDs` is set. | False |
+| `securityGroupIDs` | array | [] | ["9ae2f488-30a3-4629-bd51-07acb8eb4278"] | Extra security groups by UUID for all nodes. Takes precedence over `securityGroups`. | False |
+| `apiServerLoadBalancer` | string | "octavia-ovn" | "none" | Load balancer for the API server. Options: `none`, `octavia-amphora`, `octavia-ovn`. | False |
+| `apiServerAllowedCIDRs` | array | [] | ["10.0.0.0/8"] | CIDRs allowed to access the API server load balancer. | False |
+| `disableAPIServerFloatingIP` | boolean | false | true | Disable floating IP for the API server. | False |
+| `certSANs` | array | [] | ["mydomain.example"] | Extra Subject Alternative Names for the API server certificate. | False |
+| `controlPlaneAvailabilityZones` | array | [] | ["nova"] | Availability zones for control plane nodes. | False |
+| `controlPlaneOmitAvailabilityZone` | boolean | false | true | Omit availability zone when creating control plane nodes, letting Nova schedule freely. | False |
+| `identityRef.name` | string | "openstack" | "openstack" | Name of the Secret containing OpenStack credentials. | False |
+| `identityRef.cloudName` | string | "openstack" | "openstack" | Cloud name within the credentials Secret. | False |
+| `oidcConfig.clientID` | string | "" | "kubectl" | OIDC client ID for API server authentication. | False |
+| `oidcConfig.issuerURL` | string | "" | `"https://dex.example.com"` | OIDC provider discovery URL (must be HTTPS). | False |
+| `oidcConfig.usernameClaim` | string | "preferred_username" | "email" | JWT claim to use as the username. | False |
+| `oidcConfig.groupsClaim` | string | "groups" | "groups" | JWT claim to use as groups. | False |
+| `oidcConfig.usernamePrefix` | string | "oidc:" | "oidc:" | Prefix for OIDC usernames. | False |
+| `oidcConfig.groupsPrefix` | string | "oidc:" | "oidc:" | Prefix for OIDC group names. | False |
+| `registryMirrors` | array | [] | [{"hostnameUpstream": "docker.io", "urlMirror": "https://mirror.example.com"}] | Container registry mirrors for node containerd configuration. | False |

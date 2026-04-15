@@ -33,7 +33,7 @@ See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough.
 
 ## Repository structure
 
-```
+```text
 providers/
   <provider>/
     <stack>/
@@ -41,7 +41,7 @@ providers/
         stack.yaml       # stack metadata and addon version pins
         cluster-class/   # Helm chart: ClusterClass + infrastructure templates
         cluster-addon/   # Helm chart: CNI, CCM, CSI, metrics-server
-        node-images/     # image build instructions (OpenStack only)
+      image-manager.yaml # OpenStack only: aggregated image references
 ```
 
 Each `1-XX/` directory is self-contained: it carries its own `stack.yaml`,

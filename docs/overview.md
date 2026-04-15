@@ -19,7 +19,7 @@ the `ClusterClass` available for creating workload clusters.
 
 ## Repository structure
 
-```
+```text
 providers/
   <provider>/
     <stack>/
@@ -27,7 +27,6 @@ providers/
         stack.yaml           # metadata: provider, name, k8s version, addon pins
         cluster-class/       # Helm chart producing the ClusterClass
         cluster-addon/       # Helm chart with CNI, CCM, CSI, metrics-server
-        node-images/         # image build definitions (provider-specific)
       image-manager.yaml     # OpenStack only: aggregated image references
 ```
 
@@ -39,8 +38,7 @@ or sharing between minor versions -- changes to one version never affect another
 
 This design makes it straightforward to:
 
-- Support different CAPI API versions across minors (e.g. `v1beta1` for 1-32,
-  `v1beta2` for 1-35).
+- Support provider-specific API and implementation differences across minors.
 - Pin addons to version ranges that match the Kubernetes minor
   (e.g. CCM `2.34.x` for K8s 1.34).
 - Drop old versions by simply removing their directory.
@@ -71,9 +69,8 @@ updates the `Chart.yaml` dependencies in the addon chart.
 The standard SCS cluster stack. Creates dedicated VMs for both control plane and
 worker nodes on OpenStack. Supports Kubernetes 1.32 through 1.35.
 
-- Versions 1-32 and below use CAPI `v1beta1` with role-prefixed variables
-  (`controlPlaneFlavor`, `workerFlavor`).
-- Version 1-35 uses CAPI `v1beta2` with unified variables (`flavor`) and
+- Versions 1-32 through 1-35 use a `ClusterClass`-based configuration model.
+- Version 1-35 uses unified variables (`flavor`) and
   per-role overrides via `topology.controlPlane.variables.overrides`.
 
 ### OpenStack / hcp
@@ -98,7 +95,7 @@ ClusterClass, addons, or node images produces a new version.
 
 The full identifier of a cluster stack release is:
 
-```
+```text
 <provider>-<stack>-<k8s-major>-<k8s-minor>-v<version>
 ```
 
@@ -115,19 +112,19 @@ rolling update of nodes.
 The build system uses [`just`](https://just.systems) as a task runner and a set
 of bash scripts in `hack/`:
 
-| Command                            | Description                                    |
-|------------------------------------|------------------------------------------------|
-| `just build --version 1.35`        | Build locally to `.release/`                   |
-| `just publish --version 1.35`      | Build and push to OCI registry                 |
-| `just dev --version 1.35`          | Publish and print `ClusterStack` resource YAML |
-| `just dev --install-cso --version 1.35` | Also install/upgrade CSO via Helm         |
-| `just install-cso`                 | Install CSO standalone                         |
-| `just matrix`                      | Show version and addon matrix                  |
-| `just update versions`             | Update Kubernetes patch versions               |
-| `just update addons`               | Update addon charts from upstream              |
-| `just generate-resources`          | Generate `ClusterStack` + `Cluster` YAML       |
-| `just generate-docs`               | Regenerate configuration documentation         |
-| `just clean`                       | Remove `.release/` build artifacts             |
+| Command                                 | Description                                    |
+| --------------------------------------- | ---------------------------------------------- |
+| `just build --version 1.35`             | Build locally to `.release/`                   |
+| `just publish --version 1.35`           | Build and push to OCI registry                 |
+| `just dev --version 1.35`               | Publish and print `ClusterStack` resource YAML |
+| `just dev --install-cso --version 1.35` | Also install/upgrade CSO via Helm              |
+| `just install-cso`                      | Install CSO standalone                         |
+| `just matrix`                           | Show version and addon matrix                  |
+| `just update versions`                  | Update Kubernetes patch versions               |
+| `just update addons`                    | Update addon charts from upstream              |
+| `just generate-resources`               | Generate `ClusterStack` + `Cluster` YAML       |
+| `just generate-docs`                    | Regenerate configuration documentation         |
+| `just clean`                            | Remove `.release/` build artifacts             |
 
 ### OCI workflow
 
