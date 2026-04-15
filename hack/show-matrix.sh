@@ -21,6 +21,32 @@
 
 set -euo pipefail
 
+require_command() {
+    local name="$1"
+
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "$name not found. Please install $name and try again." >&2
+        exit 1
+    fi
+}
+
+extract_k8s_minor_version() {
+    echo "$1" | sed -E -n 's/^([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p'
+}
+
+extract_latest_release_number() {
+    local prefix="$1"
+
+    awk -v prefix="${prefix}-v" 'index($0, prefix) == 1 {
+        suffix = substr($0, length(prefix) + 1)
+        if (suffix ~ /^[0-9]+$/) {
+            print suffix
+        }
+    }' | sort -n | tail -1
+}
+
+require_command yq
+
 MARKDOWN=false
 BASE_DIR=""
 
@@ -126,7 +152,7 @@ for version_dir in "$BASE_DIR"/1-*/; do
     [[ -f "$stack_yaml" ]] || continue
 
     k8s_version=$(yq -r '.kubernetesVersion' "$stack_yaml")
-    k8s_short=$(echo "$k8s_version" | grep -oP '^\d+\.\d+')
+    k8s_short=$(extract_k8s_minor_version "$k8s_version")
     k8s_dash="${k8s_short//./-}"
 
     # Query OCI for CS version
@@ -134,7 +160,7 @@ for version_dir in "$BASE_DIR"/1-*/; do
     if [[ -n "${OCI_REGISTRY:-}" && -n "${OCI_REPOSITORY:-}" ]] && command -v oras >/dev/null 2>&1; then
         TAG_PREFIX="${PROVIDER_NAME}-${STACK_NAME}-${k8s_dash}"
         LATEST=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" 2>/dev/null | \
-            grep -oP "^${TAG_PREFIX}-v\K[0-9]+" | sort -n | tail -1 || echo "")
+            extract_latest_release_number "$TAG_PREFIX" || echo "")
         [[ -n "$LATEST" ]] && CS_VERSION="v${LATEST}"
     fi
 

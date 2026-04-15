@@ -39,6 +39,47 @@ set -euo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+readonly YQ_VERSION="$(yq --version 2>/dev/null || true)"
+
+require_command() {
+    local name="$1"
+
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "$name not found. Please install $name and try again." >&2
+        exit 1
+    fi
+}
+
+extract_k8s_minor_version() {
+    echo "$1" | sed -E -n 's/^([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p'
+}
+
+extract_k8s_minor_number() {
+    echo "$1" | sed -E -n 's/^v?[0-9]+\.([0-9]+)(\.[0-9]+)?$/\1/p'
+}
+
+yq_edit_in_place() {
+    local expression="$1"
+    local file="$2"
+
+    if [[ "$YQ_VERSION" == *"https://github.com/mikefarah/yq/"* ]]; then
+        yq -i "$expression" "$file"
+    else
+        yq -y -i "$expression" "$file"
+    fi
+}
+
+require_command yq
+
+require_versions_tools() {
+    require_command curl
+    require_command jq
+}
+
+require_addons_tools() {
+    require_command helm
+    require_command jq
+}
 
 # ============================================
 # Defaults
@@ -254,7 +295,7 @@ update_image_manager() {
 
             # Extract minor from version string (e.g., "v1.34.4" → "34")
             local minor
-            minor=$(echo "$ver" | grep -oP '\d+\.\K\d+(?=\.\d+)')
+            minor=$(extract_k8s_minor_number "$ver")
             if [[ -n "$minor" ]]; then
                 existing_versions["$minor"]="${ver}|${url}|${chk}"
             fi
@@ -405,7 +446,7 @@ cmd_versions() {
         local k8s_version_raw
         k8s_version_raw=$(yq -r '.kubernetesVersion' "$stack_yaml")
         local k8s_short
-        k8s_short=$(echo "$k8s_version_raw" | grep -oP '^\d+\.\d+')
+        k8s_short=$(extract_k8s_minor_version "$k8s_version_raw")
         local k8s_minor
         k8s_minor=$(echo "$k8s_short" | cut -d. -f2)
 
@@ -430,13 +471,18 @@ cmd_versions() {
                 change "$dir_name: K8s $k8s_version_raw → $latest_patch"
                 changes=$((changes + 1))
                 if [[ "$DRY_RUN" != "true" ]]; then
-                    yq -i ".kubernetesVersion = \"$latest_patch\"" "$stack_yaml"
+                    yq_edit_in_place ".kubernetesVersion = \"$latest_patch\"" "$stack_yaml"
                     info "Updated $stack_yaml"
                 fi
             fi
         else
-            # Minor-only (e.g., "1.34") — report latest available patch
-            ok "$dir_name: K8s $k8s_version_raw (minor-only, latest patch: $latest_patch)"
+            # Minor-only (e.g., "1.34") — pin to the latest patch for deterministic builds.
+            change "$dir_name: K8s $k8s_version_raw → $latest_patch"
+            changes=$((changes + 1))
+            if [[ "$DRY_RUN" != "true" ]]; then
+                yq_edit_in_place ".kubernetesVersion = \"$latest_patch\"" "$stack_yaml"
+                info "Updated $stack_yaml"
+            fi
         fi
     done
 
@@ -462,6 +508,7 @@ cmd_versions() {
 
 cmd_addons() {
     local base_dir="$1"
+    local query_failures=0
 
     echo "Updating addons: $base_dir"
     echo ""
@@ -481,7 +528,10 @@ cmd_addons() {
                 dep_repo=$(yq -r ".dependencies[$i].repository // \"\"" "$chart_file")
                 [[ -z "$dep_repo" ]] && continue
                 if [[ -z "${repos_added[$dep_name]+_}" ]]; then
-                    helm repo add "$dep_name" "$dep_repo" >/dev/null 2>&1 || true
+                    if ! helm repo add --force-update "$dep_name" "$dep_repo" >/dev/null 2>&1; then
+                        echo "Failed to add Helm repo $dep_name ($dep_repo)." >&2
+                        exit 1
+                    fi
                     repos_added["$dep_name"]="$dep_repo"
                 fi
             done
@@ -490,7 +540,10 @@ cmd_addons() {
 
     if [[ ${#repos_added[@]} -gt 0 ]]; then
         info "Updating Helm repos..."
-        helm repo update > /dev/null 2>&1
+        if ! helm repo update > /dev/null 2>&1; then
+            echo "Failed to update Helm repositories." >&2
+            exit 1
+        fi
     fi
     echo ""
 
@@ -538,7 +591,7 @@ cmd_addons() {
                 if [[ "$is_tied" == "true" ]]; then
                     # For K8s-tied addons, match by prefix from stack.yaml range
                     local k8s_minor
-                    k8s_minor=$(yq -r '.kubernetesVersion' "$stack_yaml" | grep -oP '\.\K\d+')
+                    k8s_minor=$(extract_k8s_minor_number "$(yq -r '.kubernetesVersion' "$stack_yaml")")
                     latest_version=$(helm search repo "$dep_name/$dep_name" --versions -o json 2>/dev/null | \
                         jq -r --arg minor "$k8s_minor" \
                             '[.[] | select(.version | startswith("2." + $minor + "."))] | .[0].version // empty' 2>/dev/null) || true
@@ -548,7 +601,8 @@ cmd_addons() {
                 fi
 
                 if [[ -z "$latest_version" ]]; then
-                    info "$dep_name: could not query upstream"
+                    warn "$dep_name: could not query upstream"
+                    query_failures=$((query_failures + 1))
                     continue
                 fi
 
@@ -561,13 +615,18 @@ cmd_addons() {
                 total_updates=$((total_updates + 1))
 
                 if [[ "$DRY_RUN" != "true" ]]; then
-                    yq -i ".dependencies[$i].version = \"$latest_version\"" "$chart_file"
+                    yq_edit_in_place ".dependencies[$i].version = \"$latest_version\"" "$chart_file"
                     info "Updated $chart_file"
                 fi
             done
         done
         echo ""
     done
+
+    if [[ "$query_failures" -gt 0 ]]; then
+        echo "$query_failures addon query failure(s) encountered." >&2
+        exit 1
+    fi
 
     if [[ "$DRY_RUN" == "true" ]]; then
         if [[ "$total_updates" -gt 0 ]]; then
@@ -625,6 +684,14 @@ run_all() {
 
 main() {
     parse_args "$@"
+
+    if [[ -z "$SUBCOMMAND" || "$SUBCOMMAND" != "addons" ]]; then
+        require_versions_tools
+    fi
+
+    if [[ -z "$SUBCOMMAND" || "$SUBCOMMAND" != "versions" ]]; then
+        require_addons_tools
+    fi
 
     if [[ "$RUN_ALL" == true ]]; then
         run_all "$SUBCOMMAND"

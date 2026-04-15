@@ -31,6 +31,80 @@
 
 set -euo pipefail
 
+require_command() {
+    local name="$1"
+
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "$name not found. Please install $name and try again." >&2
+        exit 1
+    fi
+}
+
+extract_latest_release_number() {
+    local prefix="$1"
+
+    awk -v prefix="${prefix}-v" 'index($0, prefix) == 1 {
+        suffix = substr($0, length(prefix) + 1)
+        if (suffix ~ /^[0-9]+$/) {
+            print suffix
+        }
+    }' | sort -n | tail -1
+}
+
+require_command yq
+require_command curl
+require_command jq
+
+resolve_k8s_version() {
+    local version="$1"
+    local provider="$2"
+
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$version"
+        return
+    fi
+
+    if [[ "$provider" == "docker" ]]; then
+        local latest_docker
+            if ! latest_docker=$(curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&name=v${version}." 2>/dev/null | \
+                jq -r '.results[].name' 2>/dev/null | \
+                grep -E "^v${version}\.[0-9]+$" | \
+                sed 's/^v//' | \
+                sort -V | \
+                tail -1); then
+                echo "Failed to resolve the latest Docker patch version for Kubernetes ${version}." >&2
+                exit 1
+            fi
+        if [[ -n "$latest_docker" ]]; then
+            echo "$latest_docker"
+            return
+        fi
+    else
+        local github_headers=()
+        if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+            github_headers=(-H "Authorization: token $GITHUB_TOKEN")
+        fi
+        local latest_github
+        if ! latest_github=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
+            "https://api.github.com/repos/kubernetes/kubernetes/releases?per_page=100" 2>/dev/null | \
+            jq -r '.[].tag_name' 2>/dev/null | \
+            grep -E "^v${version}\.[0-9]+$" | \
+            sed 's/^v//' | \
+            sort -V | \
+            tail -1); then
+            echo "Failed to resolve the latest GitHub patch version for Kubernetes ${version}." >&2
+            exit 1
+        fi
+        if [[ -n "$latest_github" ]]; then
+            echo "$latest_github"
+            return
+        fi
+    fi
+
+    echo "Could not resolve a stable patch version for Kubernetes ${version}." >&2
+    exit 1
+}
+
 # ============================================
 # Argument parsing
 # ============================================
@@ -96,8 +170,7 @@ PROVIDER=$(yq -r '.provider' "$STACK_YAML")
 CLUSTER_STACK=$(yq -r '.clusterStackName' "$STACK_YAML")
 K8S_VERSION_RAW=$(yq -r '.kubernetesVersion' "$STACK_YAML")
 
-# Use full version from stack.yaml if it has patch, otherwise use the minor
-K8S_FULL="$K8S_VERSION_RAW"
+K8S_FULL=$(resolve_k8s_version "$K8S_VERSION_RAW" "$PROVIDER")
 
 # Auto-detect CS version (if not specified)
 # Priority: 1. local .release/ build output  2. OCI registry  3. fall back to v1
@@ -118,7 +191,7 @@ if [[ -z "$CS_VERSION" ]]; then
     # 2. Try OCI registry
     elif [[ -n "${OCI_REGISTRY:-}" && -n "${OCI_REPOSITORY:-}" ]] && command -v oras >/dev/null 2>&1; then
         LATEST=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" 2>/dev/null | \
-            grep -oP "^${TAG_PREFIX}-v\K[0-9]+" | sort -n | tail -1 || echo "")
+            extract_latest_release_number "$TAG_PREFIX" || echo "")
         if [[ -n "$LATEST" ]]; then
             CS_VERSION="v${LATEST}"
             echo "# Auto-detected CS version: ${CS_VERSION} (from ${OCI_REGISTRY}/${OCI_REPOSITORY})" >&2
@@ -147,7 +220,7 @@ metadata:
 spec:
   provider: ${PROVIDER}
   name: ${CLUSTER_STACK}
-  kubernetesVersion: "${K8S_VERSION}"
+  kubernetesVersion: "${K8S_FULL}"
   channel: custom
   autoSubscribe: false
   versions:
@@ -160,11 +233,16 @@ fi
 # ============================================
 
 if [[ "$CLUSTERSTACK_ONLY" != "true" ]]; then
+    CLUSTER_API_VERSION="cluster.x-k8s.io/v1beta2"
+    if [[ "$CLUSTER_STACK" == "hcp" ]]; then
+        CLUSTER_API_VERSION="cluster.x-k8s.io/v1beta1"
+    fi
+
     CLUSTER_CLASS="${PROVIDER}-${CLUSTER_STACK}-${K8S_DASH}-${CS_VERSION}"
 
     cat <<EOF
 ---
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: ${CLUSTER_API_VERSION}
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}

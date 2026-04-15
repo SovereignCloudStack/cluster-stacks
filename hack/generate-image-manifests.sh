@@ -35,6 +35,23 @@
 
 set -euo pipefail
 
+require_command() {
+    local name="$1"
+
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "$name not found. Please install $name and try again." >&2
+        exit 1
+    fi
+}
+
+extract_k8s_minor_version() {
+    echo "$1" | sed -E -n 's/^([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p'
+}
+
+require_command yq
+require_command curl
+require_command jq
+
 # Defaults
 BASE_URL="${IMAGE_BASE_URL:-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images}"
 CLOUD_NAME="${CLOUD_NAME:-openstack}"
@@ -107,7 +124,14 @@ ubuntu_for_minor() {
 # Check provider
 # ============================================
 
-FIRST_STACK=$(ls "$BASE_DIR"/1-*/stack.yaml 2>/dev/null | head -1)
+FIRST_STACK=""
+for stack_file in "$BASE_DIR"/1-*/stack.yaml; do
+    if [[ -f "$stack_file" ]]; then
+        FIRST_STACK="$stack_file"
+        break
+    fi
+done
+
 if [[ -z "$FIRST_STACK" ]]; then
     echo "No stack.yaml found in $BASE_DIR/1-*/" >&2
     exit 1
@@ -138,19 +162,24 @@ resolve_k8s_version() {
         github_headers=(-H "Authorization: token $GITHUB_TOKEN")
     fi
     local latest
-    latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
+    if ! latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
         "https://api.github.com/repos/kubernetes/kubernetes/releases?per_page=100" 2>/dev/null \
         | jq -r '.[].tag_name' 2>/dev/null \
         | grep -E "^v${version}\.[0-9]+$" \
         | sed 's/^v//' \
         | sort -V \
-        | tail -1) || true
+        | tail -1); then
+        echo "Failed to resolve the latest GitHub patch version for Kubernetes ${version}." >&2
+        exit 1
+    fi
 
     if [[ -n "$latest" ]]; then
         echo "$latest"
-    else
-        echo "${version}.0"
+        return
     fi
+
+    echo "Could not resolve a stable patch version for Kubernetes ${version}." >&2
+    exit 1
 }
 
 # ============================================
@@ -172,12 +201,12 @@ for version_dir in "$BASE_DIR"/1-*/; do
     [[ -f "$stack_yaml" ]] || continue
 
     k8s_version_raw=$(yq -r '.kubernetesVersion' "$stack_yaml")
-    k8s_short=$(echo "$k8s_version_raw" | grep -oP '^\d+\.\d+')
+    k8s_short=$(extract_k8s_minor_version "$k8s_version_raw")
     k8s_minor=$(echo "$k8s_short" | cut -d. -f2)
 
     # Filter by --version if specified
     if [[ -n "$TARGET_VERSION" ]]; then
-        target_short=$(echo "$TARGET_VERSION" | grep -oP '^\d+\.\d+')
+        target_short=$(extract_k8s_minor_version "$TARGET_VERSION")
         if [[ "$k8s_short" != "$target_short" ]]; then
             continue
         fi

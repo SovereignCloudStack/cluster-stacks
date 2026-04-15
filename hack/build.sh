@@ -41,6 +41,54 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+YQ_VERSION="$(yq --version 2>/dev/null || true)"
+
+require_command() {
+    local name="$1"
+
+    if ! command -v "$name" >/dev/null 2>&1; then
+        echo "$name not found. Please install $name and try again." >&2
+        exit 1
+    fi
+}
+
+extract_k8s_minor_version() {
+    echo "$1" | sed -E -n 's/^([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p'
+}
+
+extract_latest_release_number() {
+    local prefix="$1"
+
+    awk -v prefix="${prefix}-v" 'index($0, prefix) == 1 {
+        suffix = substr($0, length(prefix) + 1)
+        if (suffix ~ /^[0-9]+$/) {
+            print suffix
+        }
+    }' | sort -n | tail -1
+}
+
+yq_edit_in_place() {
+    local expression="$1"
+    local file="$2"
+
+    if [[ "$YQ_VERSION" == *"https://github.com/mikefarah/yq/"* ]]; then
+        yq -i "$expression" "$file"
+    else
+        yq -y -i "$expression" "$file"
+    fi
+}
+
+yq_has_path() {
+    local expression="$1"
+    local file="$2"
+
+    yq -e "$expression" "$file" >/dev/null 2>&1
+}
+
+require_command yq
+require_command curl
+require_command jq
+require_command helm
 
 # ============================================
 # Argument parsing
@@ -185,15 +233,25 @@ get_release_version() {
         return
     fi
 
+    local oras_opts=()
+    if [[ -n "${OCI_USERNAME:-}" && -n "${OCI_PASSWORD:-}" ]]; then
+        oras_opts+=(--username "$OCI_USERNAME" --password "$OCI_PASSWORD")
+    elif [[ -n "${OCI_ACCESS_TOKEN:-}" ]]; then
+        oras_opts+=(--password "$OCI_ACCESS_TOKEN")
+    fi
+
     # Query OCI for existing stable versions
+    require_command oras
+
     local latest=0
-    if command -v oras >/dev/null 2>&1; then
-        local tags
-        tags=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" 2>/dev/null || echo "")
-        if [[ -n "$tags" ]]; then
-            latest=$(echo "$tags" | grep -oP "^${tag_prefix}-v\K[0-9]+" | sort -n | tail -1 || echo "0")
-            latest="${latest:-0}"
-        fi
+    local tags
+    if ! tags=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" "${oras_opts[@]}" 2>/dev/null); then
+        echo "Failed to query OCI tags from ${OCI_REGISTRY}/${OCI_REPOSITORY}." >&2
+        exit 1
+    fi
+    if [[ -n "$tags" ]]; then
+        latest=$(echo "$tags" | extract_latest_release_number "$tag_prefix" || echo "0")
+        latest="${latest:-0}"
     fi
 
     echo "v$((latest + 1))"
@@ -219,12 +277,15 @@ resolve_k8s_version() {
     if [[ "$provider" == "docker" ]]; then
         # Query Docker Hub for kindest/node tags
         local latest
-        latest=$(curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&name=v${version}." 2>/dev/null \
+        if ! latest=$(curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&name=v${version}." 2>/dev/null \
             | jq -r '.results[].name' 2>/dev/null \
             | grep -E "^v${version}\.[0-9]+$" \
             | sed 's/^v//' \
             | sort -V \
-            | tail -1) || true
+            | tail -1); then
+            echo "Failed to resolve the latest Docker patch version for Kubernetes ${version}." >&2
+            exit 1
+        fi
         if [[ -n "$latest" ]]; then
             echo "$latest"
             return
@@ -236,21 +297,24 @@ resolve_k8s_version() {
             github_headers=(-H "Authorization: token $GITHUB_TOKEN")
         fi
         local latest
-        latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
+        if ! latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
             "https://api.github.com/repos/kubernetes/kubernetes/releases?per_page=100" 2>/dev/null \
             | jq -r '.[].tag_name' 2>/dev/null \
             | grep -E "^v${version}\.[0-9]+$" \
             | sed 's/^v//' \
             | sort -V \
-            | tail -1) || true
+            | tail -1); then
+            echo "Failed to resolve the latest GitHub patch version for Kubernetes ${version}." >&2
+            exit 1
+        fi
         if [[ -n "$latest" ]]; then
             echo "$latest"
             return
         fi
     fi
 
-    # Fallback: return with .0
-    echo "${version}.0"
+    echo "Could not resolve a stable patch version for Kubernetes ${version}." >&2
+    exit 1
 }
 
 # ============================================
@@ -298,7 +362,7 @@ build_version_dir() {
     local k8s_version
     k8s_version=$(resolve_k8s_version "$k8s_version_raw" "$provider")
     local k8s_short
-    k8s_short=$(echo "$k8s_version" | grep -oP '^\d+\.\d+')
+    k8s_short=$(extract_k8s_minor_version "$k8s_version")
     local k8s_dash="${k8s_short//./-}"
 
     echo ""
@@ -322,17 +386,22 @@ build_version_dir() {
 
     # Patch cluster-class Chart.yaml: set name and version
     local class_chart="$work_dir/cluster-class/Chart.yaml"
-    yq -i ".name = \"${provider}-${stack_name}-${k8s_dash}-cluster-class\"" "$class_chart"
-    yq -i ".version = \"${release_version}\"" "$class_chart"
+    yq_edit_in_place ".name = \"${provider}-${stack_name}-${k8s_dash}-cluster-class\"" "$class_chart"
+    yq_edit_in_place ".version = \"${release_version}\"" "$class_chart"
 
     # Generate csctl.yaml for release artifact (backwards compatibility)
     generate_csctl_yaml "$provider" "$stack_name" "$k8s_version" "$work_dir/csctl.yaml"
 
     # Patch cluster-class values.yaml image names (if the field exists)
     local class_values="$work_dir/cluster-class/values.yaml"
-    if [[ -f "$class_values" ]] && yq -e '.images.controlPlane.name' "$class_values" >/dev/null 2>&1; then
-        yq -i ".images.controlPlane.name = \"ubuntu-capi-image-v${k8s_version}\"" "$class_values"
-        yq -i ".images.worker.name = \"ubuntu-capi-image-v${k8s_version}\"" "$class_values"
+    if [[ -f "$class_values" ]]; then
+        if yq_has_path '.images.controlPlane.name' "$class_values"; then
+            yq_edit_in_place ".images.controlPlane.name = \"ubuntu-capi-image-v${k8s_version}\"" "$class_values"
+            yq_edit_in_place ".images.worker.name = \"ubuntu-capi-image-v${k8s_version}\"" "$class_values"
+        elif yq_has_path '.images.controlPlane[0].name' "$class_values"; then
+            yq_edit_in_place ".images.controlPlane[0].name = \"registry.scs.community/docker.io/kindest/node:v${k8s_version}\"" "$class_values"
+            yq_edit_in_place ".images.worker[0].name = \"registry.scs.community/docker.io/kindest/node:v${k8s_version}\"" "$class_values"
+        fi
     fi
 
     # ---- Package cluster-class ----
