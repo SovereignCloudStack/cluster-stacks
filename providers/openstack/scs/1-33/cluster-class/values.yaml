@@ -1,0 +1,51 @@
+# ClusterClass variable defaults
+# These are referenced by the ClusterClass template and can be overridden per deployment.
+# Variables apply to all nodes by default. Use topology.controlPlane.variables.overrides
+# or topology.workers.machineDeployments[].variables.overrides to differentiate.
+variables:
+  # Image configuration
+  imageName: "ubuntu-capi-image"
+  imageIsOrc: false
+  imageAddVersion: true
+
+  # API server
+  disableAPIServerFloatingIP: false
+  apiServerLoadBalancer: "octavia-ovn"
+  certSANs: []
+
+  # Network
+  dnsNameservers: ["9.9.9.9", "149.112.112.112"]
+  nodeCIDR: "10.8.0.0/20"
+
+  # Machine configuration (override per CP/worker via topology)
+  flavor: "SCS-2V-4"
+  rootDisk: 50
+  serverGroupID: ""
+  additionalBlockDevices: []
+
+  # Access management
+  sshKeyName: ""
+  securityGroups: []
+  securityGroupIDs: []
+
+  # Cluster-level (control plane only)
+  controlPlaneAvailabilityZones: []
+  controlPlaneOmitAvailabilityZone: false
+
+  # Identity
+  identityRef:
+    name: "openstack"
+    cloudName: "openstack"
+    type: "Secret"
+
+  # Container runtime
+  registryMirrors: []
+
+  # OIDC
+  oidcConfig:
+    clientID: ""
+    issuerURL: ""
+    usernameClaim: "preferred_username"
+    groupsClaim: "groups"
+    usernamePrefix: "oidc:"
+    groupsPrefix: "oidc:"

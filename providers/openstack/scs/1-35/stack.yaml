@@ -1,7 +1,6 @@
 provider: openstack
 clusterStackName: scs
-kubernetesVersion: 1.35
-
+kubernetesVersion: 1.35.3
 addons:
   ccm: 2.35.x
   csi: 2.35.x

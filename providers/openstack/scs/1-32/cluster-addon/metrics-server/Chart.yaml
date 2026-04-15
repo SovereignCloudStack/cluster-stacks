@@ -1,10 +1,10 @@
 apiVersion: v2
-dependencies:
-  - alias: metrics-server
-    name: metrics-server
-    repository: https://kubernetes-sigs.github.io/metrics-server/
-    version: 3.13.0
-description: Metrics Server
-name: openstack-scs-1-32-cluster-addon
 type: application
+description: Metrics Server
+name: metrics-server
 version: v1
+dependencies:
+  - name: "metrics-server"
+    version: "3.13.0"
+    repository: "https://kubernetes-sigs.github.io/metrics-server/"
+    alias: "metrics-server"

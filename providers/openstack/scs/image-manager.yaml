@@ -25,15 +25,15 @@ images:
     tags:
       - clusterstacks
     versions:
-      - version: 'v1.32.12'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.12.qcow2
-        checksum: "sha256:cb39992db553b7106c4b127cb3e9cd6418ce830d26aad2b5ab364d1dcc222fa6"
-      - version: 'v1.33.8'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.8.qcow2
-        checksum: "sha256:203f5635447f4a59e220bfb649c40eb86f065c051650e4ea1cd11706c0d1f5be"
-      - version: 'v1.34.4'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.4.qcow2
-        checksum: "sha256:df3f26b0026a1a9ca3b681df2d8675a7341e138dca6f2326592975bb7c0fe792"
-      - version: 'v1.35.1'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.1.qcow2
-        checksum: "sha256:5d424380e2fa85b7a51ad1e955e8efb09ca460b0e80d47cf2f36c02d94dc3f03"
+      - version: 'v1.32.13'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2
+        checksum: "sha256:bd1c5664e2bc34cc37a424391a44511fd12becb4c2c51e9f6b102e90d992d5fa"
+      - version: 'v1.33.10'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.10.qcow2
+        checksum: "sha256:efc3817b565c407710724b9d7b51cbb433638aad6b613b64843da28d58a777aa"
+      - version: 'v1.34.6'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.6.qcow2
+        checksum: "sha256:c59fb893be8320d7112473290358320fad2756e3e31dce4f90ae8bda9d289a3d"
+      - version: 'v1.35.3'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.3.qcow2
+        checksum: "sha256:2892b11dcac515f8f2fcb6a1b60f04a45f7d7ec8fdb2a3f3ccc255deb72d69b4"

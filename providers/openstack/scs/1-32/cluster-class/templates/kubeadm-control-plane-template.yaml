@@ -1,4 +1,4 @@
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
@@ -7,28 +7,42 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
-            extraArgs:
-              cloud-provider: external
           controllerManager:
             extraArgs:
-              cloud-provider: external
-              bind-address: 0.0.0.0
-              secure-port: "10257"
+              - name: cloud-provider
+                value: external
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10257"
+              - name: profiling
+                value: "false"
+              - name: terminated-pod-gc-threshold
+                value: "100"
           scheduler:
             extraArgs:
-              bind-address: 0.0.0.0
-              secure-port: "10259"
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10259"
+              - name: profiling
+                value: "false"
           etcd:
             local:
               dataDir: /var/lib/etcd
               extraArgs:
-                listen-metrics-urls: http://0.0.0.0:2381
-                auto-compaction-mode: periodic
-                auto-compaction-retention: 8h
-                election-timeout: "2500"
-                heartbeat-interval: "250"
-                snapshot-count: "6400"
+                - name: listen-metrics-urls
+                  value: http://0.0.0.0:2381
+                - name: auto-compaction-mode
+                  value: periodic
+                - name: auto-compaction-retention
+                  value: 8h
+                - name: election-timeout
+                  value: "2500"
+                - name: heartbeat-interval
+                  value: "250"
+                - name: snapshot-count
+                  value: "6400"
         files:
         - content: |
             ---
@@ -80,12 +94,16 @@ spec:
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
-              cloud-provider: external
-              provider-id: openstack:///'{{"{{"}} instance_id {{"}}"}}'
-            name: '{{"{{"}} local_hostname {{"}}"}}'
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'
         joinConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
-              cloud-provider: external
-              provider-id: openstack:///'{{"{{"}} instance_id {{"}}"}}'
-            name: '{{"{{"}} local_hostname {{"}}"}}'
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'
