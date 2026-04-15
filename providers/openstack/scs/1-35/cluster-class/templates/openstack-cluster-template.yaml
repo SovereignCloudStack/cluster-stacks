@@ -1,0 +1,79 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackClusterTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+spec:
+  template:
+    spec:
+      identityRef:
+        cloudName: overridden-by-patch
+        name: overridden-by-patch
+      apiServerLoadBalancer:
+        enabled: false
+      managedSecurityGroups:
+        allNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: HealthCheck (Cilium)
+          portRangeMin: 4240
+          portRangeMax: 4240
+          protocol: tcp
+          description: "Allow HealthCheck traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Hubble (Cilium)
+          portRangeMin: 4244
+          portRangeMax: 4244
+          protocol: tcp
+          description: "Allow Hubble traffic for Cilium"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus node exporter
+          portRangeMin: 9100
+          portRangeMax: 9100
+          protocol: tcp
+          description: "Allow Prometheus traffic for scraping node exporter"
+        controlPlaneNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus kube-controller-manager exporter
+          portRangeMin: 10257
+          portRangeMax: 10257
+          protocol: tcp
+          description: "Allow Prometheus traffic for kube-controller-manager exporter"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus kube-scheduler exporter
+          portRangeMin: 10259
+          portRangeMax: 10259
+          protocol: tcp
+          description: "Allow Prometheus traffic for kube-scheduler exporter"
+        - remoteManagedGroups:
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Prometheus etcd exporter
+          portRangeMin: 2381
+          portRangeMax: 2381
+          protocol: tcp
+          description: "Allow Prometheus traffic for scraping etcd exporter"
+        workerNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          direction: ingress
+          etherType: IPv4
+          name: Control plane to workers
+          description: "Allow traffic from control-plane nodes to worker nodes (kube-apiserver to admission webhooks)"

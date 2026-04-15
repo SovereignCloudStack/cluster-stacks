@@ -1,0 +1,65 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs:
+              - name: cloud-provider
+                value: external
+              - name: allocate-node-cidrs
+                value: "true"
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10257"
+              - name: profiling
+                value: "false"
+              - name: terminated-pod-gc-threshold
+                value: "100"
+          scheduler:
+            extraArgs:
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10259"
+              - name: profiling
+                value: "false"
+          etcd:
+            local:
+              dataDir: /var/lib/etcd
+              extraArgs:
+                - name: listen-metrics-urls
+                  value: http://0.0.0.0:2381
+                - name: auto-compaction-mode
+                  value: periodic
+                - name: auto-compaction-retention
+                  value: 8h
+                - name: election-timeout
+                  value: "2500"
+                - name: heartbeat-interval
+                  value: "250"
+                - name: snapshot-count
+                  value: "6400"
+        initConfiguration:
+          skipPhases:
+          - addon/kube-proxy
+          nodeRegistration:
+            kubeletExtraArgs:
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'
+        joinConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'

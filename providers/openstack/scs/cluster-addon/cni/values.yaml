@@ -1,9 +1,0 @@
-cilium:
-  tls:
-    secretsNamespace:
-      name: kube-system
-  sessionAffinity: true
-  sctp:
-    enabled: true
-  ipam:
-    mode: "kubernetes"

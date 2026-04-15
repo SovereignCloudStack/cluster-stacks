@@ -1,0 +1,5 @@
+values: |
+  cilium:
+    k8sServiceHost: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
+    k8sServicePort: "{{ .Cluster.spec.controlPlaneEndpoint.port }}"
+    ipv4NativeRoutingCIDR: "{{ index .Cluster.spec.clusterNetwork.pods.cidrBlocks 0 }}"

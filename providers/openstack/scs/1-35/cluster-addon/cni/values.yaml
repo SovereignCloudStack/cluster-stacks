@@ -1,0 +1,32 @@
+cilium:
+  namespaceOverride: kube-system
+  tls:
+    secretsNamespace:
+      name: "kube-system"
+  sessionAffinity: true
+  sctp:
+    enabled: true
+  bpf:
+    masquerade: true
+  endpointRoutes:
+    enabled: true
+  bandwidthManager:
+    enabled: true
+  egressGateway:
+    enabled: true
+  ipam:
+    mode: "kubernetes"
+  kubeProxyReplacement: true
+  kubeProxyReplacementHealthzBindAddr: "0.0.0.0:10256"
+  routingMode: native
+  autoDirectNodeRoutes: true
+  directRoutingSkipUnreachable: true
+  localRedirectPolicies:
+    enabled: true
+  k8s:
+    requireIPv4PodCIDR: true
+  policyDenyResponse: icmp
+  gatewayAPI:
+    enabled: true
+    secretsNamespace:
+      name: "kube-system"

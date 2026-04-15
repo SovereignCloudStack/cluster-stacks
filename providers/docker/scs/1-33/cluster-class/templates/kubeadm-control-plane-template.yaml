@@ -1,0 +1,84 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
+          controllerManager:
+            extraArgs:
+              enable-hostpath-provisioner: "true"
+              bind-address: 0.0.0.0
+              secure-port: "10257"
+              profiling: "false"
+              terminated-pod-gc-threshold: "100"
+          scheduler:
+            extraArgs:
+              bind-address: 0.0.0.0
+              secure-port: "10259"
+              profiling: "false"
+          etcd:
+            local:
+              dataDir: /var/lib/etcd
+              extraArgs:
+                listen-metrics-urls: http://0.0.0.0:2381
+                auto-compaction-mode: periodic
+                auto-compaction-retention: 8h
+                election-timeout: "2500"
+                heartbeat-interval: "250"
+                snapshot-count: "6400"
+        files:
+        - content: |
+            ---
+            apiVersion: kubeproxy.config.k8s.io/v1alpha1
+            kind: KubeProxyConfiguration
+            metricsBindAddress: "0.0.0.0:10249"
+          path: /etc/kube-proxy-config.yaml
+        - content: |
+            #!/usr/bin/env bash
+            set -o errexit
+            set -o nounset
+            set -o pipefail
+
+            dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+            readonly dir
+
+            if [[ ! -f ${dir}/kube-proxy-config.yaml ]]; then
+              exit 0
+            fi
+
+            kubeadm_file="/etc/kubeadm.yml"
+            if [[ ! -f ${kubeadm_file} ]]; then
+              kubeadm_file="/run/kubeadm/kubeadm.yaml"
+            fi
+
+            if [[ ! -f ${kubeadm_file} ]]; then
+              exit 0
+            fi
+
+            cat "${dir}/kube-proxy-config.yaml" >> "${kubeadm_file}"
+            rm "${dir}/kube-proxy-config.yaml"
+
+            echo success > /tmp/kube-proxy-patch
+          owner: root:root
+          path: /etc/kube-proxy-patch.sh
+          permissions: "0755"
+        preKubeadmCommands:
+        - bash /etc/kube-proxy-patch.sh
+        initConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+              fail-swap-on: "false"
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+              fail-swap-on: "false"

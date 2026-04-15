@@ -1,149 +1,171 @@
 #!/usr/bin/env python3
 
 """
-Generate markdown table from cluster-class variable definitions.
+Generate markdown documentation from ClusterClass variable definitions.
 
-This script temporarily renders the helm template of the cluster-class.
-Parses the `Cluster.spec.topology.variables` definitions and
-generates a markdown table for documentation purposes.
+Renders the cluster-class Helm template, parses the topology variables
+(openAPIV3Schema), and outputs a markdown table of all configurable options.
+
+Usage:
+    ./hack/docugen.py <stack-dir>
+    ./hack/docugen.py <stack-dir> --output docs/configuration.md
+    ./hack/docugen.py <stack-dir> --template hack/config-template.md
+    ./hack/docugen.py <stack-dir> --matrix
+    ./hack/docugen.py <stack-dir> --dry-run
 """
 
 import argparse
 import subprocess
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import yaml
 
-BASE_PATH = Path(__file__).parent.parent
-TEMPLATE_PATH = BASE_PATH.joinpath("providers", "openstack", "scs", "cluster-class")
-DOCS_TMPL_PATH = BASE_PATH.joinpath("hack", "config-template.md")
-DOCS_OUT_PATH = BASE_PATH.joinpath("docs", "providers", "openstack", "configuration.md")
+
+def generate_row(columns: list) -> str:
+    """Generate a markdown table row from a list of column values."""
+    return "|" + "|".join(str(c) for c in columns) + "|"
 
 
-def generate_row(content: list):
-    """Generate string of markdown table row."""
-    row_tmpl = "|{content}|"
-    row_str = "|".join(content)
+def parse_variable(var: dict) -> list:
+    """Parse a simple variable (string, boolean, integer, array) into table columns."""
+    name = var["name"]
+    required = var["required"]
+    schema = var["schema"]["openAPIV3Schema"]
 
-    return row_tmpl.format(content=row_str)
+    var_type = schema["type"]
+    default = schema.get("default", "")
+    example = schema.get("example", "")
+    description = schema.get("description", "TODO").replace("\n", "<br />")
 
-
-def parse_variable(tmpl: dict) -> list:
-    """
-    Parse schema of simple cluster-stack variable type. (String, Boolean, Integer, Array)
-
-        Parameters:
-            tmpl (dict): Dictionary of variable schema,
-                         parsed from cluster-class.yaml via yaml.safe_load().
-
-        Returns: List of variable schema properties.
-                 Each entry represents a column in the final markdown table row.
-    """
-    var_name = tmpl["name"]
-    var_required = tmpl["required"]
-    var_schema = tmpl["schema"]["openAPIV3Schema"]
-
-    var_type = var_schema["type"]
-    var_default = var_schema.get("default", "")
-    var_example = var_schema.get("example", "")
-    var_desc = var_schema.get("description", "TODO")
-
-    row = []
-    row.append(f"`{var_name}`")
-    row.append(var_type)
-
-    # Make sure that example and default values are quoted in the table
     if var_type == "string":
-        row.append(f'"{var_default}"')
-        row.append(f'"{var_example}"')
+        default = f'"{default}"'
+        example = f'"{example}"'
+    else:
+        default = str(default)
+        example = str(example)
 
-    # Cast any non-string type example / default to string
-    if var_type in ["array", "integer", "boolean"]:
-        row.append(str(var_default))
-        row.append(str(var_example))
-
-    row.append(var_desc.replace("\n", "<br />"))
-    row.append(str(var_required))  # Convert boolean variable to string
-
-    return row
+    return [f"`{name}`", var_type, default, example, description, str(required)]
 
 
-def parse_object(tmpl: dict) -> list:
-    """
-    Parse cluster-stack variable schema of type object.
-    Separated due to nesting in YAML format.
-        Parameters:
-            tmpl (dict): Dictionary of object schema,
-                         parsed from cluster-class.yaml via yaml.safe_load().
+def parse_object(var: dict) -> list:
+    """Parse an object variable into multiple table rows (one per property)."""
+    name = var["name"]
+    props = var["schema"]["openAPIV3Schema"]["properties"]
+    rows = []
 
-        Returns:
-            List of object properties.
-            Each entry represents a row in the final markdown table as a list,
-            consisting of the rows column values.
-    """
-    var_name = tmpl["name"]
-    props = tmpl["schema"]["openAPIV3Schema"]["properties"]
+    for prop_name, prop_schema in props.items():
+        rows.append([
+            f"`{name}.{prop_name}`",
+            prop_schema["type"],
+            prop_schema.get("default", ""),
+            prop_schema.get("example", ""),
+            prop_schema.get("description", "TODO"),
+            "",
+        ])
 
-    object_list = []
-    for prop in props:
-        row = []
-        row.append(f"`{var_name}.{prop}`")
-        row.append(props[prop]["type"])
-        row.append(props[prop].get("default", ""))
-        row.append(props[prop].get("example", ""))
-        row.append(props[prop].get("description", "TODO"))
-        # append dummy row for required field
-        row.append("")
+    return rows
 
-        object_list.append(row)
-    return object_list
+
+def render_cluster_class(stack_dir: Path) -> dict:
+    """Render the cluster-class Helm template and return parsed YAML."""
+    cluster_class_dir = stack_dir / "cluster-class"
+    if not cluster_class_dir.exists():
+        print(f"cluster-class directory not found: {cluster_class_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    result = subprocess.run(
+        ["helm", "template", "docugen", str(cluster_class_dir),
+         "-s", "templates/cluster-class.yaml"],
+        capture_output=True, check=False,
+    )
+
+    if result.returncode != 0:
+        print(f"helm template failed:\n{result.stderr.decode()}", file=sys.stderr)
+        sys.exit(1)
+
+    return yaml.safe_load(result.stdout.decode("utf-8"))
+
+
+def generate_table(template: dict) -> str:
+    """Generate a markdown table from ClusterClass topology variables."""
+    rows = [
+        "|Name|Type|Default|Example|Description|Required|",
+        "|----|----|-------|-------|-----------|--------|",
+    ]
+
+    for var in template["spec"]["variables"]:
+        var_type = var["schema"]["openAPIV3Schema"]["type"]
+        if var_type == "object":
+            for row in parse_object(var):
+                rows.append(generate_row(row))
+        else:
+            rows.append(generate_row(parse_variable(var)))
+
+    return "\n".join(rows)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Generate docs from ClusterClass variables",
+    )
+    parser.add_argument(
+        "stack_dir", type=Path,
+        help="Path to the cluster stack directory",
+    )
+    parser.add_argument(
+        "--template", type=Path, default=None,
+        help="Markdown template file with !!table!! placeholder",
+    )
+    parser.add_argument(
+        "--output", "-o", type=Path, default=None,
+        help="Output file path (default: stdout)",
+    )
+    parser.add_argument(
+        "--matrix", action="store_true",
+        help="Include version matrix from show-matrix.sh --markdown",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Print to stdout even if --output is set",
+    )
+    args = parser.parse_args()
+
+    # Render and parse
+    template = render_cluster_class(args.stack_dir)
+    table = generate_table(template)
+
+    # Generate version matrix if requested
+    matrix = ""
+    if args.matrix:
+        # Derive the stack base directory (parent of the version dir)
+        stack_base = args.stack_dir.parent
+        script = Path(__file__).parent / "show-matrix.sh"
+        result = subprocess.run(
+            ["bash", str(script), "--markdown", str(stack_base)],
+            capture_output=True, check=False,
+        )
+        if result.returncode == 0:
+            matrix = result.stdout.decode("utf-8").strip()
+        else:
+            print(f"show-matrix.sh failed:\n{result.stderr.decode()}", file=sys.stderr)
+
+    # Apply template if provided
+    if args.template and args.template.exists():
+        output = args.template.read_text()
+        output = output.replace("!!table!!", table)
+        output = output.replace("!!matrix!!", matrix)
+    else:
+        output = table
+
+    # Output
+    if args.dry_run or args.output is None:
+        print(output)
+    else:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(output)
+        print(f"Written: {args.output}", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dry-run", action="store_true", help="Only print result to stdout."
-    )
-
-    args = parser.parse_args()
-
-    cmd = [
-        "helm",
-        "template",
-        "docugen",
-        TEMPLATE_PATH,
-        "-s",
-        "templates/cluster-class.yaml",
-    ]
-
-    with open(DOCS_TMPL_PATH, "r") as f:
-        tmpl = f.read()
-
-    cmdout = subprocess.run(cmd, capture_output=True, check=False)
-    rendered_template = cmdout.stdout.decode("utf-8")
-
-    template = yaml.safe_load(rendered_template)
-
-    result_table = []
-    result_table.append("|Name|Type|Default|Example|Description|Required|")
-    result_table.append("|----|----|-------|-------|-----------|--------|")
-
-    for var in template["spec"]["variables"]:
-        if var["schema"]["openAPIV3Schema"]["type"] in ["object"]:
-            parsed = parse_object(var)
-            for object_property in parsed:
-                result_table.append(generate_row(object_property))
-        else:
-            parsed = parse_variable(var)
-            result_table.append(generate_row(parsed))
-
-    output = tmpl.replace("!!table!!", "\n".join(result_table))
-
-    if args.dry_run:
-        print(output)
-        sys.exit()
-
-    print(f"Writing output to file {DOCS_OUT_PATH}")
-    with open(DOCS_OUT_PATH, "w") as f:
-        f.write(output)
+    main()
