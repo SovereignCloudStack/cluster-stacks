@@ -507,6 +507,25 @@ spec:
             path: "/spec/template/spec/disableAPIServerFloatingIP"
             valueFrom:
               variable: disableAPIServerFloatingIP
+    - name: podCIDROpenStackCluster
+      description: "Configures pod-network CIDR based security-group rules for native routing."
+      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/managedSecurityGroups/allNodesSecurityGroupRules/-"
+              valueFrom:
+                template: |
+                  remoteIPPrefix: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
+                  direction: ingress
+                  etherType: IPv4
+                  name: Pod traffic (Cilium native routing)
+                  description: Allow pod-to-pod traffic for Cilium native routing
     #
     # Patches for OpenStackMachineTemplate resources (image).
     # Image patches must stay separate because they use different builtin variables:
@@ -628,6 +647,40 @@ spec:
                       volume:
                         type: {{ `{{ .type }}` }}
                   {{ `{{- end }}` }}
+    - name: podCIDRAllowedAddressPairsControlPlane
+      description: "Allows pod-network source addresses on control-plane ports for native routing."
+      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/ports/-"
+              valueFrom:
+                template: |
+                  allowedAddressPairs:
+                    - ipAddress: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
+    - name: podCIDRAllowedAddressPairsWorker
+      description: "Allows pod-network source addresses on worker ports for native routing."
+      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/ports/-"
+              valueFrom:
+                template: |
+                  allowedAddressPairs:
+                    - ipAddress: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
     #
     # Access patches — target both CP and workers.
     # securityGroupIDs takes precedence over securityGroups (last patch wins).
@@ -790,32 +843,6 @@ spec:
                   permissions: "0644"
                 {{ `{{- end }}` }}
                 {{ `{{- end }}` }}
-                - path: /etc/kube-proxy-config.yaml
-                  owner: root:root
-                  permissions: "0644"
-                  content: |
-                    ---
-                    apiVersion: kubeproxy.config.k8s.io/v1alpha1
-                    kind: KubeProxyConfiguration
-                    metricsBindAddress: "0.0.0.0:10249"
-
-                - path: /etc/kube-proxy-patch.sh
-                  owner: root:root
-                  permissions: "0755"
-                  content: |
-                    #!/usr/bin/env bash
-                    set -euo pipefail
-                    dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-                    kubeadm_file="/etc/kubeadm.yml"
-                    [[ -f ${kubeadm_file} ]] || kubeadm_file="/run/kubeadm/kubeadm.yaml"
-                    [[ -f ${kubeadm_file} ]] || exit 0
-                    [[ -f ${dir}/kube-proxy-config.yaml ]] || exit 0
-                    cat "${dir}/kube-proxy-config.yaml" >> "${kubeadm_file}"
-                    rm -f "${dir}/kube-proxy-config.yaml"
-                    echo success > /tmp/kube-proxy-patch
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/preKubeadmCommands/-"
-            value: "bash /etc/kube-proxy-patch.sh"
     - name: registryMirrorsWorker
       description: "Configure registry mirrors on worker nodes (containerd + CRI-O)."
       enabledIf: {{ `'{{ if .registryMirrors }}true{{end}}'` }}

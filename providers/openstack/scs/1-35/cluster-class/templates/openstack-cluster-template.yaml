@@ -18,16 +18,6 @@ spec:
           - worker
           direction: ingress
           etherType: IPv4
-          name: VXLAN (Cilium)
-          portRangeMin: 8472
-          portRangeMax: 8472
-          protocol: udp
-          description: "Allow VXLAN traffic for Cilium"
-        - remoteManagedGroups:
-          - controlplane
-          - worker
-          direction: ingress
-          etherType: IPv4
           name: HealthCheck (Cilium)
           portRangeMin: 4240
           portRangeMax: 4240
@@ -47,11 +37,12 @@ spec:
           - worker
           direction: ingress
           etherType: IPv4
-          name: Prometheus kube-proxy exporter
-          portRangeMin: 10249
-          portRangeMax: 10249
+          name: Prometheus node exporter
+          portRangeMin: 9100
+          portRangeMax: 9100
           protocol: tcp
-          description: "Allow Prometheus traffic for kube-proxy exporter"
+          description: "Allow Prometheus traffic for scraping node exporter"
+        controlPlaneNodesSecurityGroupRules:
         - remoteManagedGroups:
           - worker
           direction: ingress
@@ -74,18 +65,15 @@ spec:
           - worker
           direction: ingress
           etherType: IPv4
-          name: Prometheus node exporter
-          portRangeMin: 9100
-          portRangeMax: 9100
-          protocol: tcp
-          description: "Allow Prometheus traffic for scraping node exporter"
-        controlPlaneNodesSecurityGroupRules:
-        - remoteManagedGroups:
-          - worker
-          direction: ingress
-          etherType: IPv4
           name: Prometheus etcd exporter
           portRangeMin: 2381
           portRangeMax: 2381
           protocol: tcp
           description: "Allow Prometheus traffic for scraping etcd exporter"
+        workerNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          direction: ingress
+          etherType: IPv4
+          name: Control plane to workers
+          description: "Allow traffic from control-plane nodes to worker nodes (kube-apiserver to admission webhooks)"

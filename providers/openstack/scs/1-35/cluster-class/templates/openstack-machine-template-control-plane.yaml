@@ -7,6 +7,7 @@ spec:
   template:
     spec:
       flavor: overridden-by-patch
+      ports: []
       image:
         imageRef:
           name: overridden-by-patch
