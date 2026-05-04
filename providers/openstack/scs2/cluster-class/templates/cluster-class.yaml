@@ -120,7 +120,7 @@ spec:
           example: "SCS-2V-4-20s"
           description: |-
             OpenStack instance flavor for control plane nodes.
-            (Default: SCS-2V-4, replace by SCS-2V-4-20s or specify a controlPlaneRootDisk.)
+            (Default: SCS-2V-4, specify a controlPlanRootDisk or better replace by SCS-2V-4-20s.)
     - name: controlPlaneRootDisk
       required: false
       schema:
