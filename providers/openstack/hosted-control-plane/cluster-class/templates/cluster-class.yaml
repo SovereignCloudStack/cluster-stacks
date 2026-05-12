@@ -1,0 +1,664 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+      kind: HostedControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+    # No machineInfrastructure section - control plane is hosted in management cluster
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: OpenStackClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+  variables:
+    # Control plane variables (hosted in management cluster)
+    - name: controlPlaneReplicas
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          minimum: 1
+          default: 3
+          description: "Number of hosted control plane replicas for high availability."
+    - name: gatewayName
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          description: "Name of the Gateway API resource for control plane ingress. Optional - control plane accessible via standard kubeconfig if not set."
+    - name: gatewayNamespace
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "default"
+          description: "Namespace of the Gateway API resource."
+    # Image variables
+    - name: imageName
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: |
+            The base name of the OpenStack image used for provisioning servers.
+            If `imageIsOrc` is enabled, this name refers to an ORC image resource.
+            If `imageIsOrc` is disabled, the name is used to filter images available in the OpenStack project. In this case, the specified image must already exist within the project.
+            If `imageAddVersion` is enabled, the Kubernetes version will be appended to form the complete image name (e.g., imageName-v1.33.6)
+          default: "ubuntu-capi-image"
+    - name: imageIsOrc
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: |
+            Indicates whether the image name refers to an ORC image resource.
+            If set to true (default), the `imageName` is interpreted as a reference to an ORC image.
+            If set to false, the `imageName` is used to filter images in the OpenStack project instead.
+          default: false
+    - name: imageAddVersion
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          description: |
+            Add a suffix with the Kubernetes version to the imageName. E.g. imageName-v1.33.6.
+          default: true
+    - name: disableAPIServerFloatingIP
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          default: true
+          example: true
+          description: "DisableAPIServerFloatingIP controls whether a floating IP should be attached to the API server. Set to true for hosted control plane since API server runs in management cluster."
+    # Network variables
+    - name: networkExternalID
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          example: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
+          format: "uuid4"
+          description: "networkExternalID is the ID of an external OpenStack Network. This is necessary to get public internet to the VMs in case there are several external networks."
+    - name: networkMTU
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          example: 1500
+          description: "networkMTU sets the maximum transmission unit (MTU) value to address fragmentation for the private network ID."
+    - name: dnsNameservers
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          description: "dnsNameservers is the list of nameservers for the OpenStack Subnet being created. Set this value when you need to create a new network/subnet which requires access to DNS."
+          default: ["9.9.9.9", "149.112.112.112"]
+          example: ["9.9.9.9", "149.112.112.112"]
+          items:
+            type: string
+    - name: nodeCIDR
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          format: "cidr"
+          default: "10.8.0.0/20"
+          example: "10.8.0.0/20"
+          description: |-
+            nodeCIDR is the OpenStack Subnet to be created.
+            Cluster actuator will create a network, a subnet with nodeCIDR,
+             and a router connected to this subnet.
+            If you leave this empty, no network will be created.
+    # Workers
+    - name: workerFlavor
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "SCS-4V-8"
+          example: "SCS-4V-8"
+          description: "OpenStack instance flavor for worker nodes (default: SCS-4V-8, which requires workerRootDisk)."
+    - name: workerRootDisk
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: integer
+          minimum: 0
+          example: 25
+          default: 50
+          description: |-
+            Root disk size in GiB for worker nodes.
+            OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
+            Should be used for the diskless flavors (>= 20), otherwise set to 0.
+    - name: workerServerGroupID
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          example: "869fe071-1e56-46a9-9166-47c9f228e297"
+          description: "The server group to assign the worker nodes to."
+    - name: workerAdditionalBlockDevices
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              sizeGiB:
+                type: integer
+                default: 20
+              type:
+                type: string
+                default: "__DEFAULT__"
+          required: ["name"]
+    # Access management
+    - name: sshKeyName
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: ""
+          example: "capi-keypair"
+          description: "The ssh key name to inject in the nodes (for debugging)."
+    - name: securityGroups
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: ["security-group-1"]
+          description: |-
+            The names of extra security groups to assign to worker nodes.
+            Will be ignored if `securityGroupIDs` is used.
+          items:
+            type: string
+    - name: securityGroupIDs
+      required: false
+      schema:
+        openAPIV3Schema:
+          format: "uuid4"
+          type: array
+          default: []
+          example: ["9ae2f488-30a3-4629-bd51-07acb8eb4278"]
+          description: "The UUIDs of extra security groups to assign to worker nodes"
+          items:
+            type: string
+    - name: workerSecurityGroups
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: ["security-group-1"]
+          description: |-
+            The names of extra security groups to assign to the worker nodes.
+            Will be ignored if `workerSecurityGroupIDs` is used.
+          items:
+            type: string
+    - name: workerSecurityGroupIDs
+      required: false
+      schema:
+        openAPIV3Schema:
+          format: "uuid4"
+          type: array
+          default: []
+          example: ["9ae2f488-30a3-4629-bd51-07acb8eb4278"]
+          description: "The UUIDs of extra security groups to assign to the worker nodes"
+          items:
+            type: string
+    - name: identityRef
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          default: {}
+          properties:
+            name:
+              type: string
+              example: "openstack"
+              default: "openstack"
+              description: "The name of the secret that carries the OpenStack clouds.yaml"
+            cloudName:
+              type: string
+              example: "openstack"
+              default: "openstack"
+              description: "The name of the cloud to use from the clouds.yaml"
+    # Kubernetes API server
+    - name: certSANs
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          default: []
+          example: ["mydomain.example"]
+          description: "certSANs sets extra Subject Alternative Names for the API Server signing cert."
+          items:
+            type: string
+    - name: apiServerLoadBalancer
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "none"
+          example: "none, octavia-amphora, octavia-ovn"
+          description: |
+            For hosted control plane, typically set to "none" since the API server runs in the management cluster.
+            You can choose from 3 options:
+
+            none:
+              (default) No LoadBalancer solution will be deployed
+
+            octavia-amphora:
+              Uses OpenStack's LoadBalancer service Octavia (provider:amphora)
+
+            octavia-ovn:
+              Uses OpenStack's LoadBalancer service Octavia (provider:ovn)
+    - name: apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: array
+          example: ["192.168.10.0/24"]
+          description: |-
+            apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs restrict access to the Kubernetes API server on a network level.
+            Ensure that at least the outgoing IP of your Management Cluster is added to the list of allowed CIDRs.
+            Otherwise CAPO can't reconcile the target Cluster correctly.
+            This requires amphora as load balancer provider in version >= v2.12.
+          items:
+            type: string
+  #
+  # Patches
+  #
+  patches:
+    #
+    # Patches for control plane variables (apply to HostedControlPlaneTemplate)
+    #
+    - name: controlPlaneReplicas
+      description: "Sets the number of hosted control plane replicas."
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: HostedControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/replicas"
+              valueFrom:
+                variable: controlPlaneReplicas
+    - name: gatewayName
+      description: "Sets the Gateway API resource for control plane ingress."
+      enabledIf: {{ `'{{ ne .gatewayName "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: HostedControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/gateway"
+              valueFrom:
+                template: |
+                  name: {{ `{{ .gatewayName }}` }}
+                  namespace: {{ `{{ .gatewayNamespace }}` }}
+    - name: certSANs
+      description: "certSANs sets extra Subject Alternative Names for the API Server signing cert."
+      enabledIf: {{ `'{{ if .certSANs }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+            kind: HostedControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/apiServer/certSANs"
+              valueFrom:
+                variable: certSANs
+    #
+    # Patches for OpenStackClusterTemplate resource.
+    #
+    - name: apiServerLoadBalancerOctaviaAmphora
+      description: "Takes care of the patches that should be applied when variable apiServerLoadBalancer is set to octavia-amphora."
+      enabledIf: {{ `'{{ eq .apiServerLoadBalancer "octavia-amphora" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: replace
+              path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+              value: true
+            - op: add
+              path: "/spec/template/spec/apiServerLoadBalancer/provider"
+              value: "amphora"
+    - name: apiServerLoadBalancerOctaviaOVN
+      description: "Takes care of the patches that should be applied when variable apiServerLoadBalancer is set to octavia-ovn."
+      enabledIf: {{ `'{{ eq .apiServerLoadBalancer "octavia-ovn" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: replace
+              path: "/spec/template/spec/apiServerLoadBalancer/enabled"
+              value: true
+            - op: add
+              path: "/spec/template/spec/apiServerLoadBalancer/provider"
+              value: "ovn"
+    - name: apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs
+      description: "Takes care of the patches that should be applied when variable allowedCIDRs is set."
+      enabledIf: {{ `'{{ and .apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs (eq .apiServerLoadBalancer "octavia-amphora") }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/apiServerLoadBalancer/allowedCIDRs"
+              valueFrom:
+                variable: apiServerLoadBalancerOctaviaAmphoraAllowedCIDRs
+    - name: networkExternalID
+      description: "Sets the ID of an external OpenStack Network. This is necessary to get public internet to the VMs."
+      enabledIf: {{ `'{{ if .networkExternalID }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/externalNetwork"
+            value: {}
+          - op: add
+            path: "/spec/template/spec/externalNetwork/id"
+            valueFrom:
+              variable: networkExternalID
+    - name: networkMTU
+      description: "Sets the network MTU when variable networkMTU exist in cluster resource."
+      enabledIf: {{ `'{{ if .networkMTU }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/networkMTU"
+            valueFrom:
+              variable: networkMTU
+    - name: identityRef
+      description: "Sets the OpenStack identity reference."
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/identityRef
+              valueFrom:
+                variable: identityRef
+    - name: nodeCIDRSubnet
+      description: |-
+        Sets the NodeCIDR for the OpenStack Subnet to be created.
+        Cluster actuator will create a network, a subnet with NodeCIDR,
+        and a router connected to this subnet.
+      enabledIf: {{ `'{{ if .nodeCIDR }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/managedSubnets"
+            valueFrom:
+              template: |
+                - cidr: '{{ `{{ .nodeCIDR }}` }}'
+                  dnsNameservers:
+                  {{ `{{- range .dnsNameservers }}` }}
+                                  - {{ `{{ . }}` }}
+                  {{ `{{- end }}` }}
+    - name: disableAPIServerFloatingIP
+      description: "DisableAPIServerFloatingIP controls whether a floating IP should be attached to the API server."
+      enabledIf: {{ `"{{ if .disableAPIServerFloatingIP }}true{{end}}"` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackClusterTemplate
+            matchResources:
+              infrastructureCluster: true
+          jsonPatches:
+          - op: add
+            path: "/spec/template/spec/disableAPIServerFloatingIP"
+            valueFrom:
+              variable: disableAPIServerFloatingIP
+    #
+    # Patches for worker's OpenStackMachineTemplate resources.
+    # Note: No control plane patches since control plane runs in management cluster
+    #
+    - name: workerImage
+      description: "Sets the OpenStack image name that is used for creating the worker servers."
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/image
+              valueFrom:
+                template: |
+                  {{ `{{ if .imageIsOrc }}imageRef{{ else }}filter{{ end }}` }}:
+                    name: {{ `{{ .imageName }}{{ if .imageAddVersion }}-{{ .builtin.machineDeployment.version }}{{ end }}` }}
+    - name: workerFlavor
+      description: "Sets the openstack instance flavor for the worker nodes."
+      enabledIf: {{ `'{{ ne .workerFlavor "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: replace
+              path: "/spec/template/spec/flavor"
+              valueFrom:
+                variable: workerFlavor
+    - name: workerRootDisk
+      description: "Sets the root disk size in GiB for worker nodes."
+      enabledIf: {{ `'{{ if .workerRootDisk }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/rootVolume"
+              valueFrom:
+                template: |
+                  sizeGiB: {{ `{{ .workerRootDisk }}` }}
+    - name: workerServerGroupID
+      description: "Sets the server group to assign the worker nodes to."
+      enabledIf: {{ `'{{ ne .workerServerGroupID "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/serverGroup"
+              valueFrom:
+                template: |
+                  id: {{ `{{ .workerServerGroupID }}` }}
+    - name: workerAdditionalBlockDevices
+      enabledIf: {{ `'{{ if .workerAdditionalBlockDevices }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/additionalBlockDevices
+              valueFrom:
+                template: |
+                  {{ `{{- range .workerAdditionalBlockDevices }}` }}
+                  - name: {{ `{{ .name }}` }}
+                    sizeGiB: {{ `{{ .sizeGiB }}` }}
+                    storage:
+                      type: Volume
+                      volume:
+                        type: {{ `{{ .type }}` }}
+                  {{ `{{- end }}` }}
+    # Note: The securityGroups patch must be placed before securityGroupIDs, workerSecurityGroups, and workerSecurityGroupIDs.
+    # The patch order ensures the last applied patch overwrites previous ones.
+    - name: securityGroups
+      description: "Sets the list of the openstack security groups for the worker instances."
+      enabledIf: {{ `'{{ if .securityGroups }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/securityGroups"
+              valueFrom:
+                template: {{ `'[ {{ range .securityGroups }} { filter: { name: {{ . }}}}, {{ end }} ]'` }}
+    # Note: The securityGroupIDs patch must be placed before workerSecurityGroups, workerSecurityGroupIDs and after securityGroupIDs.
+    # The patch order ensures the last applied patch overwrites previous ones.
+    - name: securityGroupIDs
+      description: "Sets the list of the openstack security groups for the worker instances by UUID."
+      enabledIf: {{ `'{{ if .securityGroupIDs }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/securityGroups"
+              valueFrom:
+                template: {{ `'[ {{ range .securityGroupIDs }} { id: {{ . }} }, {{ end }} ]'` }}
+    - name: sshKeyName
+      description: "Sets the ssh key to inject in the nodes."
+      enabledIf: {{ `'{{ ne .sshKeyName "" }}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/sshKeyName"
+              valueFrom:
+                variable: sshKeyName
+    # Note: The workerSecurityGroups patch must be placed before workerSecurityGroupIDs and after securityGroups and securityGroupIDs.
+    # The patch order ensures the last applied patch overwrites previous ones.
+    - name: workerSecurityGroups
+      description: "Sets the list of the openstack security groups for the worker instances."
+      enabledIf: {{ `'{{ if .workerSecurityGroups }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/securityGroups"
+              valueFrom:
+                template: {{ `'[ {{ range .workerSecurityGroups }} { filter: { name: {{ . }}}}, {{ end }} ]'` }}
+    # Note: The workerSecurityGroupIDs patch must be placed after securityGroups, securityGroupIDs and workerSecurityGroupIDs.
+    # The patch order ensures the last applied patch overwrites previous ones.
+    - name: workerSecurityGroupIDs
+      description: "Sets the list of the openstack security groups for the worker instances by UUID."
+      enabledIf: {{ `'{{ if .workerSecurityGroupIDs }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/securityGroups"
+              valueFrom:
+                template: {{ `'[ {{ range .workerSecurityGroupIDs }} { id: {{ . }} }, {{ end }} ]'` }}
