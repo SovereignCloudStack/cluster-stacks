@@ -11,6 +11,6 @@ cilium:
   kubeProxyReplacement: "true"
   gatewayAPI:
     enabled: true
-    gatewayClass: true
+    #gatewayClass: true
     secretsNamespace:
       name: "kube-system"
