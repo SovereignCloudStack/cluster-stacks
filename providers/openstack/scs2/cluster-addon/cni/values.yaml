@@ -8,6 +8,7 @@ cilium:
     enabled: true
   ipam:
     mode: "kubernetes"
+  kubeProxyReplacement: "true"
   gatewayAPI:
     enabled: true
     gatewayClass: true
