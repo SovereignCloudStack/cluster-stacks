@@ -90,7 +90,7 @@ metadata:
 spec:
   provider: openstack
   name: scs2
-  kubernetesVersion: "1.33"
+  kubernetesVersion: "1.34"
   channel: stable
   autoSubscribe: false
   noProvider: true
@@ -128,11 +128,11 @@ spec:
       - "10.96.0.0/12"
   topology:
     variables:
-    class: openstack-scs2-1-33-$CLUSTERSTACK_VERSION
+    class: openstack-scs2-1-34-$CLUSTERSTACK_VERSION
     classNamespace: $CLUSTERSTACK_NAMESPACE
     controlPlane:
       replicas: 1
-    version: v1.33.4
+    version: v1.34.8
     workers:
       machineDeployments:
         - class: default-worker
