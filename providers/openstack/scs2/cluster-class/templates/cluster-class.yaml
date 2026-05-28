@@ -110,6 +110,21 @@ spec:
             Cluster actuator will create a network, a subnet with nodeCIDR,
              and a router connected to this subnet.
             If you leave this empty, no network will be created.
+    - name: diskPinAZ
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          example: true
+          default: false
+          description: |-
+            Pass availabilityZone (failureDomain) of the machine to its (root) disk volumes.
+            Some clouds have a 1:1 relationship of storage availability zones with compute AZs.
+            In these, attaching a disk from another AZ often comes with a performance penalty
+            or is not possible at all. You can set this to true to tell capo to create the root
+            disk in the stated failureDomain of this machine. This setting applies to controlPlane
+            root disks (if they use root volumes), worker machine root disks (if they use root
+            volumes) and workerAdditionalBlockDevices (if any are configured).
     # Control plane
     - name: controlPlaneFlavor
       required: false
@@ -119,8 +134,9 @@ spec:
           default: "SCS-2V-4"
           example: "SCS-2V-4-20s"
           description: |-
-            OpenStack instance flavor for control plane nodes.
-            (Default: SCS-2V-4, replace by SCS-2V-4-20s or specify a controlPlaneRootDisk.)
+            OpenStack instance flavor for control plane nodes. (The default, SCS-2V-4, is not ideal;
+            recommendation is to replace this by SCS-2V-4-20s and set controlPlaneRootDisk to 0
+            or specify a non-zero controlPlaneRootDisk with a diskless flavor.)
     - name: controlPlaneRootDisk
       required: false
       schema:
@@ -132,20 +148,7 @@ spec:
           description: |-
             Root disk size in GiB for control-plane nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
-            Should only be used for the diskless flavors (>= 20), otherwise set to 0.
-    - name: controlPlaneRootDiskPin
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: boolean
-          example: true
-          default: false
-          description: |-
-            Pass availabilityZone (failureDomain) of the worker machine to the root disk.
-            Some clouds have a 1:1 relationship of storage availability zones with compute AZs.
-            In these, attaching a disk from another AZ often comes with a performance penalty
-            or is not possible at all. You want to set to true to tell capo to create the root
-            disk in the stated failureDomain of this machine deployment.
+            Should only be used for the diskless flavors (and then be set >= 20), otherwise set to 0.
     - name: controlPlaneServerGroupID
       required: false
       schema:
@@ -193,19 +196,6 @@ spec:
             Root disk size in GiB for worker nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
             Should be used for the diskless flavors (>= 20), otherwise set to 0.
-    - name: workerRootDiskPin
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: boolean
-          example: true
-          default: false
-          description: |-
-            Pass availabilityZone (failureDomain) of the machine to the root disk.
-            Some clouds have a 1:1 relationship of storage availability zones with compute AZs.
-            In these, attaching a disk from another AZ often comes with a performance penalty
-            or is not possible at all. You want to set to true to tell capo to create the root
-            disk in the wanted AZ of the machine.
     - name: workerServerGroupID
       required: false
       schema:
@@ -235,19 +225,6 @@ spec:
                 type: string
                 default: "__DEFAULT__"
           required: ["name"]
-    - name: workerAdditionalBlockDevicesPin
-      required: false
-      schema:
-        openAPIV3Schema:
-          type: boolean
-          example: true
-          default: false
-          description: |-
-            Pass availabilityZone (failureDomain) of the machine to the additional disks.
-            Some clouds have a 1:1 relationship of storage availability zones with compute AZs.
-            In these, attaching a disk from another AZ often comes with a performance penalty
-            or is not possible at all. You want to set to true to tell capo to create the
-            additional disks in the wanted AZ of the machine.
     # Access management
     - name: sshKeyName
       required: false
@@ -612,7 +589,7 @@ spec:
                 variable: controlPlaneFlavor
     - name: controlPlaneRootDisk
       description: "Sets the root disk size in GiB for control-plane nodes."
-      enabledIf: {{ `'{{ if and .controlPlaneRootDisk (not .controlPlaneRootDiskPin) }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .controlPlaneRootDisk (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -627,7 +604,7 @@ spec:
                   sizeGiB: {{ `{{ .controlPlaneRootDisk }}` }}
     - name: controlPlaneRootDiskPinned
       description: "Sets the root disk size in GiB for control-plane nodes and pins them to the failureDomain of the machine."
-      enabledIf: {{ `'{{ if and .controlPlaneRootDisk .controlPlaneRootDiskPin }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .controlPlaneRootDisk .diskPinAZ }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -756,7 +733,7 @@ spec:
                 variable: workerFlavor
     - name: workerRootDisk
       description: "Sets the root disk size in GiB for worker nodes."
-      enabledIf: {{ `'{{ if and .workerRootDisk (not .workerRootDiskPin) }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerRootDisk (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -774,7 +751,7 @@ spec:
                   sizeGiB: {{ `{{ .workerRootDisk }}` }}
     - name: workerRootDiskPinned
       description: "Sets the root disk size in GiB for worker nodes and pins the to the AZ of the machine."
-      enabledIf: {{ `'{{ if and .workerRootDisk .workerRootDiskPin }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerRootDisk .diskPinAZ }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -811,7 +788,7 @@ spec:
                 template: |
                   id: {{ `{{ .workerServerGroupID }}` }}
     - name: workerAdditionalBlockDevices
-      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices (not .workerAdditionalBlockDevicesPin) }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -835,7 +812,7 @@ spec:
                         type: {{ `{{ .type }}` }}
                   {{ `{{- end }}` }}
     - name: workerAdditionalBlockDevicesPinned
-      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices .workerAdditionalBlockDevicesPin }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices .diskPinAZ }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
