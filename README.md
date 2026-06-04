@@ -7,18 +7,16 @@ Reference implementation of SCS Kubernetes-as-a-Service cluster stacks, built on
 ## Quick start
 
 ```bash
-# Prerequisites: kind, kubectl, helm, clusterctl, just
+# Prerequisites: kind, kubectl, helm, clusterctl, just, yq, oras
 # See docs/quickstart.md for full details
 
 # Create a management cluster and install CAPI + provider
 kind create cluster
-clusterctl init --infrastructure openstack
+clusterctl init --infrastructure docker   # or: --infrastructure openstack
 
-# Install the CSO (auto-configures ttl.sh for development)
-just install-cso
-
-# Build, publish, and generate ClusterStack resource for a specific version
-just dev --version 1.35
+# Build, publish, install CSO, and apply the ClusterStack in one step
+export PROVIDER=docker CLUSTER_STACK=scs
+just dev --install-cso --version 1.35 | kubectl apply -f -
 ```
 
 See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough.
@@ -38,13 +36,13 @@ providers/
   <provider>/
     <stack>/
       1-XX/              # per-Kubernetes-minor-version directory
-        stack.yaml       # stack metadata and addon version pins
+        csctl.yaml       # stack metadata and addon version pins
         cluster-class/   # Helm chart: ClusterClass + infrastructure templates
         cluster-addon/   # Helm chart: CNI, CCM, CSI, metrics-server
       image-manager.yaml # OpenStack only: aggregated image references
 ```
 
-Each `1-XX/` directory is self-contained: it carries its own `stack.yaml`,
+Each `1-XX/` directory is self-contained: it carries its own `csctl.yaml`,
 ClusterClass definition, and addon charts. There is no shared state between
 minor versions.
 
@@ -69,9 +67,10 @@ to target a different stack (default: `openstack`/`scs`).
 
 ## Documentation
 
+- [Quickstart](docs/quickstart.md) -- local development with Docker/CAPD
 - [Overview](docs/overview.md) -- architecture, versioning, and structure
-- [Quickstart](docs/quickstart.md) -- end-to-end guide for all providers
-- [OpenStack HCP](docs/providers/openstack/hcp.md) -- Hosted Control Plane stack
+- [OpenStack / scs](docs/providers/openstack/scs-configuration.md) -- standard SCS stack
+- [OpenStack / hcp](docs/providers/openstack/hcp.md) -- Hosted Control Plane stack
 
 Configuration references are generated from ClusterClass definitions via
 `just generate-docs`.

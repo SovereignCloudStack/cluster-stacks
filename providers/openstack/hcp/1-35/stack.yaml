@@ -1,7 +1,0 @@
-provider: openstack
-clusterStackName: hcp
-kubernetesVersion: 1.35
-
-addons:
-  ccm: 2.35.x
-  csi: 2.35.x

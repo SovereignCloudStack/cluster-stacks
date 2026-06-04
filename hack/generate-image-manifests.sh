@@ -125,7 +125,7 @@ ubuntu_for_minor() {
 # ============================================
 
 FIRST_STACK=""
-for stack_file in "$BASE_DIR"/1-*/stack.yaml; do
+for stack_file in "$BASE_DIR"/1-*/csctl.yaml; do
     if [[ -f "$stack_file" ]]; then
         FIRST_STACK="$stack_file"
         break
@@ -133,11 +133,11 @@ for stack_file in "$BASE_DIR"/1-*/stack.yaml; do
 done
 
 if [[ -z "$FIRST_STACK" ]]; then
-    echo "No stack.yaml found in $BASE_DIR/1-*/" >&2
+    echo "No csctl.yaml found in $BASE_DIR/1-*/" >&2
     exit 1
 fi
 
-STACK_PROVIDER=$(yq -r '.provider' "$FIRST_STACK")
+STACK_PROVIDER=$(yq -r '.config.provider.type' "$FIRST_STACK")
 if [[ "$STACK_PROVIDER" != "openstack" ]]; then
     echo "Image manifests are only relevant for OpenStack-based stacks (provider: $STACK_PROVIDER)." >&2
     exit 0
@@ -197,10 +197,10 @@ FAIL_COUNT=0
 
 for version_dir in "$BASE_DIR"/1-*/; do
     [[ -d "$version_dir" ]] || continue
-    stack_yaml="$version_dir/stack.yaml"
-    [[ -f "$stack_yaml" ]] || continue
+    csctl_yaml="$version_dir/csctl.yaml"
+    [[ -f "$csctl_yaml" ]] || continue
 
-    k8s_version_raw=$(yq -r '.kubernetesVersion' "$stack_yaml")
+    k8s_version_raw=$(yq -r '.config.kubernetesVersion | sub("^v","")' "$csctl_yaml")
     k8s_short=$(extract_k8s_minor_version "$k8s_version_raw")
     k8s_minor=$(echo "$k8s_short" | cut -d. -f2)
 

@@ -17,10 +17,12 @@
 #
 # Without --version or --all, builds the highest 1-* subdirectory.
 #
-# Each 1-XX/ subdir must contain a stack.yaml with at minimum:
-#   provider: openstack
-#   clusterStackName: scs
-#   kubernetesVersion: 1.34        # minor-only or with patch (1.34.3)
+# Each 1-XX/ subdir must contain a csctl.yaml with at minimum:
+#   config:
+#     provider:
+#       type: openstack
+#     clusterStackName: scs
+#     kubernetesVersion: v1.34.3   # minor-only (v1.34) or with patch (v1.34.3)
 #
 # Addon versions are read directly from cluster-addon/*/Chart.yaml as
 # maintained by `just update addons`. The build does not resolve or
@@ -179,7 +181,7 @@ setup_oci() {
         DATE_YYYYMMDD="${OCI_DATE:-$(date +%Y%m%d)}"
         export OCI_REGISTRY="ttl.sh"
         export OCI_REPOSITORY="clusterstacks-${DATE_YYYYMMDD}"
-        echo "Auto-configured ttl.sh: $OCI_REGISTRY/$OCI_REPOSITORY (expires in 24h)"
+        echo "Auto-configured ttl.sh: $OCI_REGISTRY/$OCI_REPOSITORY (expires in 24h)" >&2
     fi
 }
 
@@ -199,22 +201,22 @@ CSO_CHART="${CSO_CHART:-oci://registry.scs.community/cluster-stacks/cso}"
 
 install_cso() {
     if ! command -v helm >/dev/null 2>&1; then
-        echo "helm not found — install from https://helm.sh/docs/intro/install/"
+        echo "helm not found — install from https://helm.sh/docs/intro/install/" >&2
         exit 1
     fi
 
-    echo "Installing/upgrading CSO..."
-    echo "  Chart:      $CSO_CHART"
-    echo "  OCI config: $OCI_REGISTRY/$OCI_REPOSITORY"
-    echo ""
+    echo "Installing/upgrading CSO..." >&2
+    echo "  Chart:      $CSO_CHART" >&2
+    echo "  OCI config: $OCI_REGISTRY/$OCI_REPOSITORY" >&2
+    echo "" >&2
 
     helm upgrade -i cso "$CSO_CHART" \
         --namespace cso-system --create-namespace \
         --set controllerManager.manager.source=oci \
         --set "clusterStackVariables.ociRegistry=${OCI_REGISTRY}" \
-        --set "clusterStackVariables.ociRepository=${OCI_REPOSITORY}"
+        --set "clusterStackVariables.ociRepository=${OCI_REPOSITORY}" >&2
 
-    echo ""
+    echo "" >&2
 }
 
 # Determine release version for a given K8s minor version.
@@ -318,26 +320,6 @@ resolve_k8s_version() {
 }
 
 # ============================================
-# Generate csctl.yaml for release artifact
-# ============================================
-
-generate_csctl_yaml() {
-    local provider="$1"
-    local stack_name="$2"
-    local k8s_version="$3"
-    local output_file="$4"
-
-    cat > "$output_file" <<EOF
-apiVersion: csctl.clusterstack.x-k8s.io/v1alpha1
-config:
-  provider:
-    type: ${provider}
-  clusterStackName: ${stack_name}
-  kubernetesVersion: v${k8s_version}
-EOF
-}
-
-# ============================================
 # Build one version directory
 # ============================================
 
@@ -346,17 +328,17 @@ build_version_dir() {
     # Remove trailing slash
     version_dir="${version_dir%/}"
 
-    local stack_yaml="$version_dir/stack.yaml"
-    if [[ ! -f "$stack_yaml" ]]; then
-        echo "stack.yaml not found in: $version_dir"
+    local csctl_yaml="$version_dir/csctl.yaml"
+    if [[ ! -f "$csctl_yaml" ]]; then
+        echo "csctl.yaml not found in: $version_dir"
         exit 1
     fi
 
     # Read stack configuration
     local provider stack_name k8s_version_raw
-    provider=$(yq -r '.provider' "$stack_yaml")
-    stack_name=$(yq -r '.clusterStackName' "$stack_yaml")
-    k8s_version_raw=$(yq -r '.kubernetesVersion' "$stack_yaml")
+    provider=$(yq -r '.config.provider.type' "$csctl_yaml")
+    stack_name=$(yq -r '.config.clusterStackName' "$csctl_yaml")
+    k8s_version_raw=$(yq -r '.config.kubernetesVersion | sub("^v","")' "$csctl_yaml")
 
     # Resolve K8s patch version
     local k8s_version
@@ -365,9 +347,9 @@ build_version_dir() {
     k8s_short=$(extract_k8s_minor_version "$k8s_version")
     local k8s_dash="${k8s_short//./-}"
 
-    echo ""
-    echo "Building ${provider}-${stack_name} for K8s ${k8s_version} (from ${version_dir})"
-    echo "---"
+    echo "" >&2
+    echo "Building ${provider}-${stack_name} for K8s ${k8s_version} (from ${version_dir})" >&2
+    echo "---" >&2
 
     # Get release version
     local release_version
@@ -389,8 +371,9 @@ build_version_dir() {
     yq_edit_in_place ".name = \"${provider}-${stack_name}-${k8s_dash}-cluster-class\"" "$class_chart"
     yq_edit_in_place ".version = \"${release_version}\"" "$class_chart"
 
-    # Generate csctl.yaml for release artifact (backwards compatibility)
-    generate_csctl_yaml "$provider" "$stack_name" "$k8s_version" "$work_dir/csctl.yaml"
+    # Update kubernetesVersion in csctl.yaml to the resolved patch version
+    cp "$csctl_yaml" "$work_dir/csctl.yaml"
+    yq_edit_in_place ".config.kubernetesVersion = \"v${k8s_version}\"" "$work_dir/csctl.yaml"
 
     # Patch cluster-class values.yaml image names (if the field exists)
     local class_values="$work_dir/cluster-class/values.yaml"
@@ -405,13 +388,13 @@ build_version_dir() {
     fi
 
     # ---- Package cluster-class ----
-    echo "  Packaging cluster-class..."
+    echo "  Packaging cluster-class..." >&2
     rm -rf "$work_dir/cluster-class/charts"
     helm package "$work_dir/cluster-class" -d "$release_dir/" > /dev/null
-    echo "  cluster-class packaged"
+    echo "  cluster-class packaged" >&2
 
     # ---- Package cluster-addon bundle ----
-    echo "  Packaging cluster-addon..."
+    echo "  Packaging cluster-addon..." >&2
     local addon_temp
     addon_temp=$(mktemp -d)
     local addon_count=0
@@ -426,7 +409,7 @@ build_version_dir() {
     done
 
     if [[ $addon_count -eq 0 ]]; then
-        echo "  No addon subdirectories found"
+        echo "  No addon subdirectories found" >&2
         rm -rf "$addon_temp"
         exit 1
     fi
@@ -434,11 +417,11 @@ build_version_dir() {
     local addon_tgz="${provider}-${stack_name}-${k8s_dash}-cluster-addon-${release_version}.tgz"
     (cd "$addon_temp" && tar -czf "$(cd "$REPO_ROOT" && pwd)/$release_dir/$addon_tgz" */)
     rm -rf "$addon_temp"
-    echo "  cluster-addon packaged ($addon_count addons)"
+    echo "  cluster-addon packaged ($addon_count addons)" >&2
 
     # ---- Validate addon bundle ----
     if [[ "$VALIDATE" == "true" && -f "$version_dir/clusteraddon.yaml" ]]; then
-        echo "  Validating addon bundle..."
+        echo "  Validating addon bundle..." >&2
         local validate_dir
         validate_dir=$(mktemp -d)
         tar -xzf "$release_dir/$addon_tgz" -C "$validate_dir"
@@ -449,7 +432,7 @@ build_version_dir() {
         local failed=false
         for addon in $expected_addons; do
             if [[ ! -d "$validate_dir/$addon" ]]; then
-                echo "    Missing addon: $addon (referenced in clusteraddon.yaml)"
+                echo "    Missing addon: $addon (referenced in clusteraddon.yaml)" >&2
                 failed=true
             fi
         done
@@ -458,7 +441,7 @@ build_version_dir() {
         if [[ "$failed" == "true" ]]; then
             exit 1
         fi
-        echo "  Validation passed"
+        echo "  Validation passed" >&2
     fi
 
     # ---- Copy clusteraddon.yaml ----
@@ -466,7 +449,7 @@ build_version_dir() {
         cp "$version_dir/clusteraddon.yaml" "$release_dir/"
     fi
 
-    # ---- Copy generated csctl.yaml ----
+    # ---- Copy csctl.yaml (with resolved patch version) ----
     cp "$work_dir/csctl.yaml" "$release_dir/"
 
     # ---- Generate metadata.yaml ----
@@ -489,10 +472,10 @@ EOF
 }
 EOF
 
-    echo "  Output: $release_dir"
-    echo ""
-    echo "  Contents:"
-    ls -1 "$release_dir/" | sed 's/^/    /'
+    echo "  Output: $release_dir" >&2
+    echo "" >&2
+    echo "  Contents:" >&2
+    ls -1 "$release_dir/" | sed 's/^/    /' >&2
 
     # ---- Publish ----
     if [[ "$PUBLISH" == "true" ]]; then
@@ -524,12 +507,12 @@ publish_version() {
     fi
 
     if ! command -v oras >/dev/null 2>&1; then
-        echo "  oras not found — install from https://oras.land/docs/installation"
+        echo "  oras not found — install from https://oras.land/docs/installation" >&2
         exit 1
     fi
 
-    echo ""
-    echo "  Publishing to $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag"
+    echo "" >&2
+    echo "  Publishing to $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
 
     local oras_opts=()
     if [[ -n "${OCI_USERNAME:-}" && -n "${OCI_PASSWORD:-}" ]]; then
@@ -547,10 +530,10 @@ publish_version() {
         "$OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" \
         --artifact-type application/vnd.clusterstack.release \
         "${oras_opts[@]}" \
-        "${files[@]}")
+        "${files[@]}") >&2
 
-    echo "  Published: $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag"
-    echo "  Pull:      oras pull $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag"
+    echo "  Published: $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
+    echo "  Pull:      oras pull $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
 }
 
 # ============================================
@@ -567,9 +550,9 @@ if [[ "$INSTALL_CSO" == "true" ]]; then
     install_cso
 fi
 
-echo "Stack base: $BASE_DIR"
-echo "Version dirs: $(echo "$VERSION_DIRS" | tr '\n' ' ')"
-echo ""
+echo "Stack base: $BASE_DIR" >&2
+echo "Version dirs: $(echo "$VERSION_DIRS" | tr '\n' ' ')" >&2
+echo "" >&2
 
 # Track built versions for "next steps" output
 declare -a BUILT_K8S_SHORTS=()
@@ -581,41 +564,41 @@ for version_dir in $VERSION_DIRS; do
     build_version_dir "$version_dir"
 done
 
-echo ""
-echo "Done."
+echo "" >&2
+echo "Done." >&2
 
 # ============================================
 # Next steps (after publish)
 # ============================================
 
 if [[ "$PUBLISH" == "true" && ${#BUILT_K8S_SHORTS[@]} -gt 0 ]]; then
-    echo ""
-    echo "================================================================"
-    echo "Next steps"
-    echo "================================================================"
+    echo "" >&2
+    echo "================================================================" >&2
+    echo "Next steps" >&2
+    echo "================================================================" >&2
 
     if [[ "$INSTALL_CSO" != "true" ]]; then
-        echo ""
-        echo "1. Install the Cluster Stack Operator (or re-run with --install-cso):"
-        echo ""
-        echo "   helm upgrade -i cso ${CSO_CHART} \\"
-        echo "     --namespace cso-system --create-namespace \\"
-        echo "     --set controllerManager.manager.source=oci \\"
-        echo "     --set clusterStackVariables.ociRegistry=\"${OCI_REGISTRY}\" \\"
-        echo "     --set clusterStackVariables.ociRepository=\"${OCI_REPOSITORY}\""
-        echo ""
-        echo "2. Apply the ClusterStack resource(s):"
+        echo "" >&2
+        echo "1. Install the Cluster Stack Operator (or re-run with --install-cso):" >&2
+        echo "" >&2
+        echo "   helm upgrade -i cso ${CSO_CHART} \\" >&2
+        echo "     --namespace cso-system --create-namespace \\" >&2
+        echo "     --set controllerManager.manager.source=oci \\" >&2
+        echo "     --set clusterStackVariables.ociRegistry=\"${OCI_REGISTRY}\" \\" >&2
+        echo "     --set clusterStackVariables.ociRepository=\"${OCI_REPOSITORY}\"" >&2
+        echo "" >&2
+        echo "2. Apply the ClusterStack resource(s):" >&2
     else
-        echo ""
-        echo "Apply the ClusterStack resource(s):"
+        echo "" >&2
+        echo "Apply the ClusterStack resource(s):" >&2
     fi
-    echo ""
+    echo "" >&2
     for ((i=0; i<${#BUILT_K8S_SHORTS[@]}; i++)); do
         local_provider="${BUILT_PROVIDERS[$i]}"
         local_stack="${BUILT_STACK_NAMES[$i]}"
         local_k8s="${BUILT_K8S_SHORTS[$i]}"
         local_version="${BUILT_CS_VERSIONS[$i]}"
-        echo "   CLUSTER_STACK=${local_stack} ./hack/generate-resources.sh --version ${local_k8s} --cs-version ${local_version} | kubectl apply -f -"
+        echo "   CLUSTER_STACK=${local_stack} ./hack/generate-resources.sh --version ${local_k8s} --cs-version ${local_version} | kubectl apply -f -" >&2
     done
-    echo ""
+    echo "" >&2
 fi

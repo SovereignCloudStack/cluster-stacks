@@ -4,7 +4,7 @@
 #
 # All hack/ scripts derive the stack base directory from $PROVIDER and $CLUSTER_STACK
 # automatically (e.g., providers/openstack/scs). Each base directory contains
-# per-minor-version subdirs (1-32, 1-33, etc.) with self-contained stack.yaml.
+# per-minor-version subdirs (1-32, 1-33, etc.) with self-contained csctl.yaml.
 #
 # Container mode: set RUN_IN_CONTAINER=true to transparently run recipes inside
 # the tools container. Build the image first with: just container-build
@@ -46,32 +46,16 @@ dev *FLAGS:
         prev="$arg"
     done
     if [[ -n "$version" ]]; then
-        echo ""
-        echo "================================================================"
-        echo "ClusterStack resource (pipe to kubectl apply -f -)"
-        echo "================================================================"
+        echo "" >&2
+        echo "================================================================" >&2
+        echo "ClusterStack resource (pipe to kubectl apply -f -)" >&2
+        echo "================================================================" >&2
         ./hack/generate-resources.sh --version "$version" --clusterstack-only
     fi
 
 # Install/upgrade the CSO with OCI config matching current environment
 install-cso:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [[ -z "${OCI_REGISTRY:-}" ]]; then
-        export OCI_REGISTRY="ttl.sh"
-        export OCI_REPOSITORY="clusterstacks-$(date +%Y%m%d)"
-        echo "Auto-configured ttl.sh: $OCI_REGISTRY/$OCI_REPOSITORY (expires in 24h)"
-    fi
-    CSO_CHART="${CSO_CHART:-oci://registry.scs.community/cluster-stacks/cso}"
-    echo "Installing/upgrading CSO..."
-    echo "  Chart:      $CSO_CHART"
-    echo "  OCI config: $OCI_REGISTRY/${OCI_REPOSITORY:-}"
-    echo ""
-    helm upgrade -i cso "$CSO_CHART" \
-        --namespace cso-system --create-namespace \
-        --set controllerManager.manager.source=oci \
-        --set "clusterStackVariables.ociRegistry=${OCI_REGISTRY}" \
-        --set "clusterStackVariables.ociRepository=${OCI_REPOSITORY}"
+    ./hack/build.sh --install-cso
 
 # Clean build artifacts
 clean:

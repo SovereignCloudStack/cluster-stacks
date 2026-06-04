@@ -1,3 +1,0 @@
-provider: docker
-clusterStackName: scs
-kubernetesVersion: 1.33

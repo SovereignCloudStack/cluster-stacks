@@ -1,40 +1,25 @@
-export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml
+# Copy this file to .envrc and adjust as needed.
+# direnv will load it automatically: https://direnv.net/
+# just also loads .env automatically (dotenv-load is set in the justfile).
 
-export PATH=$PWD/hack/tools/bin:$PATH
-
-# Legacy variables from the previous workflow. They are currently not consumed by hack scripts, but are kept here for compatibility/reference.
-
-export PROVIDER=docker
-
-# Versions
-export K8S_VERSION=1-27
-export CAPI_VERSION=v1.5.1
-export CAPD_VERSION=$CAPI_VERSION
-
-# Names
-export NAMESPACE=scs-cs
-export CLUSTER_CLASS_NAME=ferrol
-export CLUSTER_NAME=cs-cluster
-export CLUSTER_TOPOLOGY=true
-
-# Debugging
-export DISABLE_VERSIONCHECK="true"
-
-# Release
-export RELEASE_CLUSTER_CLASS=$CLUSTER_CLASS_NAME
-export RELEASE_KUBERNETES_VERSION=1-27
-
-# Current workflow: the build scripts derive the stack from PROVIDER and
-
+# --- Stack selection ---
+# Which provider and stack to build/publish/update.
+# Defaults in the justfile are openstack/scs.
 export PROVIDER=openstack
 export CLUSTER_STACK=scs
 
-# OCI registry (leave unset for auto-configured ttl.sh during development)
+# --- OCI registry ---
+# Leave unset to auto-configure ttl.sh as a temporary dev registry (24h TTL).
+# Set both for a persistent registry.
 # export OCI_REGISTRY=registry.example.com
 # export OCI_REPOSITORY=kaas/cluster-stacks
 # export OCI_USERNAME=user
 # export OCI_PASSWORD=password
 # export OCI_ACCESS_TOKEN=token
 
-# Optional: GitHub token for higher API rate limits during version resolution
+# --- Optional ---
+# GitHub token for higher API rate limits during Kubernetes version resolution.
 # export GITHUB_TOKEN=ghp_...
+
+# Kubeconfig for the management cluster (useful with direnv).
+# export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml

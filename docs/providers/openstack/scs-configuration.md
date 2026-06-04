@@ -1,4 +1,51 @@
-# Configuration
+# OpenStack / scs
+
+Standard SCS cluster stack: dedicated VMs for both control plane and workers.
+
+## Getting started
+
+### Prerequisites
+
+In addition to the [common prerequisites](../../quickstart.md#prerequisites):
+
+- An OpenStack cloud with application credentials
+- A `clouds.yaml` with your credentials
+
+### Deploy
+
+```bash
+# 1. Management cluster
+kind create cluster
+clusterctl init --infrastructure openstack
+
+# 2. Deploy credentials
+export CS_NAMESPACE=my-tenant
+helm upgrade -i csp-helper-${CS_NAMESPACE} \
+  -n ${CS_NAMESPACE} --create-namespace \
+  https://github.com/SovereignCloudStack/openstack-csp-helper/releases/latest/download/openstack-csp-helper.tgz \
+  -f path/to/clouds.yaml
+
+# 3. Build, publish, install CSO, and apply the ClusterStack
+just dev --install-cso --version 1.35 | kubectl apply -f -
+kubectl get clusterclass -w
+
+# 4. Create a workload cluster
+kubectl create namespace ${CS_NAMESPACE}
+just generate-resources --version 1.35 --cluster-only --namespace ${CS_NAMESPACE} | kubectl apply -f -
+```
+
+For a production OCI registry instead of ttl.sh:
+
+```bash
+export OCI_REGISTRY=registry.example.com
+export OCI_REPOSITORY=kaas/cluster-stacks
+just install-cso
+just dev --version 1.35 | kubectl apply -f -
+```
+
+---
+
+## Configuration
 
 This page lists the custom configuration options available, including their default values and if they are optional. The following example shows how these variables can be used inside the `cluster.yaml` file under `spec.topology.variables`.
 

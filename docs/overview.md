@@ -24,7 +24,7 @@ providers/
   <provider>/
     <stack>/
       1-XX/                  # one directory per Kubernetes minor version
-        stack.yaml           # metadata: provider, name, k8s version, addon pins
+        csctl.yaml           # metadata: provider, name, k8s version, addon pins
         cluster-class/       # Helm chart producing the ClusterClass
         cluster-addon/       # Helm chart with CNI, CCM, CSI, metrics-server
       image-manager.yaml     # OpenStack only: aggregated image references
@@ -33,7 +33,7 @@ providers/
 ### Per-minor-version directories
 
 Each `1-XX/` directory is completely self-contained. It carries its own
-`stack.yaml`, ClusterClass templates, and addon charts. There is no inheritance
+`csctl.yaml`, ClusterClass templates, and addon charts. There is no inheritance
 or sharing between minor versions -- changes to one version never affect another.
 
 This design makes it straightforward to:
@@ -43,16 +43,18 @@ This design makes it straightforward to:
   (e.g. CCM `2.34.x` for K8s 1.34).
 - Drop old versions by simply removing their directory.
 
-### stack.yaml
+### csctl.yaml
 
-Each version directory contains a `stack.yaml` that serves as the single source
+Each version directory contains a `csctl.yaml` that serves as the single source
 of truth for that version:
 
 ```yaml
-provider: openstack
-clusterStackName: scs
-kubernetesVersion: 1.35
-
+apiVersion: csctl.clusterstack.x-k8s.io/v1alpha1
+config:
+  clusterStackName: scs
+  kubernetesVersion: v1.35.3
+  provider:
+    type: openstack
 addons:                    # version pins used by `just update addons`
   ccm: 2.35.x
   csi: 2.35.x
@@ -104,8 +106,8 @@ for Kubernetes 1.35 on OpenStack.
 
 Kubernetes patch versions are not part of the directory structure. A patch
 version update (e.g. 1.35.1 to 1.35.2) is delivered by bumping the cluster
-stack version, which updates the `kubernetesVersion` field and triggers a
-rolling update of nodes.
+stack version, which updates the `kubernetesVersion` field in `csctl.yaml` and
+triggers a rolling update of nodes.
 
 ## Build system
 

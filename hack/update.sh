@@ -3,9 +3,9 @@ set -euo pipefail
 
 # update.sh — Unified version and addon updater for Cluster Stacks
 #
-# Updates Kubernetes patch versions in stack.yaml and Helm chart dependencies
+# Updates Kubernetes patch versions in csctl.yaml and Helm chart dependencies
 # in cluster-addon/*/Chart.yaml. Each per-minor-version directory (1-XX/) is
-# self-contained with its own stack.yaml.
+# self-contained with its own csctl.yaml.
 #
 # For OpenStack stacks, the `versions` subcommand also maintains
 # image-manager.yaml in the stack base directory (e.g., providers/openstack/scs/).
@@ -17,7 +17,7 @@ set -euo pipefail
 #   ./hack/update.sh [versions|addons] [stack-dir] [options]
 #
 # Subcommands:
-#   versions    Update K8s patch versions in stack.yaml + image-manager.yaml
+#   versions    Update K8s patch versions in csctl.yaml + image-manager.yaml
 #   addons      Update Helm chart dependencies in cluster-addon/*/Chart.yaml
 #   (none)      Run both: versions first, then addons
 #
@@ -438,13 +438,13 @@ cmd_versions() {
 
     for version_dir in "$base_dir"/1-*/; do
         [[ -d "$version_dir" ]] || continue
-        local stack_yaml="$version_dir/stack.yaml"
-        [[ -f "$stack_yaml" ]] || continue
+        local csctl_yaml="$version_dir/csctl.yaml"
+        [[ -f "$csctl_yaml" ]] || continue
 
         local dir_name
         dir_name=$(basename "$version_dir")
         local k8s_version_raw
-        k8s_version_raw=$(yq -r '.kubernetesVersion' "$stack_yaml")
+        k8s_version_raw=$(yq -r '.config.kubernetesVersion | sub("^v","")' "$csctl_yaml")
         local k8s_short
         k8s_short=$(extract_k8s_minor_version "$k8s_version_raw")
         local k8s_minor
@@ -471,8 +471,8 @@ cmd_versions() {
                 change "$dir_name: K8s $k8s_version_raw → $latest_patch"
                 changes=$((changes + 1))
                 if [[ "$DRY_RUN" != "true" ]]; then
-                    yq_edit_in_place ".kubernetesVersion = \"$latest_patch\"" "$stack_yaml"
-                    info "Updated $stack_yaml"
+                    yq_edit_in_place ".config.kubernetesVersion = \"v$latest_patch\"" "$csctl_yaml"
+                    info "Updated $csctl_yaml"
                 fi
             fi
         else
@@ -480,8 +480,8 @@ cmd_versions() {
             change "$dir_name: K8s $k8s_version_raw → $latest_patch"
             changes=$((changes + 1))
             if [[ "$DRY_RUN" != "true" ]]; then
-                yq_edit_in_place ".kubernetesVersion = \"$latest_patch\"" "$stack_yaml"
-                info "Updated $stack_yaml"
+                yq_edit_in_place ".config.kubernetesVersion = \"v$latest_patch\"" "$csctl_yaml"
+                info "Updated $csctl_yaml"
             fi
         fi
     done
@@ -571,14 +571,14 @@ cmd_addons() {
                 dep_name=$(yq -r ".dependencies[$i].name" "$chart_file")
                 current_version=$(yq -r ".dependencies[$i].version" "$chart_file")
 
-                # Determine if this is a K8s-tied addon (check stack.yaml addons)
+                # Determine if this is a K8s-tied addon (check csctl.yaml addons)
                 local is_tied=false
-                local stack_yaml="$version_dir/stack.yaml"
-                if [[ -f "$stack_yaml" ]]; then
+                local csctl_yaml="$version_dir/csctl.yaml"
+                if [[ -f "$csctl_yaml" ]]; then
                     for short_name in "${!ADDON_SHORT_TO_CHART[@]}"; do
                         if [[ "${ADDON_SHORT_TO_CHART[$short_name]}" == "$dep_name" ]]; then
                             local range
-                            range=$(yq -r ".addons.\"${short_name}\" // \"\"" "$stack_yaml" 2>/dev/null)
+                            range=$(yq -r ".addons.\"${short_name}\" // \"\"" "$csctl_yaml" 2>/dev/null)
                             if [[ -n "$range" && "$range" != "null" ]]; then
                                 is_tied=true
                             fi
@@ -589,9 +589,9 @@ cmd_addons() {
                 # Get latest version
                 local latest_version=""
                 if [[ "$is_tied" == "true" ]]; then
-                    # For K8s-tied addons, match by prefix from stack.yaml range
+                    # For K8s-tied addons, match by prefix from csctl.yaml range
                     local k8s_minor
-                    k8s_minor=$(extract_k8s_minor_number "$(yq -r '.kubernetesVersion' "$stack_yaml")")
+                    k8s_minor=$(extract_k8s_minor_number "$(yq -r '.config.kubernetesVersion' "$csctl_yaml")")
                     latest_version=$(helm search repo "$dep_name/$dep_name" --versions -o json 2>/dev/null | \
                         jq -r --arg minor "$k8s_minor" \
                             '[.[] | select(.version | startswith("2." + $minor + "."))] | .[0].version // empty' 2>/dev/null) || true
@@ -652,7 +652,7 @@ run_all() {
     # Find base dirs: providers/<provider>/<stack>/ that contain 1-*/ subdirs
     for base_dir in "$REPO_ROOT"/providers/*/*/; do
         # Must have at least one 1-*/ subdir
-        ls "$base_dir"/1-*/stack.yaml >/dev/null 2>&1 || continue
+        ls "$base_dir"/1-*/csctl.yaml >/dev/null 2>&1 || continue
 
         found=true
         echo "=========================================="

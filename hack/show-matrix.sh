@@ -2,7 +2,7 @@
 # Display the version matrix for a cluster stack.
 #
 # Iterates over per-minor-version directories (1-XX/) and shows K8s versions,
-# addon versions from Chart.yaml, and addon overrides from stack.yaml.
+# addon versions from Chart.yaml, and addon overrides from csctl.yaml.
 #
 # Usage:
 #   ./hack/show-matrix.sh [options] [stack-dir]
@@ -88,12 +88,12 @@ for version_dir in "$BASE_DIR"/1-*/; do
     [[ -d "$version_dir" ]] || continue
     local_dir=$(basename "$version_dir")
 
-    stack_yaml="$version_dir/stack.yaml"
-    [[ -f "$stack_yaml" ]] || continue
+    csctl_yaml="$version_dir/csctl.yaml"
+    [[ -f "$csctl_yaml" ]] || continue
 
     if [[ -z "$PROVIDER_NAME" ]]; then
-        PROVIDER_NAME=$(yq -r '.provider' "$stack_yaml")
-        STACK_NAME=$(yq -r '.clusterStackName' "$stack_yaml")
+        PROVIDER_NAME=$(yq -r '.config.provider.type' "$csctl_yaml")
+        STACK_NAME=$(yq -r '.config.clusterStackName' "$csctl_yaml")
     fi
 
     # Collect chart dependency versions
@@ -108,12 +108,12 @@ for version_dir in "$BASE_DIR"/1-*/; do
         done
     done
 
-    # Collect stack.yaml addon overrides (these take precedence at build time)
-    has_addons=$(yq -e '.addons' "$stack_yaml" >/dev/null 2>&1 && echo "true" || echo "false")
+    # Collect csctl.yaml addon overrides (these take precedence at build time)
+    has_addons=$(yq -e '.addons' "$csctl_yaml" >/dev/null 2>&1 && echo "true" || echo "false")
     if [[ "$has_addons" == "true" ]]; then
-        addon_keys=$(yq -r '.addons | keys | .[]' "$stack_yaml")
+        addon_keys=$(yq -r '.addons | keys | .[]' "$csctl_yaml")
         for key in $addon_keys; do
-            value=$(yq -r ".addons.\"${key}\"" "$stack_yaml")
+            value=$(yq -r ".addons.\"${key}\"" "$csctl_yaml")
             # Map short names to chart names for display
             case "$key" in
                 ccm) chart_key="openstack-cloud-controller-manager" ;;
@@ -148,10 +148,10 @@ ROW_IDX=0
 for version_dir in "$BASE_DIR"/1-*/; do
     [[ -d "$version_dir" ]] || continue
     local_dir=$(basename "$version_dir")
-    stack_yaml="$version_dir/stack.yaml"
-    [[ -f "$stack_yaml" ]] || continue
+    csctl_yaml="$version_dir/csctl.yaml"
+    [[ -f "$csctl_yaml" ]] || continue
 
-    k8s_version=$(yq -r '.kubernetesVersion' "$stack_yaml")
+    k8s_version=$(yq -r '.config.kubernetesVersion | sub("^v","")' "$csctl_yaml")
     k8s_short=$(extract_k8s_minor_version "$k8s_version")
     k8s_dash="${k8s_short//./-}"
 
