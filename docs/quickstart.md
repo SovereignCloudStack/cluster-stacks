@@ -16,7 +16,7 @@ Install these tools before starting:
 | [kubectl](https://kubernetes.io/docs/tasks/tools/) | Cluster access |
 | [clusterctl](https://cluster-api.sigs.k8s.io/user/quick-start.html#install-clusterctl) | CAPI bootstrap |
 | [Helm](https://helm.sh/docs/intro/install/) | Chart installation |
-| [just](https://just.systems/man/en/installation.html) | Build recipes |
+| [make](https://www.gnu.org/software/make/) | Build recipes |
 | [yq](https://github.com/mikefarah/yq) (mikefarah variant) | YAML processing |
 | [oras](https://oras.land/docs/installation) | OCI artifact push |
 
@@ -31,7 +31,14 @@ clusterctl init --infrastructure docker
 
 ### 2. Point the build system at the Docker stack
 
-Create a `.env` file in the repo root — `just` loads it automatically:
+Set the target provider and stack:
+
+```bash
+export PROVIDER=docker
+export CLUSTER_STACK=scs
+```
+
+Or create a `.env` file if you use [direnv](https://direnv.net/):
 
 ```bash
 cat > .env <<EOF
@@ -48,7 +55,7 @@ TTL), and applies the `ClusterStack` resource:
 
 ```bash
 kubectl create namespace cluster
-just dev --install-cso --version 1.35 | kubectl apply -f -
+make dev ARGS="--install-cso --version 1.35" | kubectl apply -f -
 ```
 
 Build logs go to stderr. Wait until the `ClusterClass` is ready:
@@ -61,21 +68,7 @@ kubectl get clusterclass -w
 ### 4. Create a workload cluster
 
 ```bash
-just generate-resources --version 1.35 --cluster-only | kubectl apply -f -
-```
-
-Build logs go to stderr. Wait until the `ClusterClass` is ready:
-
-```bash
-kubectl get clusterclass -w
-# Expected: docker-scs-1-35-<version>   Ready
-```
-
-### 4. Create a workload cluster
-
-```bash
-kubectl create namespace cluster
-just generate-resources --version 1.35 --cluster-only | kubectl apply -f -
+make generate-resources ARGS="--version 1.35 --cluster-only" | kubectl apply -f -
 ```
 
 Watch it come up:
@@ -110,8 +103,8 @@ references that class.
 ## Useful commands
 
 ```bash
-just matrix                   # show K8s versions and addon versions
-just clean                    # remove .release/ build artifacts
-just update versions          # update K8s patch versions in csctl.yaml
-just update addons            # update addon chart versions
+make matrix                   # show K8s versions and addon versions
+make clean                    # remove .release/ build artifacts
+make update ARGS="versions"   # update K8s patch versions in csctl.yaml
+make update ARGS="addons"     # update addon chart versions
 ```

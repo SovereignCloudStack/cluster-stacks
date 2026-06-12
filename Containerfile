@@ -31,12 +31,6 @@ RUN YQ_VERSION=v4.45.4 && \
 RUN ORAS_VERSION=1.2.2 && \
     curl -fsSL "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz" | \
     tar -xz -C /usr/local/bin oras
-
-# Install just
-RUN JUST_VERSION=1.40.0 && \
-    curl -fsSL "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz" | \
-    tar -xz -C /usr/local/bin just
-
 WORKDIR /workspace
 
 # Verify installations
@@ -44,7 +38,7 @@ RUN bash --version | head -1 && \
     helm version --short && \
     yq --version && \
     oras version && \
-    just --version && \
+    make --version && \
     git --version
 
 # Allow git operations inside mounted volumes

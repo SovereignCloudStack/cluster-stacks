@@ -7,7 +7,7 @@ Reference implementation of SCS Kubernetes-as-a-Service cluster stacks, built on
 ## Quick start
 
 ```bash
-# Prerequisites: kind, kubectl, helm, clusterctl, just, yq, oras
+# Prerequisites: kind, kubectl, helm, clusterctl, make, yq, oras
 # See docs/quickstart.md for full details
 
 # Create a management cluster and install CAPI + provider
@@ -16,7 +16,7 @@ clusterctl init --infrastructure docker   # or: --infrastructure openstack
 
 # Build, publish, install CSO, and apply the ClusterStack in one step
 export PROVIDER=docker CLUSTER_STACK=scs
-just dev --install-cso --version 1.35 | kubectl apply -f -
+make dev ARGS="--install-cso --version 1.35" | kubectl apply -f -
 ```
 
 See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough.
@@ -48,21 +48,21 @@ minor versions.
 
 ## Build system
 
-All workflows are driven by [`just`](https://just.systems):
+All workflows are driven by `make`:
 
 ```bash
-just build --version 1.35       # build locally to .release/
-just publish --version 1.35     # build + push to OCI registry
-just dev --version 1.35         # publish + print ClusterStack YAML
-just dev --install-cso --version 1.35  # also install/upgrade CSO
-just matrix                     # show version/addon matrix
-just update versions            # update Kubernetes patch versions
-just update addons              # update addon chart versions
-just generate-resources --version 1.35  # generate ClusterStack + Cluster YAML
-just generate-docs              # regenerate configuration docs
+make build ARGS="--version 1.35"       # build locally to .release/
+make publish ARGS="--version 1.35"     # build + push to OCI registry
+make dev ARGS="--version 1.35"         # publish + print ClusterStack YAML
+make dev ARGS="--install-cso --version 1.35"  # also install/upgrade CSO
+make matrix                     # show version/addon matrix
+make update ARGS="versions"     # update Kubernetes patch versions
+make update ARGS="addons"       # update addon chart versions
+make generate-resources ARGS="--version 1.35"  # generate ClusterStack + Cluster YAML
+make generate-docs              # regenerate configuration docs
 ```
 
-Set `PROVIDER` and `CLUSTER_STACK` environment variables (or use a `.env` file)
+Set `PROVIDER` and `CLUSTER_STACK` environment variables (or use direnv with a `.env` file)
 to target a different stack (default: `openstack`/`scs`).
 
 ## Documentation
@@ -73,7 +73,7 @@ to target a different stack (default: `openstack`/`scs`).
 - [OpenStack / hcp](docs/providers/openstack/hcp.md) -- Hosted Control Plane stack
 
 Configuration references are generated from ClusterClass definitions via
-`just generate-docs`.
+`make generate-docs`.
 
 ## Releases
 

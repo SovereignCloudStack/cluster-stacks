@@ -65,7 +65,7 @@ In addition to the standard [quickstart prerequisites](../../quickstart.md):
 export PROVIDER=openstack
 export CLUSTER_STACK=hcp
 
-just dev --install-cso --version 1.35 | kubectl apply -f -
+make dev ARGS="--install-cso --version 1.35" | kubectl apply -f -
 kubectl get clusterclass -w
 ```
 

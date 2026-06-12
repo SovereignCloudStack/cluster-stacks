@@ -233,11 +233,6 @@ fi
 # ============================================
 
 if [[ "$CLUSTER_ONLY" != "true" ]]; then
-  NO_PROVIDER=""
-  if [[ "$PROVIDER" == "docker" ]]; then
-    NO_PROVIDER="  noProvider: true"$'\n'
-  fi
-
   cat <<EOF
 ---
 apiVersion: clusterstack.x-k8s.io/v1alpha1

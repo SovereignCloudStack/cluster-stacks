@@ -25,7 +25,7 @@
 #     kubernetesVersion: v1.34.3   # minor-only (v1.34) or with patch (v1.34.3)
 #
 # Addon versions are read directly from cluster-addon/*/Chart.yaml as
-# maintained by `just update addons`. The build does not resolve or
+# maintained by `make update ARGS="addons"`. The build does not resolve or
 # modify addon versions.
 #
 # Environment:

@@ -1,10 +1,10 @@
 # Copy this file to .envrc and adjust as needed.
 # direnv will load it automatically: https://direnv.net/
-# just also loads .env automatically (dotenv-load is set in the justfile).
+# make also reads environment variables (set them via .env or export).
 
 # --- Stack selection ---
 # Which provider and stack to build/publish/update.
-# Defaults in the justfile are openstack/scs.
+# Defaults in the Makefile are openstack/scs.
 export PROVIDER=openstack
 export CLUSTER_STACK=scs
 

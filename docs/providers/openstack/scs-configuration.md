@@ -26,12 +26,12 @@ helm upgrade -i csp-helper-${CS_NAMESPACE} \
   -f path/to/clouds.yaml
 
 # 3. Build, publish, install CSO, and apply the ClusterStack
-just dev --install-cso --version 1.35 | kubectl apply -f -
+make dev ARGS="--install-cso --version 1.35" | kubectl apply -f -
 kubectl get clusterclass -w
 
 # 4. Create a workload cluster
 kubectl create namespace ${CS_NAMESPACE}
-just generate-resources --version 1.35 --cluster-only --namespace ${CS_NAMESPACE} | kubectl apply -f -
+make generate-resources ARGS="--version 1.35 --cluster-only --namespace ${CS_NAMESPACE}" | kubectl apply -f -
 ```
 
 For a production OCI registry instead of ttl.sh:
@@ -39,8 +39,8 @@ For a production OCI registry instead of ttl.sh:
 ```bash
 export OCI_REGISTRY=registry.example.com
 export OCI_REPOSITORY=kaas/cluster-stacks
-just install-cso
-just dev --version 1.35 | kubectl apply -f -
+make install-cso
+make dev ARGS="--version 1.35" | kubectl apply -f -
 ```
 
 ---

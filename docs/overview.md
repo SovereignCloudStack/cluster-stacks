@@ -55,12 +55,12 @@ config:
   kubernetesVersion: v1.35.3
   provider:
     type: openstack
-addons:                    # version pins used by `just update addons`
+addons:                    # version pins used by `make update ARGS="addons"`
   ccm: 2.35.x
   csi: 2.35.x
 ```
 
-The `addons` section declares SemVer ranges. When you run `just update addons`,
+The `addons` section declares SemVer ranges. When you run `make update ARGS="addons"`,
 the build system resolves these ranges against upstream Helm repositories and
 updates the `Chart.yaml` dependencies in the addon chart.
 
@@ -111,22 +111,21 @@ triggers a rolling update of nodes.
 
 ## Build system
 
-The build system uses [`just`](https://just.systems) as a task runner and a set
-of bash scripts in `hack/`:
+The build system uses `make` as a task runner and a set of bash scripts in `hack/`:
 
-| Command                                 | Description                                    |
-| --------------------------------------- | ---------------------------------------------- |
-| `just build --version 1.35`             | Build locally to `.release/`                   |
-| `just publish --version 1.35`           | Build and push to OCI registry                 |
-| `just dev --version 1.35`               | Publish and print `ClusterStack` resource YAML |
-| `just dev --install-cso --version 1.35` | Also install/upgrade CSO via Helm              |
-| `just install-cso`                      | Install CSO standalone                         |
-| `just matrix`                           | Show version and addon matrix                  |
-| `just update versions`                  | Update Kubernetes patch versions               |
-| `just update addons`                    | Update addon charts from upstream              |
-| `just generate-resources`               | Generate `ClusterStack` + `Cluster` YAML       |
-| `just generate-docs`                    | Regenerate configuration documentation         |
-| `just clean`                            | Remove `.release/` build artifacts             |
+| Command                                          | Description                                    |
+| ------------------------------------------------ | ---------------------------------------------- |
+| `make build ARGS="--version 1.35"`               | Build locally to `.release/`                   |
+| `make publish ARGS="--version 1.35"`             | Build and push to OCI registry                 |
+| `make dev ARGS="--version 1.35"`                 | Publish and print `ClusterStack` resource YAML |
+| `make dev ARGS="--install-cso --version 1.35"`   | Also install/upgrade CSO via Helm              |
+| `make install-cso`                                | Install CSO standalone                         |
+| `make matrix`                                     | Show version and addon matrix                  |
+| `make update ARGS="versions"`                     | Update Kubernetes patch versions               |
+| `make update ARGS="addons"`                       | Update addon charts from upstream              |
+| `make generate-resources ARGS="--version 1.35"`  | Generate `ClusterStack` + `Cluster` YAML       |
+| `make generate-docs`                              | Regenerate configuration documentation         |
+| `make clean`                                      | Remove `.release/` build artifacts             |
 
 ### OCI workflow
 
