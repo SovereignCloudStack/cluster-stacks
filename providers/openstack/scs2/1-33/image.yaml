@@ -1,0 +1,32 @@
+---
+apiVersion: openstack.k-orc.cloud/v1alpha1
+kind: Image
+metadata:
+  name: "ubuntu-capi-image-v1.33.11"
+spec:
+  cloudCredentialsRef:
+    cloudName: "openstack"
+    secretName: "openstack"
+  managementPolicy: managed
+  resource:
+    visibility: private
+    properties:
+      hardware:
+        diskBus: scsi
+        scsiModel: virtio-scsi
+        vifModel: virtio
+        qemuGuestAgent: true
+        rngModel: virtio
+      architecture: x86_64
+      minDiskGB: 20
+      minMemoryMB: 2048
+      operatingSystem:
+        distro: ubuntu
+        version: "24.04"
+    content:
+      diskFormat: qcow2
+      download:
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.11.qcow2
+        hash:
+          algorithm: sha256
+          value: a7bf1bab8a0e33de6346fd6a0042549d6f444c36db66a4b245be929e3f3d9985
