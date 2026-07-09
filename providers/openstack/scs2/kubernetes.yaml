@@ -53,6 +53,14 @@ images:
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.10.qcow2
         checksum: "sha256:efc3817b565c407710724b9d7b51cbb433638aad6b613b64843da28d58a777aa"
         build_date: 2026-03-20
+      - version: 'v1.33.11'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.11.qcow2
+        checksum: "sha256:a7bf1bab8a0e33de6346fd6a0042549d6f444c36db66a4b245be929e3f3d9985"
+        build_date: 2026-04-29
+      #- version: 'v1.33.12'
+      #  url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.12.qcow2
+      #  checksum: "sha256:"
+      #  build_date: 2026-05-13
       - version: 'v1.34.0'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.0.qcow2
         checksum: "sha256:1321c0978818752619ab994acccf4e2d9b241aa738fc56ed0a46b0ebe21fedfb"
@@ -85,3 +93,15 @@ images:
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.7.qcow2
         checksum: "sha256:f7bf12297833cca14de6d24081c8a01e99143651e4c01431b911375300550fe0"
         build_date: 2026-04-16
+      - version: 'v1.34.8'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.8.qcow2
+        checksum: "sha256:440979a41a06573aadb7589167568ff1699eb55e3a1a9fbe85591077560ffa39"
+        build_date: 2026-05-13
+      - version: 'v1.35.4'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.4.qcow2
+        checksum: "sha256:88c14ecc9fcf929a0c9152e86145a05a51b16ce819a2de711faab6972a22b54e"
+        build_date: 2026-04-16
+      - version: 'v1.35.5'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.5.qcow2
+        checksum: "sha256:9ede9a241f14e12f666304d0288934c8fc7ed5ad65b31ed004a7ec0fd53ca32a"
+        build_date: 2026-05-13
