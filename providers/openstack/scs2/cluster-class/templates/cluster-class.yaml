@@ -110,6 +110,21 @@ spec:
             Cluster actuator will create a network, a subnet with nodeCIDR,
              and a router connected to this subnet.
             If you leave this empty, no network will be created.
+    - name: diskPinAZ
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          example: true
+          default: false
+          description: |-
+            Pass availabilityZone (failureDomain) of the machine to its (root) disk volumes.
+            Some clouds have a 1:1 relationship of storage availability zones with compute AZs.
+            In these, attaching a disk from another AZ often comes with a performance penalty
+            or is not possible at all. You can set this to true to tell capo to create the root
+            disk in the stated failureDomain of this machine. This setting applies to controlPlane
+            root disks (if they use root volumes), worker machine root disks (if they use root
+            volumes) and workerAdditionalBlockDevices (if any are configured).
     # Control plane
     - name: controlPlaneFlavor
       required: false
@@ -119,8 +134,9 @@ spec:
           default: "SCS-2V-4"
           example: "SCS-2V-4-20s"
           description: |-
-            OpenStack instance flavor for control plane nodes.
-            (Default: SCS-2V-4, specify a controlPlanRootDisk or better replace by SCS-2V-4-20s.)
+            OpenStack instance flavor for control plane nodes. (The default, SCS-2V-4, is not ideal;
+            recommendation is to replace this by SCS-2V-4-20s and set controlPlaneRootDisk to 0
+            or specify a non-zero controlPlaneRootDisk with a diskless flavor.)
     - name: controlPlaneRootDisk
       required: false
       schema:
@@ -132,7 +148,7 @@ spec:
           description: |-
             Root disk size in GiB for control-plane nodes.
             OpenStack volume will be created and used instead of an ephemeral disk defined in flavor.
-            Should only be used for the diskless flavors (>= 20), otherwise set to 0.
+            Should only be used for the diskless flavors (and then be set >= 20), otherwise set to 0.
     - name: controlPlaneServerGroupID
       required: false
       schema:
@@ -193,6 +209,9 @@ spec:
       schema:
         openAPIV3Schema:
           type: array
+          description: |-
+            You may pass an array with additional volumes (disks) here, consisting of
+            name, sizeGiB (default: 20) and type (aka storage class, default: __DEFAULT__).
           default: []
           items:
             type: object
@@ -570,7 +589,7 @@ spec:
                 variable: controlPlaneFlavor
     - name: controlPlaneRootDisk
       description: "Sets the root disk size in GiB for control-plane nodes."
-      enabledIf: {{ `'{{ if .controlPlaneRootDisk }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .controlPlaneRootDisk (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -583,6 +602,23 @@ spec:
               valueFrom:
                 template: |
                   sizeGiB: {{ `{{ .controlPlaneRootDisk }}` }}
+    - name: controlPlaneRootDiskPinned
+      description: "Sets the root disk size in GiB for control-plane nodes and pins them to the failureDomain of the machine."
+      enabledIf: {{ `'{{ if and .controlPlaneRootDisk .diskPinAZ }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/rootVolume"
+              valueFrom:
+                template: |
+                  sizeGiB: {{ `{{ .controlPlaneRootDisk }}` }}
+                  availabilityZone:
+                    from: Machine
     - name: controlPlaneServerGroupID
       description: "Sets the server group to assign the control plane nodes to."
       enabledIf: {{ `'{{ ne .controlPlaneServerGroupID "" }}'` }}
@@ -697,7 +733,7 @@ spec:
                 variable: workerFlavor
     - name: workerRootDisk
       description: "Sets the root disk size in GiB for worker nodes."
-      enabledIf: {{ `'{{ if .workerRootDisk }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerRootDisk (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -713,6 +749,26 @@ spec:
               valueFrom:
                 template: |
                   sizeGiB: {{ `{{ .workerRootDisk }}` }}
+    - name: workerRootDiskPinned
+      description: "Sets the root disk size in GiB for worker nodes and pins the to the AZ of the machine."
+      enabledIf: {{ `'{{ if and .workerRootDisk .diskPinAZ }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/rootVolume"
+              valueFrom:
+                template: |
+                  sizeGiB: {{ `{{ .workerRootDisk }}` }}
+                  availabilityZone:
+                    from: Machine
     - name: workerServerGroupID
       description: "Sets the server group to assign the worker nodes to."
       enabledIf: {{ `'{{ ne .workerServerGroupID "" }}'` }}
@@ -732,7 +788,7 @@ spec:
                 template: |
                   id: {{ `{{ .workerServerGroupID }}` }}
     - name: workerAdditionalBlockDevices
-      enabledIf: {{ `'{{ if .workerAdditionalBlockDevices }}true{{end}}'` }}
+      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices (not .diskPinAZ) }}true{{end}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -750,6 +806,32 @@ spec:
                   {{ `{{- range .workerAdditionalBlockDevices }}` }}
                   - name: {{ `{{ .name }}` }}
                     sizeGiB: {{ `{{ .sizeGiB }}` }}
+                    storage:
+                      type: Volume
+                      volume:
+                        type: {{ `{{ .type }}` }}
+                  {{ `{{- end }}` }}
+    - name: workerAdditionalBlockDevicesPinned
+      enabledIf: {{ `'{{ if and .workerAdditionalBlockDevices .diskPinAZ }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: OpenStackMachineTemplate
+            matchResources:
+              controlPlane: false
+              machineDeploymentClass:
+                names:
+                  - default-worker
+          jsonPatches:
+            - op: add
+              path: /spec/template/spec/additionalBlockDevices
+              valueFrom:
+                template: |
+                  {{ `{{- range .workerAdditionalBlockDevices }}` }}
+                  - name: {{ `{{ .name }}` }}
+                    sizeGiB: {{ `{{ .sizeGiB }}` }}
+                    availabilityZone:
+                      from: Machine
                     storage:
                       type: Volume
                       volume:
