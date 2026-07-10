@@ -1,0 +1,24 @@
+# Default values for hosted-control-plane cluster class
+
+# OpenStack credentials
+identityRef:
+  name: "openstack"
+  cloudName: "openstack"
+
+# Network configuration
+networkExternalID: ""
+dnsNameservers:
+  - "9.9.9.9"
+  - "149.112.112.112"
+nodeCIDR: "10.8.0.0/20"
+
+# Worker node configuration
+workerFlavor: "SCS-2V-4"
+workerRootDisk: 25
+
+# Control plane configuration (hosted in management cluster)
+controlPlaneReplicas: 3
+
+# Gateway configuration for hosted control plane (optional)
+gatewayName: ""
+gatewayNamespace: ""
