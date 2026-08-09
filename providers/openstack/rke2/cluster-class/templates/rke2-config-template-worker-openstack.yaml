@@ -1,0 +1,16 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: RKE2ConfigTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+spec:
+  template:
+    spec:
+      preRKE2Commands:
+        - sleep 30 # fix to give OS time to become ready
+      agentConfig:
+        kubelet:
+          extraArgs:
+          - provider-id=openstack:///{{ `{{ instance_id }}` }} # Data from Openstack metadata-service
+          - cloud-provider=external
+        nodeName: '{{ `{{ local_hostname }}` }}' # Data from Openstack metadata-service
+      gzipUserData: false
