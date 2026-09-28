@@ -16,6 +16,8 @@ openstack-cloud-controller-manager:
       effect: NoSchedule
   # Allow DNS resolution before CoreDNS is up
   hostNetwork: true
+  # dnsPolicy: ClusterFirstWithHostNet
+  dnsPolicy: Default
   extraVolumes:
     - name: clouds-yaml
       secret:
