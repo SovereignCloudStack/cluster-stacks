@@ -73,23 +73,26 @@ spec:
           owner: root:root
           path: /etc/kube-proxy-patch.sh
           permissions: "0755"
+        - content: |
+            #!/usr/bin/env bash
+            # The full kubeadm join command is embedded in this same cloud-init script,
+            # a few lines below. Extract the VIP from it.
+            VIPPORT=$(grep 'apiServerEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *apiServerEndpoint: *//')
+            if test -z "$VIPPORT"; then echo "No apiServerEndpoint found, cannot wait ..."; sleep 6; fi
+            for i in $(seq 0 30); do
+              if curl -ks --max-time 5 "https://${VIPPORT}/healthz"; then
+                echo "[pre-join] API server ${VIPPORT} reachable (attempt $i)"
+                break
+              fi
+              echo "[pre-join] waiting… ($i/30) ${VIPPORT}"
+              sleep 5
+            done
+          owner: root:root
+          permissions: "0755"
+          path: /etc/kube-wait-kubeapi.sh
         preKubeadmCommands:
         - bash /etc/kube-proxy-patch.sh
-        - |
-          # The full kubeadm join command is embedded in this same cloud-init script,
-          # a few lines below. Extract the VIP from it.
-          SELF=$(grep -l 'control-plane-endpoint' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1)
-          VIP=$(grep -oP -- '--control-plane-endpoint=\K[^:]+' "$SELF")
-          PORT=$(grep -oP -- '--control-plane-endpoint=[^:]+:\K\d+' "$SELF")
-
-          for i in $(seq 1 30); do
-            if curl -ks --max-time 5 "https://${VIP}:${PORT}/healthz"; then
-              echo "[pre-join] API server ${VIP}:${PORT} reachable (attempt $i)"
-              break
-            fi
-            echo "[pre-join] waiting… ($i/30) ${VIP}:${PORT}"
-            sleep 5
-          done
+        - bash /etc/kube-wait-kubeapi.sh
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
