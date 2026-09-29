@@ -77,12 +77,12 @@ spec:
             #!/usr/bin/env bash
             # The full kubeadm join command is embedded in this same cloud-init script,
             # a few lines below. Extract the VIP from it.
-            VIPPORT=$(grep '^ *apiServerEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *apiServerEndpoint: *//')
+            VIPPORT=$(grep -h '^ *apiServerEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *apiServerEndpoint: *//')
             if test -z "$VIPPORT"; then
-              VIPPORT=$(grep '^ *controlPlaneEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *controlPlaneEndpoint: *//')
+              VIPPORT=$(grep -h '^ *controlPlaneEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *controlPlaneEndpoint: *//')
             fi
             echo "VIP Port: $VIPPORT"
-            cat /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null
+            #cat /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null
             if test -z "$VIPPORT"; then echo "No apiServerEndpoint found, cannot wait ..."; sleep 6; exit 0; fi
             for i in $(seq 0 15); do
               if curl -ks --max-time 5 "https://${VIPPORT}/healthz"; then
