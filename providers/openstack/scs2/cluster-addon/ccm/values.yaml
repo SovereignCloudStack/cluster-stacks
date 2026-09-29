@@ -3,16 +3,10 @@ openstack-cloud-controller-manager:
     enabled: true
     name: ccm-cloud-config
     create: true
-  #nodeSelector:
-  ## Added by KG: Move to control plane
   nodeSelector:
-    node-role.kubernetes.io/control-plane: ""
   tolerations:
     - key: node.cloudprovider.kubernetes.io/uninitialized
       value: "true"
-      effect: NoSchedule
-    ## Added by KG
-    - key: node-role.kubernetes.io/control-plane
       effect: NoSchedule
   # Allow DNS resolution before CoreDNS is up
   hostNetwork: true
