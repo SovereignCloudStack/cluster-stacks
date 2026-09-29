@@ -84,7 +84,7 @@ spec:
             echo "VIP Port: $VIPPORT"
             # kubeadm config is in different directory in Flatcar (/etc) and Ubuntu (/run/kubeadm).
             kubeadm_file="/etc/kubeadm.yml"
-            if test ! -f ${kubeadm_file}; then kubeadm_file="/run/kubeadm/kubeadm.yaml" fi
+            if ! test -f ${kubeadm_file}; then kubeadm_file="/run/kubeadm/kubeadm.yaml"; fi
             if test -f ${kubeadm_file}; then echo "Init node, not waiting ..."; exit 0; fi
             #cat /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null
             if test -z "$VIPPORT"; then echo "No apiServerEndpoint found, cannot wait ..."; sleep 6; exit 0; fi
