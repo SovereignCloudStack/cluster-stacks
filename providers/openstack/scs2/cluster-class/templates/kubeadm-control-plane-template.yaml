@@ -75,6 +75,21 @@ spec:
           permissions: "0755"
         preKubeadmCommands:
         - bash /etc/kube-proxy-patch.sh
+        - |
+          # The full kubeadm join command is embedded in this same cloud-init script,
+          # a few lines below. Extract the VIP from it.
+          SELF=$(grep -l 'control-plane-endpoint' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1)
+          VIP=$(grep -oP -- '--control-plane-endpoint=\K[^:]+' "$SELF")
+          PORT=$(grep -oP -- '--control-plane-endpoint=[^:]+:\K\d+' "$SELF")
+
+          for i in $(seq 1 30); do
+            if curl -ks --max-time 5 "https://${VIP}:${PORT}/healthz"; then
+              echo "[pre-join] API server ${VIP}:${PORT} reachable (attempt $i)"
+              break
+            fi
+            echo "[pre-join] waiting… ($i/30) ${VIP}:${PORT}"
+            sleep 5
+          done
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
