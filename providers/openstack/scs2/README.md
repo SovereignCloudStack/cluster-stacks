@@ -21,7 +21,7 @@ export CLUSTER_TOPOLOGY=true
 export EXP_CLUSTER_RESOURCE_SET=true
 export EXP_RUNTIME_SDK=true
 kubectl apply -f https://github.com/k-orc/openstack-resource-controller/releases/latest/download/install.yaml
-clusterctl init --infrastructure openstack:v0.12.6
+clusterctl init --infrastructure openstack:v0.14.4
 
 kubectl -n capi-system rollout status deployment
 kubectl -n capo-system rollout status deployment
@@ -90,7 +90,7 @@ metadata:
 spec:
   provider: openstack
   name: scs2
-  kubernetesVersion: "1.33"
+  kubernetesVersion: "1.35"
   channel: stable
   autoSubscribe: false
   noProvider: true
@@ -132,7 +132,7 @@ spec:
     classNamespace: $CLUSTERSTACK_NAMESPACE
     controlPlane:
       replicas: 1
-    version: v1.33.4
+    version: v1.35.5
     workers:
       machineDeployments:
         - class: default-worker

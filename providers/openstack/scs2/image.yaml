@@ -2,7 +2,7 @@
 apiVersion: openstack.k-orc.cloud/v1alpha1
 kind: Image
 metadata:
-  name: "ubuntu-capi-image-v1.34.7"
+  name: "ubuntu-capi-image-v1.35.5"
 spec:
   cloudCredentialsRef:
     cloudName: "openstack"
@@ -26,7 +26,7 @@ spec:
     content:
       diskFormat: qcow2
       download:
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.7.qcow2
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.5.qcow2
         hash:
           algorithm: sha256
-          value: f7bf12297833cca14de6d24081c8a01e99143651e4c01431b911375300550fe0
+          value: 9ede9a241f14e12f666304d0288934c8fc7ed5ad65b31ed004a7ec0fd53ca32a
