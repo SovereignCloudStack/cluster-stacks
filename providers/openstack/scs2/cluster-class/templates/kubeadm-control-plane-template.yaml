@@ -73,8 +73,35 @@ spec:
           owner: root:root
           path: /etc/kube-proxy-patch.sh
           permissions: "0755"
+        - content: |
+            #!/usr/bin/env bash
+            # The full kubeadm join command is embedded in this same cloud-init script,
+            # a few lines below. Extract the VIP from it.
+            VIPPORT=$(grep -h '^ *apiServerEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *apiServerEndpoint: *//')
+            if test -z "$VIPPORT"; then
+              VIPPORT=$(grep -h '^ *controlPlaneEndpoint:' /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null | head -1 | sed 's/^ *controlPlaneEndpoint: *//')
+            fi
+            echo "VIP Port: $VIPPORT"
+            # kubeadm config is in different directory in Flatcar (/etc) and Ubuntu (/run/kubeadm).
+            kubeadm_file="/etc/kubeadm.yml"
+            if ! test -f ${kubeadm_file}; then kubeadm_file="/run/kubeadm/kubeadm.yaml"; fi
+            if test -f ${kubeadm_file}; then echo "Init node, not waiting ..."; exit 0; fi
+            #cat /var/lib/cloud/instance/user-data.txt /run/cloud-init/user-data.txt 2>/dev/null
+            if test -z "$VIPPORT"; then echo "No apiServerEndpoint found, cannot wait ..."; sleep 6; exit 0; fi
+            for i in $(seq 0 15); do
+              if curl -ks --max-time 5 "https://${VIPPORT}/healthz"; then
+                echo "[pre-join] API server ${VIPPORT} reachable (attempt $i)"
+                break
+              fi
+              echo "[pre-join] waiting… ($i/30) ${VIPPORT}"
+              sleep 4
+            done
+          owner: root:root
+          permissions: "0755"
+          path: /etc/kube-wait-kubeapi.sh
         preKubeadmCommands:
         - bash /etc/kube-proxy-patch.sh
+        - bash /etc/kube-wait-kubeapi.sh
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
