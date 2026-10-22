@@ -5,6 +5,9 @@ metadata:
 spec:
   template:
     spec:
+      preKubeadmCommands:
+      - systemctl daemon-reload
+      - systemctl restart containerd
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:

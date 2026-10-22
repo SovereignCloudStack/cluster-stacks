@@ -12,6 +12,7 @@ variables:
   disableAPIServerFloatingIP: false
   apiServerLoadBalancer: "octavia-ovn"
   certSANs: []
+  auditLogging: true
 
   # Network
   dnsNameservers: ["9.9.9.9", "149.112.112.112"]

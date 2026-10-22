@@ -7,6 +7,12 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
+          apiServer:
+            extraArgs:
+              - name: event-ttl
+                value: 4h
+              - name: profiling
+                value: "false"
           controllerManager:
             extraArgs:
               - name: cloud-provider
@@ -45,6 +51,9 @@ spec:
                   value: "250"
                 - name: snapshot-count
                   value: "6400"
+        preKubeadmCommands:
+        - systemctl daemon-reload
+        - systemctl restart containerd
         initConfiguration:
           skipPhases:
           - addon/kube-proxy
