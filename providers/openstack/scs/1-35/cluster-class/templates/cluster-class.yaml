@@ -167,6 +167,17 @@ spec:
             Root disk size in GiB. OpenStack volume will be created and used
             instead of an ephemeral disk defined in the flavor.
             Set to 0 to use the flavor's ephemeral disk.
+    - name: diskPinAZ
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          default: {{ .Values.variables.diskPinAZ }}
+          example: true
+          description: |-
+            Create root and additional volumes in the availability zone (failure domain)
+            of the machine. Needed on clouds where volumes can only be attached in the
+            same availability zone.
     - name: serverGroupID
       required: false
       schema:
@@ -802,6 +813,10 @@ spec:
               valueFrom:
                 template: |
                   sizeGiB: {{ `{{ .rootDisk }}` }}
+                  {{ `{{- if .diskPinAZ }}` }}
+                  availabilityZone:
+                    from: Machine
+                  {{ `{{- end }}` }}
     - name: serverGroupID
       description: "Sets the server group for anti-affinity."
       enabledIf: {{ `'{{ ne .serverGroupID "" }}'` }}
@@ -844,6 +859,10 @@ spec:
                       type: Volume
                       volume:
                         type: {{ `{{ .type }}` }}
+                        {{ `{{- if $.diskPinAZ }}` }}
+                        availabilityZone:
+                          from: Machine
+                        {{ `{{- end }}` }}
                   {{ `{{- end }}` }}
     - name: podCIDRAllowedAddressPairsControlPlane
       description: "Allows pod-network source addresses on control-plane ports for native routing."

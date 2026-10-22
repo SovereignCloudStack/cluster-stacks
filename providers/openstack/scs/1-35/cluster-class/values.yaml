@@ -21,6 +21,7 @@ variables:
   # Machine configuration (override per CP/worker via topology)
   flavor: "SCS-2V-4"
   rootDisk: 50
+  diskPinAZ: false
   serverGroupID: ""
   additionalBlockDevices: []
 
