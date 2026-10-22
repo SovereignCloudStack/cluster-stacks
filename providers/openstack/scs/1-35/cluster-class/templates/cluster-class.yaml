@@ -4,6 +4,23 @@ metadata:
   name: {{ .Release.Name }}-{{ .Chart.Version }}
 spec:
   controlPlane:
+    healthCheck:
+      remediation:
+        triggerIf:
+          unhealthyLessThanOrEqualTo: 1
+      checks:
+        nodeStartupTimeoutSeconds: 600
+        unhealthyNodeConditions:
+          - status: Unknown
+            timeoutSeconds: 600
+            type: Ready
+          - status: 'False'
+            timeoutSeconds: 600
+            type: Ready
+    deletion:
+      nodeDrainTimeoutSeconds: 900
+      nodeVolumeDetachTimeoutSeconds: 900
+      nodeDeletionTimeoutSeconds: 900
     templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
@@ -21,6 +38,30 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
+      healthCheck:
+        remediation:
+          triggerIf:
+            unhealthyLessThanOrEqualTo: 1
+        checks:
+          nodeStartupTimeoutSeconds: 600
+          unhealthyNodeConditions:
+            - status: Unknown
+              timeoutSeconds: 300
+              type: Ready
+            - status: 'False'
+              timeoutSeconds: 300
+              type: Ready
+      deletion:
+        order: Oldest
+        nodeDrainTimeoutSeconds: 1800
+        nodeVolumeDetachTimeoutSeconds: 1800
+        nodeDeletionTimeoutSeconds: 900
+      rollout:
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 0
       bootstrap:
         templateRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
@@ -508,8 +549,7 @@ spec:
             valueFrom:
               variable: disableAPIServerFloatingIP
     - name: podCIDROpenStackCluster
-      description: "Configures pod-network CIDR based security-group rules for native routing."
-      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
+      description: "Allows pod-network traffic between nodes for native routing."
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -518,14 +558,14 @@ spec:
               infrastructureCluster: true
           jsonPatches:
             - op: add
-              path: "/spec/template/spec/managedSecurityGroups/allNodesSecurityGroupRules/-"
+              path: "/spec/template/spec/managedSecurityGroups/allNodesSecurityGroupRules"
               valueFrom:
                 template: |
-                  remoteIPPrefix: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
-                  direction: ingress
-                  etherType: IPv4
-                  name: Pod traffic (Cilium native routing)
-                  description: Allow pod-to-pod traffic for Cilium native routing
+                  - remoteIPPrefix: {{ `'{{ if .builtin.cluster.network.pods }}{{ index .builtin.cluster.network.pods 0 }}{{ else }}192.168.0.0/16{{ end }}'` }}
+                    direction: ingress
+                    etherType: IPv4
+                    name: Pod traffic (Cilium native routing)
+                    description: Allow pod-to-pod traffic for Cilium native routing
     #
     # Patches for OpenStackMachineTemplate resources (image).
     # Image patches must stay separate because they use different builtin variables:
@@ -649,7 +689,6 @@ spec:
                   {{ `{{- end }}` }}
     - name: podCIDRAllowedAddressPairsControlPlane
       description: "Allows pod-network source addresses on control-plane ports for native routing."
-      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -662,10 +701,9 @@ spec:
               valueFrom:
                 template: |
                   allowedAddressPairs:
-                    - ipAddress: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
+                    - ipAddress: {{ `'{{ if .builtin.cluster.network.pods }}{{ index .builtin.cluster.network.pods 0 }}{{ else }}192.168.0.0/16{{ end }}'` }}
     - name: podCIDRAllowedAddressPairsWorker
       description: "Allows pod-network source addresses on worker ports for native routing."
-      enabledIf: {{ `'{{- if .builtin.cluster.network.pods -}}true{{- end -}}'` }}
       definitions:
         - selector:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -680,7 +718,7 @@ spec:
               valueFrom:
                 template: |
                   allowedAddressPairs:
-                    - ipAddress: {{ `{{ index .builtin.cluster.network.pods 0 }}` }}
+                    - ipAddress: {{ `'{{ if .builtin.cluster.network.pods }}{{ index .builtin.cluster.network.pods 0 }}{{ else }}192.168.0.0/16{{ end }}'` }}
     #
     # Access patches — target both CP and workers.
     # securityGroupIDs takes precedence over securityGroups (last patch wins).
