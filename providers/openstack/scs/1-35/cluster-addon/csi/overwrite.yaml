@@ -1,3 +1,12 @@
 values: |
-  openstack-cinder-csi:
-    clusterID: "{{ .Cluster.metadata.name }}"
+  {{- $overrides := dict }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $values := dict "clusterID" .Cluster.metadata.name }}
+  {{- range $key, $value := $overrides.csi }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  openstack-cinder-csi: {{ toJson $values }}

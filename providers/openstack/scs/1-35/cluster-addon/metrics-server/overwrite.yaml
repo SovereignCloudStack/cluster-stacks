@@ -1,4 +1,12 @@
 values: |
-  metrics-server:
-    commonLabels:
-      domain: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
+  {{- $overrides := dict }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $values := dict "commonLabels" (dict "domain" (printf "%v" .Cluster.spec.controlPlaneEndpoint.host)) }}
+  {{- range $key, $value := $overrides.metricsServer }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  metrics-server: {{ toJson $values }}

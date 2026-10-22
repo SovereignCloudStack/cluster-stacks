@@ -394,6 +394,149 @@ spec:
                 type: string
                 example: ""
                 description: "TLS certificate of the mirror in PEM format (optional)."
+    - name: componentOverrides
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          default: {}
+          example:
+            apiServer:
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: "1Gi"
+            metricsServer:
+              resources:
+                requests:
+                  cpu: "100m"
+                  memory: "128Mi"
+          description: |-
+            Overrides for Kubernetes components and cluster addons, mainly to set resource
+            requests and limits. Kubernetes components accept "resources" only, addons accept
+            any values of their Helm chart.
+          properties:
+            apiServer:
+              type: object
+              description: "kube-apiserver"
+              properties:
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+            controllerManager:
+              type: object
+              description: "kube-controller-manager"
+              properties:
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+            scheduler:
+              type: object
+              description: "kube-scheduler"
+              properties:
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+            etcd:
+              type: object
+              description: "etcd"
+              properties:
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+            coreDNS:
+              type: object
+              description: "CoreDNS"
+              properties:
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+            cni:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              description: "Values for the cilium Helm chart."
+            ccm:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              description: "Values for the openstack-cloud-controller-manager Helm chart."
+            csi:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              description: "Values for the openstack-cinder-csi Helm chart."
+            metricsServer:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              description: "Values for the metrics-server Helm chart."
   #
   # Patches
   #
@@ -996,6 +1139,254 @@ spec:
                   permissions: "0644"
                 {{ `{{- end }}` }}
                 {{ `{{- end }}` }}
+    # These patches must stay after controlPlaneFiles. The control-plane files
+    # patch rewrites kubeadmConfigSpec.files, while the component override patches append
+    # entries to that list via /files/-.
+    - name: componentOverridesPatchDirectory
+      description: "Enable kubeadm patch directory for Kubernetes base component resource overrides."
+      enabledIf: {{ `'{{ if or .componentOverrides.apiServer.resources .componentOverrides.controllerManager.resources .componentOverrides.scheduler.resources .componentOverrides.etcd.resources .componentOverrides.coreDNS.resources }}true{{end}}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/patches"
+              value:
+                directory: /etc/kubeadm/patches
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/patches"
+              value:
+                directory: /etc/kubeadm/patches
+    - name: componentOverridesApiServer
+      description: "Configure resources for the kube-apiserver static pod."
+      enabledIf: {{ `'{{ with .componentOverrides.apiServer.resources }}{{ if or .requests .limits }}true{{ end }}{{ end }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+              valueFrom:
+                template: |
+                  content: |
+                    apiVersion: v1
+                    kind: Pod
+                    metadata:
+                      name: kube-apiserver
+                      namespace: kube-system
+                    spec:
+                      containers:
+                        - name: kube-apiserver
+                          resources:
+                    {{ `{{- with .componentOverrides.apiServer.resources.requests }}` }}
+                            requests:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- with .componentOverrides.apiServer.resources.limits }}` }}
+                            limits:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                  owner: root:root
+                  path: /etc/kubeadm/patches/kube-apiserver0+strategic.yaml
+                  permissions: "0644"
+    - name: componentOverridesControllerManager
+      description: "Configure resources for the kube-controller-manager static pod."
+      enabledIf: {{ `'{{ with .componentOverrides.controllerManager.resources }}{{ if or .requests .limits }}true{{ end }}{{ end }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+              valueFrom:
+                template: |
+                  content: |
+                    apiVersion: v1
+                    kind: Pod
+                    metadata:
+                      name: kube-controller-manager
+                      namespace: kube-system
+                    spec:
+                      containers:
+                        - name: kube-controller-manager
+                          resources:
+                    {{ `{{- with .componentOverrides.controllerManager.resources.requests }}` }}
+                            requests:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- with .componentOverrides.controllerManager.resources.limits }}` }}
+                            limits:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                  owner: root:root
+                  path: /etc/kubeadm/patches/kube-controller-manager0+strategic.yaml
+                  permissions: "0644"
+    - name: componentOverridesScheduler
+      description: "Configure resources for the kube-scheduler static pod."
+      enabledIf: {{ `'{{ with .componentOverrides.scheduler.resources }}{{ if or .requests .limits }}true{{ end }}{{ end }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+              valueFrom:
+                template: |
+                  content: |
+                    apiVersion: v1
+                    kind: Pod
+                    metadata:
+                      name: kube-scheduler
+                      namespace: kube-system
+                    spec:
+                      containers:
+                        - name: kube-scheduler
+                          resources:
+                    {{ `{{- with .componentOverrides.scheduler.resources.requests }}` }}
+                            requests:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- with .componentOverrides.scheduler.resources.limits }}` }}
+                            limits:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                  owner: root:root
+                  path: /etc/kubeadm/patches/kube-scheduler0+strategic.yaml
+                  permissions: "0644"
+    - name: componentOverridesEtcd
+      description: "Configure resources for the local etcd static pod."
+      enabledIf: {{ `'{{ with .componentOverrides.etcd.resources }}{{ if or .requests .limits }}true{{ end }}{{ end }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+              valueFrom:
+                template: |
+                  content: |
+                    apiVersion: v1
+                    kind: Pod
+                    metadata:
+                      name: etcd
+                      namespace: kube-system
+                    spec:
+                      containers:
+                        - name: etcd
+                          resources:
+                    {{ `{{- with .componentOverrides.etcd.resources.requests }}` }}
+                            requests:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- with .componentOverrides.etcd.resources.limits }}` }}
+                            limits:
+                    {{ `{{- if .cpu }}` }}
+                              cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                              memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                  owner: root:root
+                  path: /etc/kubeadm/patches/etcd0+strategic.yaml
+                  permissions: "0644"
+    - name: componentOverridesCoreDNS
+      description: "Configure resources for the CoreDNS deployment created during kubeadm init."
+      enabledIf: {{ `'{{ with .componentOverrides.coreDNS.resources }}{{ if or .requests .limits }}true{{ end }}{{ end }}'` }}
+      definitions:
+        - selector:
+            apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+            kind: KubeadmControlPlaneTemplate
+            matchResources:
+              controlPlane: true
+          jsonPatches:
+            - op: add
+              path: "/spec/template/spec/kubeadmConfigSpec/files/-"
+              valueFrom:
+                template: |
+                  content: |
+                    apiVersion: apps/v1
+                    kind: Deployment
+                    metadata:
+                      name: coredns
+                      namespace: kube-system
+                    spec:
+                      template:
+                        spec:
+                          containers:
+                            - name: coredns
+                              resources:
+                    {{ `{{- with .componentOverrides.coreDNS.resources.requests }}` }}
+                                requests:
+                    {{ `{{- if .cpu }}` }}
+                                  cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                                  memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- with .componentOverrides.coreDNS.resources.limits }}` }}
+                                limits:
+                    {{ `{{- if .cpu }}` }}
+                                  cpu: {{ `'{{ .cpu }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- if .memory }}` }}
+                                  memory: {{ `'{{ .memory }}'` }}
+                    {{ `{{- end }}` }}
+                    {{ `{{- end }}` }}
+                  owner: root:root
+                  path: /etc/kubeadm/patches/corednsdeployment0+strategic.yaml
+                  permissions: "0644"
     - name: workerFiles
       description: "Populate base files entries for worker nodes and optionally add registry mirrors."
       definitions:

@@ -1,4 +1,12 @@
 values: |
-  openstack-cloud-controller-manager:
-    cluster:
-      name: {{ .Cluster.metadata.name }}
+  {{- $overrides := dict }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $values := dict "cluster" (dict "name" .Cluster.metadata.name) }}
+  {{- range $key, $value := $overrides.ccm }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  openstack-cloud-controller-manager: {{ toJson $values }}

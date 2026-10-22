@@ -1,5 +1,16 @@
 values: |
-  cilium:
-    k8sServiceHost: "{{ .Cluster.spec.controlPlaneEndpoint.host }}"
-    k8sServicePort: "{{ .Cluster.spec.controlPlaneEndpoint.port }}"
-    ipv4NativeRoutingCIDR: "{{ index .Cluster.spec.clusterNetwork.pods.cidrBlocks 0 }}"
+  {{- $overrides := dict }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $podCIDR := "192.168.0.0/16" }}
+  {{- with .Cluster.spec.clusterNetwork.pods.cidrBlocks }}
+  {{- $podCIDR = index . 0 }}
+  {{- end }}
+  {{- $values := dict "k8sServiceHost" (printf "%v" .Cluster.spec.controlPlaneEndpoint.host) "k8sServicePort" (printf "%v" .Cluster.spec.controlPlaneEndpoint.port) "ipv4NativeRoutingCIDR" $podCIDR }}
+  {{- range $key, $value := $overrides.cni }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  cilium: {{ toJson $values }}
