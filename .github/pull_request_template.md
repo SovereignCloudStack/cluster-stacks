@@ -1,4 +1,4 @@
-<!-- If this is your first PR, welcome! Please make sure you read the [contributing guidelines](../CONTRIBUTING.md#contributing-a-patch). -->
+<!-- If this is your first PR, welcome! Please review the README and existing docs before contributing. -->
 <!-- please add an icon to the title of this PR and delete this line and similar ones -->
 <!-- the icon will be either ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, feature additions), 🐛 (:bug:, patches and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other) -->
 
