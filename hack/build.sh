@@ -6,14 +6,17 @@
 #
 # The <stack-dir> is the base directory containing per-minor-version subdirs
 # (e.g., providers/openstack/scs). If omitted, it is derived from $PROVIDER
-# and $CLUSTER_STACK (default: providers/openstack/scs).
+# and $CLUSTER_STACK (default: providers/openstack/scs). Relative paths are
+# resolved from the repository root.
 #
 # Options:
 #   --version <X.Y>   Build for a specific K8s minor version (e.g., 1.34)
-#   --all             Build for all K8s versions (all 1-* subdirs)
-#   --publish         Push to OCI registry after building
+#   --release-version <vN>  Use a specific cluster-stack release version with a single --version build (e.g., v1)
+#   --all             Build for all K8s versions (all 1-* subdirs); mutually exclusive with --version
+#   --publish         Push to OCI registry after building (skipped if unchanged)
 #   --install-cso     Install/upgrade the Cluster Stack Operator with matching OCI config
 #   --validate        Validate addon bundle structure against clusteraddon.yaml
+#   -h, --help        Show this help
 #
 # Without --version or --all, builds the highest 1-* subdirectory.
 #
@@ -40,10 +43,11 @@
 #   CSO_CHART         CSO Helm chart reference (default: oci://registry.scs.community/cluster-stacks/cso)
 
 set -euo pipefail
+shopt -s inherit_errexit
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-YQ_VERSION="$(yq --version 2>/dev/null || true)"
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+readonly YQ_VERSION="$(yq --version 2>/dev/null || true)"
 
 require_command() {
     local name="$1"
@@ -52,6 +56,14 @@ require_command() {
         echo "$name not found. Please install $name and try again." >&2
         exit 1
     fi
+}
+
+log() {
+    echo "$@" >&2
+}
+
+warn() {
+    echo "Warning: $*" >&2
 }
 
 extract_k8s_minor_version() {
@@ -67,6 +79,29 @@ extract_latest_release_number() {
             print suffix
         }
     }' | sort -n | tail -1
+}
+
+normalize_release_version() {
+    local version="$1"
+
+    if [[ "$version" =~ ^[0-9] ]]; then
+        version="v${version}"
+    fi
+
+    if [[ ! "$version" =~ ^v[0-9]+(-[A-Za-z0-9_]+\.[A-Za-z0-9_]+)?$ ]]; then
+        echo "Invalid release version: ${version}. Expected v<N> or v<N>-<channel>.<patch>, e.g. v1 or v0-sha.abc1234." >&2
+        exit 1
+    fi
+
+    echo "$version"
+}
+
+oras_auth_opts() {
+    if [[ -n "${OCI_USERNAME:-}" && -n "${OCI_PASSWORD:-}" ]]; then
+        printf '%s\n' --username "$OCI_USERNAME" --password "$OCI_PASSWORD"
+    elif [[ -n "${OCI_ACCESS_TOKEN:-}" ]]; then
+        printf '%s\n' --password "$OCI_ACCESS_TOKEN"
+    fi
 }
 
 yq_edit_in_place() {
@@ -87,50 +122,90 @@ yq_has_path() {
     yq -e "$expression" "$file" >/dev/null 2>&1
 }
 
-require_command yq
-require_command curl
-require_command jq
-require_command helm
-
 # ============================================
 # Argument parsing
 # ============================================
 
+usage() {
+    sed -n '3,/^$/s/^# \?//p' "$0"
+    exit "${1:-1}"
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --version)      [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; TARGET_VERSION="$2"; shift 2 ;;
+            --release-version) [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; RELEASE_VERSION=$(normalize_release_version "$2"); shift 2 ;;
+            --all)          BUILD_ALL=true; shift ;;
+            --publish)      PUBLISH=true; shift ;;
+            --install-cso)  INSTALL_CSO=true; shift ;;
+            --validate)     VALIDATE=true; shift ;;
+            -h|--help)      usage 0 ;;
+            -*)             echo "Unknown option: $1" >&2; usage ;;
+            *)
+                if [[ -z "$BASE_DIR" ]]; then
+                    BASE_DIR="$1"; shift
+                else
+                    echo "Unexpected argument: $1" >&2; usage
+                fi
+                ;;
+        esac
+    done
+
+    if [[ "$BUILD_ALL" == "true" && -n "$TARGET_VERSION" ]]; then
+        echo "Error: --all and --version <X.Y> cannot be used together." >&2
+        usage
+    fi
+
+    if [[ -n "$RELEASE_VERSION" && -z "$TARGET_VERSION" ]]; then
+        echo "Error: --release-version can only be used together with --version <X.Y>." >&2
+        usage
+    fi
+
+    if [[ -n "$RELEASE_VERSION" && "$BUILD_ALL" == "true" ]]; then
+        echo "Error: --release-version cannot be used with --all." >&2
+        usage
+    fi
+}
+
+resolve_base_dir() {
+    local dir="$1"
+
+    if [[ -z "$dir" ]]; then
+        dir="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
+    fi
+
+    if [[ ! "$dir" = /* ]]; then
+        dir="$REPO_ROOT/$dir"
+    fi
+
+    echo "$dir"
+}
+
 BASE_DIR=""
 TARGET_VERSION=""
+RELEASE_VERSION=""
 BUILD_ALL=false
 PUBLISH=false
 INSTALL_CSO=false
 VALIDATE=false
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --version)      TARGET_VERSION="$2"; shift 2 ;;
-        --all)          BUILD_ALL=true; shift ;;
-        --publish)      PUBLISH=true; shift ;;
-        --install-cso)  INSTALL_CSO=true; shift ;;
-        --validate)     VALIDATE=true; shift ;;
-        -*)             echo "Unknown option: $1"; exit 1 ;;
-        *)
-            if [[ -z "$BASE_DIR" ]]; then
-                BASE_DIR="$1"; shift
-            else
-                echo "Unexpected argument: $1"; exit 1
-            fi
-            ;;
-    esac
-done
+parse_args "$@"
 
-if [[ -z "$BASE_DIR" ]]; then
-    BASE_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
-fi
+require_command yq
+require_command curl
+require_command helm
+
+BASE_DIR="$(resolve_base_dir "$BASE_DIR")"
 
 if [[ ! -d "$BASE_DIR" ]]; then
-    echo "Stack base directory not found: $BASE_DIR"
+    echo "Stack base directory not found: $BASE_DIR" >&2
     exit 1
 fi
 
-OUTPUT_DIR="${OUTPUT_DIR:-.release}"
+OUTPUT_DIR="${OUTPUT_DIR:-$REPO_ROOT/.release}"
+mkdir -p "$OUTPUT_DIR"
+OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 
 # ============================================
 # Resolve which minor-version directories to build
@@ -168,7 +243,7 @@ collect_version_dirs() {
 VERSION_DIRS=$(collect_version_dirs)
 
 if [[ -z "$VERSION_DIRS" ]]; then
-    echo "No version directories to build"
+    echo "No version directories to build" >&2
     exit 1
 fi
 
@@ -182,6 +257,11 @@ setup_oci() {
         export OCI_REGISTRY="ttl.sh"
         export OCI_REPOSITORY="clusterstacks-${DATE_YYYYMMDD}"
         echo "Auto-configured ttl.sh: $OCI_REGISTRY/$OCI_REPOSITORY (expires in 24h)" >&2
+    fi
+
+    if [[ -z "${OCI_REPOSITORY:-}" ]]; then
+        echo "Error: OCI_REPOSITORY must be set when OCI_REGISTRY is set." >&2
+        exit 1
     fi
 }
 
@@ -219,43 +299,53 @@ install_cso() {
     echo "" >&2
 }
 
+is_dev_registry() {
+    [[ "${OCI_REGISTRY:-}" == "ttl.sh" || -z "${OCI_REPOSITORY:-}" ]]
+}
+
+list_oci_tags() {
+    require_command oras
+
+    local oras_opts=()
+    mapfile -t oras_opts < <(oras_auth_opts)
+
+    local tags
+    if ! tags=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" "${oras_opts[@]+"${oras_opts[@]}"}" 2>/dev/null); then
+        echo "Failed to query OCI tags from ${OCI_REGISTRY}/${OCI_REPOSITORY}." >&2
+        exit 1
+    fi
+    echo "$tags"
+}
+
+latest_published_release_number() {
+    local tag_prefix="$1"
+    local tags latest
+
+    tags=$(list_oci_tags) || exit 1
+    latest=$(echo "$tags" | extract_latest_release_number "$tag_prefix" || true)
+    echo "${latest:-0}"
+}
+
 # Determine release version for a given K8s minor version.
-# Stable: queries OCI for highest vN tag, returns v(N+1). Dev: returns v0-<suffix>.
+# Stable: highest published vN + 1. Dev: v0-ttl.<timestamp>.
 get_release_version() {
     local provider="$1"
     local stack_name="$2"
     local k8s_dash="$3"
     local tag_prefix="${provider}-${stack_name}-${k8s_dash}"
 
-    if [[ "${OCI_REGISTRY:-}" == "ttl.sh" ]] || [[ -z "${OCI_REPOSITORY:-}" ]]; then
-        # Dev version
-        local timestamp
-        timestamp=$(date +%s)
-        echo "v0-ttl.${timestamp}"
+    if [[ -n "$RELEASE_VERSION" ]]; then
+        echo "$RELEASE_VERSION"
         return
     fi
 
-    local oras_opts=()
-    if [[ -n "${OCI_USERNAME:-}" && -n "${OCI_PASSWORD:-}" ]]; then
-        oras_opts+=(--username "$OCI_USERNAME" --password "$OCI_PASSWORD")
-    elif [[ -n "${OCI_ACCESS_TOKEN:-}" ]]; then
-        oras_opts+=(--password "$OCI_ACCESS_TOKEN")
+    if is_dev_registry; then
+        echo "v0-ttl.$(date +%s)"
+        return
     fi
 
-    # Query OCI for existing stable versions
-    require_command oras
-
-    local latest=0
-    local tags
-    if ! tags=$(oras repo tags "${OCI_REGISTRY}/${OCI_REPOSITORY}" "${oras_opts[@]}" 2>/dev/null); then
-        echo "Failed to query OCI tags from ${OCI_REGISTRY}/${OCI_REPOSITORY}." >&2
-        exit 1
-    fi
-    if [[ -n "$tags" ]]; then
-        latest=$(echo "$tags" | extract_latest_release_number "$tag_prefix" || echo "0")
-        latest="${latest:-0}"
-    fi
-
+    local latest
+    latest=$(latest_published_release_number "$tag_prefix") || exit 1
     echo "v$((latest + 1))"
 }
 
@@ -269,53 +359,73 @@ resolve_k8s_version() {
     local version="$1"
     local provider="$2"
 
-    # Already has patch version
     if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "$version"
         return
     fi
 
-    # Minor-only: resolve latest patch
+    local latest
     if [[ "$provider" == "docker" ]]; then
-        # Query Docker Hub for kindest/node tags
-        local latest
+        require_command jq
         if ! latest=$(curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&name=v${version}." 2>/dev/null \
             | jq -r '.results[].name' 2>/dev/null \
             | grep -E "^v${version}\.[0-9]+$" \
             | sed 's/^v//' \
             | sort -V \
             | tail -1); then
-            echo "Failed to resolve the latest Docker patch version for Kubernetes ${version}." >&2
+            echo "Failed to resolve the latest kindest/node patch version for Kubernetes ${version}." >&2
             exit 1
-        fi
-        if [[ -n "$latest" ]]; then
-            echo "$latest"
-            return
         fi
     else
-        # Query GitHub for K8s releases
-        local github_headers=()
-        if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-            github_headers=(-H "Authorization: token $GITHUB_TOKEN")
-        fi
-        local latest
-        if ! latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
-            "https://api.github.com/repos/kubernetes/kubernetes/releases?per_page=100" 2>/dev/null \
-            | jq -r '.[].tag_name' 2>/dev/null \
-            | grep -E "^v${version}\.[0-9]+$" \
-            | sed 's/^v//' \
-            | sort -V \
-            | tail -1); then
-            echo "Failed to resolve the latest GitHub patch version for Kubernetes ${version}." >&2
+        if ! latest=$(curl -sfL "https://dl.k8s.io/release/stable-${version}.txt" 2>/dev/null | sed 's/^v//'); then
+            echo "Failed to resolve the latest patch version for Kubernetes ${version}." >&2
             exit 1
-        fi
-        if [[ -n "$latest" ]]; then
-            echo "$latest"
-            return
         fi
     fi
 
+    if [[ -n "$latest" && "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$latest"
+        return
+    fi
+
     echo "Could not resolve a stable patch version for Kubernetes ${version}." >&2
+    exit 1
+}
+
+finalize_release_dir() {
+    local staged_dir="$1"
+    local output_dir="$2"
+
+    mkdir -p "$(dirname "$output_dir")"
+
+    if [[ -e "$output_dir" ]]; then
+        if ! rm -rf "$output_dir" 2>/dev/null; then
+            if [[ "$PUBLISH" == "true" ]]; then
+                warn "Could not replace existing output directory: $output_dir"
+                warn "Keeping staged artifacts in: $staged_dir"
+                echo "$staged_dir"
+                return
+            fi
+
+            echo "Output directory is not writable: $output_dir" >&2
+            echo "Remove it or fix permissions and retry." >&2
+            exit 1
+        fi
+    fi
+
+    if mv "$staged_dir" "$output_dir" 2>/dev/null; then
+        echo "$output_dir"
+        return
+    fi
+
+    if [[ "$PUBLISH" == "true" ]]; then
+        warn "Could not move release artifacts to: $output_dir"
+        warn "Keeping staged artifacts in: $staged_dir"
+        echo "$staged_dir"
+        return
+    fi
+
+    echo "Failed to move release artifacts to: $output_dir" >&2
     exit 1
 }
 
@@ -330,7 +440,7 @@ build_version_dir() {
 
     local csctl_yaml="$version_dir/csctl.yaml"
     if [[ ! -f "$csctl_yaml" ]]; then
-        echo "csctl.yaml not found in: $version_dir"
+        echo "csctl.yaml not found in: $version_dir" >&2
         exit 1
     fi
 
@@ -354,14 +464,15 @@ build_version_dir() {
     # Get release version
     local release_version
     release_version=$(get_release_version "$provider" "$stack_name" "$k8s_dash")
-    local release_dir="${OUTPUT_DIR}/${provider}-${stack_name}-${k8s_dash}-${release_version}"
-
-    mkdir -p "$release_dir"
+    mkdir -p "$OUTPUT_DIR"
+    local output_release_dir="${OUTPUT_DIR}/${provider}-${stack_name}-${k8s_dash}-${release_version}"
+    local release_dir
+    release_dir=$(mktemp -d "${OUTPUT_DIR}/.${provider}-${stack_name}-${k8s_dash}-${release_version}.XXXXXX")
 
     # ---- Prepare working copy ----
     local work_dir
     work_dir=$(mktemp -d)
-    trap "rm -rf $work_dir" RETURN
+    trap "rm -rf '$work_dir'" RETURN
 
     cp -r "$version_dir/cluster-class" "$work_dir/"
     cp -r "$version_dir/cluster-addon" "$work_dir/"
@@ -415,7 +526,7 @@ build_version_dir() {
     fi
 
     local addon_tgz="${provider}-${stack_name}-${k8s_dash}-cluster-addon-${release_version}.tgz"
-    (cd "$addon_temp" && tar -czf "$(cd "$REPO_ROOT" && pwd)/$release_dir/$addon_tgz" */)
+    (cd "$addon_temp" && tar -czf "$release_dir/$addon_tgz" */)
     rm -rf "$addon_temp"
     echo "  cluster-addon packaged ($addon_count addons)" >&2
 
@@ -472,14 +583,24 @@ EOF
 }
 EOF
 
-    echo "  Output: $release_dir" >&2
-    echo "" >&2
-    echo "  Contents:" >&2
-    ls -1 "$release_dir/" | sed 's/^/    /' >&2
-
     # ---- Publish ----
     if [[ "$PUBLISH" == "true" ]]; then
-        publish_version "$release_dir" "$provider" "$stack_name" "$k8s_dash" "$release_version"
+        local unchanged_version="" published_dir=""
+        if ! is_dev_registry && [[ -z "$RELEASE_VERSION" ]]; then
+            published_dir=$(mktemp -d "${OUTPUT_DIR}/.published.XXXXXX")
+            unchanged_version=$(find_unchanged_published_release "$release_dir" "$provider-$stack_name-$k8s_dash" "$published_dir")
+        fi
+
+        if [[ -n "$unchanged_version" ]]; then
+            log "  No changes compared to published release ${unchanged_version} - skipping publish"
+            rm -rf "$release_dir"
+            release_dir="$published_dir"
+            release_version="$unchanged_version"
+            output_release_dir="${OUTPUT_DIR}/${provider}-${stack_name}-${k8s_dash}-${release_version}"
+        else
+            [[ -n "$published_dir" ]] && rm -rf "$published_dir"
+            publish_version "$release_dir" "$provider" "$stack_name" "$k8s_dash" "$release_version"
+        fi
     fi
 
     # Track for "next steps" output
@@ -487,6 +608,72 @@ EOF
     BUILT_CS_VERSIONS+=("$release_version")
     BUILT_PROVIDERS+=("$provider")
     BUILT_STACK_NAMES+=("$stack_name")
+
+    local final_release_dir
+    final_release_dir=$(finalize_release_dir "$release_dir" "$output_release_dir")
+
+    log "  Output: $final_release_dir"
+    log ""
+    log "  Contents:"
+    ls -1 "$final_release_dir/" | sed 's/^/    /' >&2
+}
+
+# ============================================
+# Compare with the latest published release
+# ============================================
+
+normalize_release_for_compare() {
+    local src="$1" dest="$2"
+
+    mkdir -p "$dest"
+    local f
+    for f in "$src"/*.tgz; do
+        [[ -f "$f" ]] && tar -xzf "$f" -C "$dest"
+    done
+    for f in clusteraddon.yaml csctl.yaml; do
+        [[ -f "$src/$f" ]] && cp "$src/$f" "$dest/"
+    done
+    if [[ -f "$src/metadata.yaml" ]]; then
+        grep -vE '^[[:space:]]*(clusterStack|clusterAddon|nodeImage):' "$src/metadata.yaml" > "$dest/metadata.yaml"
+    fi
+    find "$dest" -name Chart.yaml -exec sed -i '/^version:/d' {} +
+}
+
+find_unchanged_published_release() {
+    local release_dir="$1" tag_prefix="$2" published_dir="$3"
+
+    local latest
+    latest=$(latest_published_release_number "$tag_prefix") || exit 1
+    if [[ "$latest" -eq 0 ]]; then
+        log "  No published release of ${tag_prefix} yet"
+        return 0
+    fi
+
+    local oras_opts=()
+    mapfile -t oras_opts < <(oras_auth_opts)
+
+    log "  Comparing with published release ${tag_prefix}-v${latest}"
+    if ! (cd "$published_dir" && oras pull "${OCI_REGISTRY}/${OCI_REPOSITORY}:${tag_prefix}-v${latest}" "${oras_opts[@]+"${oras_opts[@]}"}" >/dev/null 2>&1); then
+        warn "Could not pull ${tag_prefix}-v${latest}, publishing a new release"
+        return 0
+    fi
+
+    local compare_dir
+    compare_dir=$(mktemp -d)
+    normalize_release_for_compare "$release_dir" "$compare_dir/new"
+    normalize_release_for_compare "$published_dir" "$compare_dir/published"
+
+    local identical=false
+    if diff -qr "$compare_dir/new" "$compare_dir/published" >/dev/null 2>&1; then
+        identical=true
+    fi
+    rm -rf "$compare_dir"
+
+    if [[ "$identical" == "true" ]]; then
+        echo "v${latest}"
+    else
+        log "  Changes detected, publishing a new release"
+    fi
 }
 
 # ============================================
@@ -502,7 +689,7 @@ publish_version() {
     local oci_tag="${provider}-${stack_name}-${k8s_dash}-${release_version}"
 
     if [[ -z "${OCI_REGISTRY:-}" || -z "${OCI_REPOSITORY:-}" ]]; then
-        echo "  OCI_REGISTRY or OCI_REPOSITORY not set"
+        echo "  OCI_REGISTRY or OCI_REPOSITORY not set" >&2
         exit 1
     fi
 
@@ -511,15 +698,16 @@ publish_version() {
         exit 1
     fi
 
-    echo "" >&2
-    echo "  Publishing to $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
-
     local oras_opts=()
-    if [[ -n "${OCI_USERNAME:-}" && -n "${OCI_PASSWORD:-}" ]]; then
-        oras_opts+=(--username "$OCI_USERNAME" --password "$OCI_PASSWORD")
-    elif [[ -n "${OCI_ACCESS_TOKEN:-}" ]]; then
-        oras_opts+=(--password "$OCI_ACCESS_TOKEN")
+    mapfile -t oras_opts < <(oras_auth_opts)
+
+    if ! is_dev_registry && oras manifest fetch --descriptor "$OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" "${oras_opts[@]+"${oras_opts[@]}"}" >/dev/null 2>&1; then
+        echo "  Refusing to overwrite existing release $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
+        exit 1
     fi
+
+    log ""
+    log "  Publishing to $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag"
 
     local files=()
     for f in "$release_dir"/*; do
@@ -529,7 +717,7 @@ publish_version() {
     (cd "$release_dir" && oras push \
         "$OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" \
         --artifact-type application/vnd.clusterstack.release \
-        "${oras_opts[@]}" \
+        "${oras_opts[@]+"${oras_opts[@]}"}" \
         "${files[@]}") >&2
 
     echo "  Published: $OCI_REGISTRY/$OCI_REPOSITORY:$oci_tag" >&2
@@ -598,7 +786,7 @@ if [[ "$PUBLISH" == "true" && ${#BUILT_K8S_SHORTS[@]} -gt 0 ]]; then
         local_stack="${BUILT_STACK_NAMES[$i]}"
         local_k8s="${BUILT_K8S_SHORTS[$i]}"
         local_version="${BUILT_CS_VERSIONS[$i]}"
-        echo "   CLUSTER_STACK=${local_stack} ./hack/generate-resources.sh --version ${local_k8s} --cs-version ${local_version} | kubectl apply -f -" >&2
+        echo "   ./hack/generate-resources.sh providers/${local_provider}/${local_stack} --version ${local_k8s} --cs-version ${local_version} | kubectl apply -f -" >&2
     done
     echo "" >&2
 fi
