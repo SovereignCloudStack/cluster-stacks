@@ -28,8 +28,9 @@ images:
       - version: 'v1.32.13'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2
         checksum: "sha256:bd1c5664e2bc34cc37a424391a44511fd12becb4c2c51e9f6b102e90d992d5fa"
-      - version: 'v1.33.12'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.12.qcow2
+      - version: 'v1.33.11'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.11.qcow2
+        checksum: "sha256:a7bf1bab8a0e33de6346fd6a0042549d6f444c36db66a4b245be929e3f3d9985"
       - version: 'v1.34.8'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.8.qcow2
         checksum: "sha256:440979a41a06573aadb7589167568ff1699eb55e3a1a9fbe85591077560ffa39"

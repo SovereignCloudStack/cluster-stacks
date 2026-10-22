@@ -200,7 +200,6 @@ spec:
       required: false
       schema:
         openAPIV3Schema:
-          format: "uuid4"
           type: array
           default: {{ .Values.variables.securityGroupIDs | toJson }}
           example: ["9ae2f488-30a3-4629-bd51-07acb8eb4278"]
@@ -209,6 +208,7 @@ spec:
             Takes precedence over securityGroups. Override per CP/worker via topology.
           items:
             type: string
+            format: "uuid4"
     - name: identityRef
       required: false
       schema:
