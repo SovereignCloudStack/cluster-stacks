@@ -26,12 +26,12 @@ helm upgrade -i csp-helper-${CS_NAMESPACE} \
   -f path/to/clouds.yaml
 
 # 3. Build, publish, install CSO, and apply the ClusterStack
-make dev ARGS="--install-cso --version 1.35" | kubectl apply -f -
+make dev ARGS="--install-cso --version 1.36" | kubectl apply -f -
 kubectl get clusterclass -w
 
 # 4. Create a workload cluster
 kubectl create namespace ${CS_NAMESPACE}
-make generate-resources ARGS="--version 1.35 --cluster-only --namespace ${CS_NAMESPACE}" | kubectl apply -f -
+make generate-resources ARGS="--version 1.36 --cluster-only --namespace ${CS_NAMESPACE}" | kubectl apply -f -
 ```
 
 For a production OCI registry instead of ttl.sh:
@@ -40,7 +40,7 @@ For a production OCI registry instead of ttl.sh:
 export OCI_REGISTRY=registry.example.com
 export OCI_REPOSITORY=kaas/cluster-stacks
 make install-cso
-make dev ARGS="--version 1.35" | kubectl apply -f -
+make dev ARGS="--version 1.36" | kubectl apply -f -
 ```
 
 ---
@@ -53,15 +53,16 @@ This page lists the custom configuration options available, including their defa
 
 | Version | K8s | CS Version | cilium | metrics-server | os-csi | os-ccm |
 | ------- | --- | ---------- | ------ | -------------- | ------ | ------ |
-| 1-32 | 1.32 | - | 1.19.1 | 3.13.0 | 2.32.x | 2.32.x |
-| 1-33 | 1.33 | - | 1.19.1 | 3.13.0 | 2.33.x | 2.33.x |
-| 1-34 | 1.34 | - | 1.19.1 | 3.13.0 | 2.34.x | 2.34.x |
-| 1-35 | 1.35 | - | 1.19.1 | 3.13.0 | 2.35.x | 2.35.x |
+| 1-32 | 1.32.13 | - | 1.19.4 | 3.13.0 | 2.32.x | 2.32.x |
+| 1-33 | 1.33.11 | - | 1.19.4 | 3.13.0 | 2.33.x | 2.33.x |
+| 1-34 | 1.34.12 | - | 1.19.4 | 3.13.0 | 2.34.x | 2.34.x |
+| 1-35 | 1.35.9 | - | 1.19.4 | 3.13.0 | 2.35.x | 2.35.x |
+| 1-36 | 1.36.5 | - | 1.20.2 | 3.14.0 | 2.36.x | 2.36.x |
 
 ## Example
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: <cluster-api-version>
 kind: Cluster
 metadata:
   name: my-cluster
@@ -69,28 +70,18 @@ metadata:
   labels:
     managed-secret: cloud-config
 spec:
-  clusterNetwork:
-    pods:
-      cidrBlocks:
-        - 192.168.0.0/16
-    serviceDomain: cluster.local
-    services:
-      cidrBlocks:
-        - 10.96.0.0/12
   topology:
     variables:   # <-- variables from the table below can be set here
-      - name: flavor
-        value: "SCS-4V-8-20"
-      - name: networkExternalID
-        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-    class: openstack-scs-1-35-v1
+      - name: <variable-name>
+        value: <value>
+    class: <installed-clusterclass>
     controlPlane:
       replicas: 3
       variables:
         overrides:
-          - name: flavor
-            value: "SCS-4V-8-50"
-    version: v1.35.0
+          - name: <variable-name>
+            value: <value>
+    version: v<supported-kubernetes-patch>
     workers:
       machineDeployments:
         - class: default-worker
@@ -98,7 +89,11 @@ spec:
           replicas: 3
 ```
 
-Variables of type `object` are set as nested values. The following example demonstrates this with `oidcConfig`:
+`spec.clusterNetwork` is optional. If no pod CIDR is set, the stack assumes
+`192.168.0.0/16` as the default. Set pod or service CIDRs only when you need
+non-default values or explicit network settings.
+
+Variables of type `object` are set as nested values. The following example demonstrates the shape:
 
 ```yaml
 ...
@@ -113,23 +108,45 @@ topology:
 
 In v1beta2, per-role overrides (e.g. different flavors for control plane and workers) are set via `topology.controlPlane.variables.overrides` and `topology.workers.machineDeployments[].variables.overrides` instead of separate variable names.
 
+`componentOverrides` is mainly used to set resource requests and limits. The Kubernetes components (`apiServer`, `controllerManager`, `scheduler`, `etcd`, `coreDNS`) accept `resources` only, the addons (`cni`, `ccm`, `csi`, `metricsServer`) accept any values of their Helm chart:
+
+```yaml
+...
+topology:
+  variables:
+    - name: componentOverrides
+      value:
+        apiServer:
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+        metricsServer:
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+...
+```
+
+Addon values and `ciliumHostLegacyRouting` are applied when the Cluster Stack Operator installs or upgrades the addons, i.e. on cluster creation and on cluster upgrades.
+
 ## Available variables
 
-> **Note:** This table documents the **1-35** (v1beta2) variable set with unified
-> variable names. The other currently maintained SCS minors in this repo use the
-> same unified variable model and `ClusterClass`-based configuration pattern.
+The variables below apply to 1-35 and 1-36. Older versions do not support all of them.
 
 | Name | Type | Default | Example | Description | Required |
 | ---- | ---- | ------- | ------- | ----------- | -------- |
 | `imageName` | string | "ubuntu-capi-image" | "ubuntu-capi-image" | Base name of the OpenStack image for cluster nodes. | False |
 | `imageIsOrc` | boolean | false | true | Whether the image name refers to an ORC (OpenStack Resource Controller) image resource instead of a Glance image. | False |
-| `imageAddVersion` | boolean | true | false | Append the Kubernetes version suffix to the image name (e.g. `ubuntu-capi-image-v1.35`). | False |
+| `imageAddVersion` | boolean | true | false | Append the Kubernetes version suffix to the image name (e.g. `ubuntu-capi-image-v1.36`). | False |
 | `networkExternalID` | string | "" | "ebfe5546-f09f-4f42-ab54-094e457d42ec" | ID of the external OpenStack network for public internet access. | False |
 | `networkMTU` | integer | (provider default) | 1500 | Maximum transmission unit (MTU) for the private cluster network. | False |
 | `dnsNameservers` | array | ["9.9.9.9", "149.112.112.112"] | ["8.8.8.8"] | DNS nameservers for the cluster subnet. | False |
 | `nodeCIDR` | string | "10.8.0.0/20" | "10.8.0.0/20" | CIDR for the cluster subnet. A network, subnet, and router will be created. | False |
 | `flavor` | string | "SCS-2V-4" | "SCS-4V-8-20" | OpenStack instance flavor for all nodes. Override per role using topology variable overrides. | False |
 | `rootDisk` | integer | 50 | 50 | Root disk size in GiB. When set, an OpenStack volume is used instead of the ephemeral disk from the flavor. | False |
+| `diskPinAZ` | boolean | false | true | Create root volumes and additional block devices in the availability zone of the machine. | False |
 | `serverGroupID` | string | "" | "3adf4e92-bb33-4e44-8ad3-afda9dfe8ec3" | Server group for anti-affinity placement. Override per role using topology variable overrides. | False |
 | `additionalBlockDevices` | array | [] | [{"name": "data", "sizeGiB": 100, "type": "Volume"}] | Additional Cinder volumes to attach to nodes. | False |
 | `sshKeyName` | string | "" | "capi-keypair" | SSH key pair name to inject into nodes. | False |
@@ -143,6 +160,9 @@ In v1beta2, per-role overrides (e.g. different flavors for control plane and wor
 | `controlPlaneOmitAvailabilityZone` | boolean | false | true | Omit availability zone when creating control plane nodes, letting Nova schedule freely. | False |
 | `identityRef.name` | string | "openstack" | "openstack" | Name of the Secret containing OpenStack credentials. | False |
 | `identityRef.cloudName` | string | "openstack" | "openstack" | Cloud name within the credentials Secret. | False |
+| `ciliumHostLegacyRouting` | boolean | false | true | Route pod traffic through the host network stack (Cilium `bpf.hostLegacyRouting`). | False |
+| `componentOverrides` | object | {} | see above | Overrides for Kubernetes components and cluster addons, mainly resource requests and limits. | False |
+| `auditLogging` | boolean | true | false | Write API server audit logs to `/var/log/kubernetes/audit` on the control plane nodes. | False |
 | `oidcConfig.clientID` | string | "" | "kubectl" | OIDC client ID for API server authentication. | False |
 | `oidcConfig.issuerURL` | string | "" | `"https://dex.example.com"` | OIDC provider discovery URL (must be HTTPS). | False |
 | `oidcConfig.usernameClaim` | string | "preferred_username" | "email" | JWT claim to use as the username. | False |

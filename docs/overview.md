@@ -69,10 +69,10 @@ updates the `Chart.yaml` dependencies in the addon chart.
 ### OpenStack / scs
 
 The standard SCS cluster stack. Creates dedicated VMs for both control plane and
-worker nodes on OpenStack. Supports Kubernetes 1.32 through 1.35.
+worker nodes on OpenStack. Supports Kubernetes 1.32 through 1.36.
 
-- Versions 1-32 through 1-35 use a `ClusterClass`-based configuration model.
-- Version 1-35 uses unified variables (`flavor`) and
+- Versions 1-32 through 1-36 use a `ClusterClass`-based configuration model.
+- Versions 1-35 and 1-36 use unified variables (`flavor`) and
   per-role overrides via `topology.controlPlane.variables.overrides`.
 
 ### OpenStack / hcp
@@ -109,6 +109,10 @@ version update (e.g. 1.35.1 to 1.35.2) is delivered by bumping the cluster
 stack version, which updates the `kubernetesVersion` field in `csctl.yaml` and
 triggers a rolling update of nodes.
 
+`make publish` numbers stable releases as the highest published version + 1
+and skips publishing if nothing changed compared to the latest published
+release. Published releases are never overwritten.
+
 ## Build system
 
 The build system uses `make` as a task runner and a set of bash scripts in `hack/`:
@@ -121,8 +125,8 @@ The build system uses `make` as a task runner and a set of bash scripts in `hack
 | `make dev ARGS="--install-cso --version 1.35"`   | Also install/upgrade CSO via Helm              |
 | `make install-cso`                                | Install CSO standalone                         |
 | `make matrix`                                     | Show version and addon matrix                  |
-| `make update ARGS="versions"`                     | Update Kubernetes patch versions               |
-| `make update ARGS="addons"`                       | Update addon charts from upstream              |
+| `make update-versions`                            | Update Kubernetes patch versions               |
+| `make update-addons`                              | Update addon charts from upstream              |
 | `make generate-resources ARGS="--version 1.35"`  | Generate `ClusterStack` + `Cluster` YAML       |
 | `make generate-docs`                              | Regenerate configuration documentation         |
 | `make clean`                                      | Remove `.release/` build artifacts             |

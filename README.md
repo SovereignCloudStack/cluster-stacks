@@ -25,7 +25,7 @@ See [docs/quickstart.md](docs/quickstart.md) for a complete walkthrough.
 
 | Provider   | Stack | Description                              | Versions       |
 |------------|-------|------------------------------------------|----------------|
-| OpenStack  | scs   | Standard SCS stack (dedicated VMs)       | 1-32 .. 1-35   |
+| OpenStack  | scs   | Standard SCS stack (dedicated VMs)       | 1-32 .. 1-36   |
 | OpenStack  | hcp   | Hosted Control Plane (CP as pods)        | 1-33 .. 1-35   |
 | Docker     | scs   | Local development stack                  | 1-32 .. 1-35   |
 
@@ -56,8 +56,8 @@ make publish ARGS="--version 1.35"     # build + push to OCI registry
 make dev ARGS="--version 1.35"         # publish + print ClusterStack YAML
 make dev ARGS="--install-cso --version 1.35"  # also install/upgrade CSO
 make matrix                     # show version/addon matrix
-make update ARGS="versions"     # update Kubernetes patch versions
-make update ARGS="addons"       # update addon chart versions
+make update-versions            # update Kubernetes patch versions
+make update-addons              # update addon chart versions
 make generate-resources ARGS="--version 1.35"  # generate ClusterStack + Cluster YAML
 make generate-docs              # regenerate configuration docs
 ```
