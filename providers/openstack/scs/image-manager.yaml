@@ -5,7 +5,7 @@ images:
     format: raw
     login: ubuntu
     min_disk: 20
-    min_ram: 1024
+    min_ram: 2048
     status: active
     visibility: private
     multi: false
@@ -31,12 +31,12 @@ images:
       - version: 'v1.33.11'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.11.qcow2
         checksum: "sha256:a7bf1bab8a0e33de6346fd6a0042549d6f444c36db66a4b245be929e3f3d9985"
-      - version: 'v1.34.8'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.8.qcow2
-        checksum: "sha256:440979a41a06573aadb7589167568ff1699eb55e3a1a9fbe85591077560ffa39"
-      - version: 'v1.35.5'
-        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.5.qcow2
-        checksum: "sha256:9ede9a241f14e12f666304d0288934c8fc7ed5ad65b31ed004a7ec0fd53ca32a"
+      - version: 'v1.34.12'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.12.qcow2
+        checksum: "sha256:776dbdeb2a911210d2d0154feb917a5580b9ac08ed9a322b80031561ddc849f0"
+      - version: 'v1.35.9'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.9.qcow2
+        checksum: "sha256:3e43388cbc9af1738ea39d2f796c8de0cfa306ba8c644d1852b02d83dca9d595"
       - version: 'v1.36.5'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.5.qcow2
         checksum: "sha256:94fff370fa72cfd2913691591585355b6fa8e93d675a875167bbca418abfaa26"
