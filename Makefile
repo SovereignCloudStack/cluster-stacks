@@ -20,7 +20,7 @@ export PROVIDER
 export CLUSTER_STACK
 
 .PHONY: default help build publish dev install-cso clean update \
-        generate-resources generate-clusterstack generate-cluster \
+        update-versions update-addons generate-resources generate-clusterstack generate-cluster \
         generate-image-manifests matrix generate-docs add-version
 
 default: help
@@ -35,8 +35,10 @@ help:
 	@echo "  install-cso                   Install/upgrade the Cluster Stack Operator"
 	@echo "  clean                         Remove build artifacts"
 	@echo "  update [ARGS]                 Update K8s versions and/or addons"
+	@echo "  update-versions [ARGS]        Update Kubernetes patch versions only"
+	@echo "  update-addons [ARGS]          Update addon chart dependencies only"
 	@echo "  generate-resources [ARGS]     Generate ClusterStack + Cluster YAML"
-	@echo "  generate-clusterstack [ARGS]  Generate only the ClusterStack resource"
+	@echo "  generate-clusterstack [ARGS]  Generate only a pinned development ClusterStack resource"
 	@echo "  generate-cluster [ARGS]       Generate only the Cluster resource"
 	@echo "  generate-image-manifests [ARGS] Generate OpenStack image manifests"
 	@echo "  add-version VERSION=1.36       Scaffold a new K8s minor version for all stacks"
@@ -44,10 +46,10 @@ help:
 	@echo "  generate-docs                 Regenerate configuration documentation"
 
 build:
-	./hack/build.sh $(ARGS)
+	@./hack/build.sh $(ARGS)
 
 publish:
-	./hack/build.sh --publish $(ARGS)
+	@./hack/build.sh --publish $(ARGS)
 
 dev:
 	@set -euo pipefail; \
@@ -56,6 +58,7 @@ dev:
 	prev=""; \
 	for arg in $(ARGS); do \
 		if [ "$$prev" = "--version" ]; then version="$$arg"; fi; \
+		case "$$arg" in --version=*) version="$${arg#--version=}" ;; esac; \
 		prev="$$arg"; \
 	done; \
 	if [ -n "$$version" ]; then \
@@ -67,7 +70,7 @@ dev:
 	fi
 
 install-cso:
-	./hack/build.sh --install-cso
+	@./hack/build.sh --install-cso
 
 add-version:
 	@set -euo pipefail; \
@@ -138,22 +141,30 @@ clean:
 	@echo "Cleaned .release"
 
 update:
-	./hack/update.sh $(ARGS)
+	@./hack/update.sh $(ARGS)
 
+update-versions:
+	@./hack/update.sh versions $(ARGS)
+
+update-addons:
+	@./hack/update.sh addons $(ARGS)
+
+# Recipes below print resources to stdout and are silenced (@) so that
+# `make generate-clusterstack ... | kubectl apply -f -` stays clean.
 generate-resources:
-	./hack/generate-resources.sh $(ARGS)
+	@./hack/generate-resources.sh $(ARGS)
 
 generate-clusterstack:
-	./hack/generate-resources.sh --clusterstack-only $(ARGS)
+	@./hack/generate-resources.sh --clusterstack-only $(ARGS)
 
 generate-cluster:
-	./hack/generate-resources.sh --cluster-only $(ARGS)
+	@./hack/generate-resources.sh --cluster-only $(ARGS)
 
 generate-image-manifests:
-	./hack/generate-image-manifests.sh $(ARGS)
+	@./hack/generate-image-manifests.sh $(ARGS)
 
 matrix:
-	./hack/show-matrix.sh $(ARGS)
+	@./hack/show-matrix.sh $(ARGS)
 
 generate-docs:
 	@set -euo pipefail; \
@@ -162,12 +173,10 @@ generate-docs:
 		[ -d "$$stack_base" ] || continue; \
 		provider=$$(basename "$$(dirname "$$stack_base")"); \
 		stack=$$(basename "$$stack_base"); \
-		latest=$$(ls -d "$$stack_base"/1-*/ 2>/dev/null | sort -V | tail -1); \
-		[ -n "$$latest" ] || continue; \
 		outdir="docs/providers/$${provider}"; \
 		outfile="$${outdir}/$${stack}-configuration.md"; \
 		mkdir -p "$$outdir"; \
-		echo "Generating $${outfile} from $${latest} ..."; \
-		python3 ./hack/docugen.py "$$latest" --template "$$template" --matrix --output "$$outfile"; \
+		echo "Generating $${outfile} from $${stack_base} ..."; \
+		python3 ./hack/docugen.py "$$stack_base" --template "$$template" --matrix --output "$$outfile"; \
 	done; \
 	echo "Done."

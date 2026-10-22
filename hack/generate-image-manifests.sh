@@ -11,18 +11,24 @@
 # Options:
 #   --version <X.Y>       Generate for a specific K8s minor version
 #   --format <format>     Output format: orc (default) or image-manager
+#   --namespace <ns>      Namespace for ORC Image manifests
+#   --check-image-repo    Resolve latest patch version via IMAGE_BASE_URL/last-<minor> first
 #   --visibility <vis>    Image visibility: private (default), public, shared, community
 #   --output-dir <dir>    Write to files instead of stdout
 #   --skip-checksum       Skip fetching SHA256 checksums
+#   -h, --help            Show this help
 #
 # The <stack-dir> is the base directory containing per-minor-version subdirs
 # (e.g., providers/openstack/scs). If omitted, it is derived from $PROVIDER
-# and $CLUSTER_STACK (default: providers/openstack/scs).
+# and $CLUSTER_STACK (default: providers/openstack/scs). Relative paths are
+# resolved from the repository root.
 #
 # Only relevant for OpenStack-based stacks (Docker stacks have no node images).
 #
 # Examples:
 #   ./hack/generate-image-manifests.sh --version 1.34
+#   ./hack/generate-image-manifests.sh --version 1.34 --namespace orc-system
+#   ./hack/generate-image-manifests.sh --version 1.34 --check-image-repo
 #   ./hack/generate-image-manifests.sh --format image-manager --visibility public
 #   ./hack/generate-image-manifests.sh --version 1.34 --visibility shared --skip-checksum
 #
@@ -30,10 +36,14 @@
 #   PROVIDER          Provider name (default: openstack)
 #   CLUSTER_STACK     Cluster stack name (default: scs)
 #   IMAGE_BASE_URL    Base URL for images (default: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images)
+#   IMAGE_NAMESPACE   Namespace for ORC Image manifests (optional, same as --namespace)
 #   CLOUD_NAME        CloudCredentialsRef cloud name (default: openstack, orc format only)
 #   SECRET_NAME       CloudCredentialsRef secret name (default: openstack, orc format only)
 
 set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 require_command() {
     local name="$1"
@@ -48,12 +58,9 @@ extract_k8s_minor_version() {
     echo "$1" | sed -E -n 's/^([0-9]+\.[0-9]+)(\.[0-9]+)?$/\1/p'
 }
 
-require_command yq
-require_command curl
-require_command jq
-
 # Defaults
 BASE_URL="${IMAGE_BASE_URL:-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images}"
+IMAGE_NAMESPACE="${IMAGE_NAMESPACE:-}"
 CLOUD_NAME="${CLOUD_NAME:-openstack}"
 SECRET_NAME="${SECRET_NAME:-openstack}"
 
@@ -61,34 +68,62 @@ SECRET_NAME="${SECRET_NAME:-openstack}"
 # Argument parsing
 # ============================================
 
+usage() {
+    sed -n '3,/^$/s/^# \?//p' "$0"
+    exit "${1:-1}"
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --version)        [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; TARGET_VERSION="$2"; shift 2 ;;
+            --format)         [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; OUTPUT_FORMAT="$2"; shift 2 ;;
+            --namespace)      [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; IMAGE_NAMESPACE="$2"; shift 2 ;;
+            --check-image-repo) USE_IMAGE_REPO_LATEST=true; shift ;;
+            --visibility)     [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; VISIBILITY="$2"; shift 2 ;;
+            --output-dir)     [[ $# -ge 2 ]] || { echo "Error: $1 requires a value" >&2; usage; }; OUTPUT_DIR="$2"; shift 2 ;;
+            --skip-checksum)  SKIP_CHECKSUM=true; shift ;;
+            -h|--help)        usage 0 ;;
+            -*)               echo "Unknown option: $1" >&2; usage ;;
+            *)
+                if [[ -z "$BASE_DIR" ]]; then
+                    BASE_DIR="$1"; shift
+                else
+                    echo "Unexpected argument: $1" >&2; usage
+                fi
+                ;;
+        esac
+    done
+}
+
+resolve_base_dir() {
+    local dir="$1"
+
+    if [[ -z "$dir" ]]; then
+        dir="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
+    fi
+
+    if [[ ! "$dir" = /* ]]; then
+        dir="$REPO_ROOT/$dir"
+    fi
+
+    echo "$dir"
+}
+
 BASE_DIR=""
 TARGET_VERSION=""
 OUTPUT_DIR=""
 OUTPUT_FORMAT="orc"
 VISIBILITY="private"
+USE_IMAGE_REPO_LATEST=false
 SKIP_CHECKSUM=false
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --version)        TARGET_VERSION="$2"; shift 2 ;;
-        --format)         OUTPUT_FORMAT="$2"; shift 2 ;;
-        --visibility)     VISIBILITY="$2"; shift 2 ;;
-        --output-dir)     OUTPUT_DIR="$2"; shift 2 ;;
-        --skip-checksum)  SKIP_CHECKSUM=true; shift ;;
-        -*)               echo "Unknown option: $1" >&2; exit 1 ;;
-        *)
-            if [[ -z "$BASE_DIR" ]]; then
-                BASE_DIR="$1"; shift
-            else
-                echo "Unexpected argument: $1" >&2; exit 1
-            fi
-            ;;
-    esac
-done
+parse_args "$@"
 
-if [[ -z "$BASE_DIR" ]]; then
-    BASE_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
-fi
+require_command yq
+require_command curl
+
+BASE_DIR="$(resolve_base_dir "$BASE_DIR")"
 
 if [[ ! -d "$BASE_DIR" ]]; then
     echo "Stack base directory not found: $BASE_DIR" >&2
@@ -157,23 +192,28 @@ resolve_k8s_version() {
         return
     fi
 
-    local github_headers=()
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        github_headers=(-H "Authorization: token $GITHUB_TOKEN")
+    if [[ "$USE_IMAGE_REPO_LATEST" == "true" ]]; then
+        local minor_version
+        minor_version=$(extract_k8s_minor_version "$version")
+        if [[ -n "$minor_version" ]]; then
+            local latest_available
+            if latest_available=$(curl -sfL "${BASE_URL}/last-${minor_version}" 2>/dev/null | awk '{print $NF}' | sed -E -n 's#.*/ubuntu-[0-9]+-kube-v([0-9]+\.[0-9]+\.[0-9]+)\.qcow2#\1#p'); then
+                if [[ -n "$latest_available" && "$latest_available" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "$latest_available"
+                    return
+                fi
+            fi
+        fi
     fi
+
+    # Resolve latest stable patch via dl.k8s.io
     local latest
-    if ! latest=$(curl -sfL "${github_headers[@]+"${github_headers[@]}"}" \
-        "https://api.github.com/repos/kubernetes/kubernetes/releases?per_page=100" 2>/dev/null \
-        | jq -r '.[].tag_name' 2>/dev/null \
-        | grep -E "^v${version}\.[0-9]+$" \
-        | sed 's/^v//' \
-        | sort -V \
-        | tail -1); then
-        echo "Failed to resolve the latest GitHub patch version for Kubernetes ${version}." >&2
+    if ! latest=$(curl -sfL "https://dl.k8s.io/release/stable-${version}.txt" 2>/dev/null | sed 's/^v//'); then
+        echo "Failed to resolve the latest patch version for Kubernetes ${version}." >&2
         exit 1
     fi
 
-    if [[ -n "$latest" ]]; then
+    if [[ -n "$latest" && "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "$latest"
         return
     fi
@@ -258,11 +298,17 @@ generate_orc() {
           value: ${checksum}"
         fi
 
+        local namespace_block=""
+        if [[ -n "$IMAGE_NAMESPACE" ]]; then
+            namespace_block="
+  namespace: ${IMAGE_NAMESPACE}"
+        fi
+
         local manifest="---
 apiVersion: openstack.k-orc.cloud/v1alpha1
 kind: Image
 metadata:
-  name: ubuntu-capi-image-v${k8s_version}
+  name: ubuntu-capi-image-v${k8s_version}${namespace_block}
 spec:
   cloudCredentialsRef:
     cloudName: ${CLOUD_NAME}

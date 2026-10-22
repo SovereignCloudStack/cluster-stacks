@@ -5,13 +5,15 @@
 # addon versions from Chart.yaml, and addon overrides from csctl.yaml.
 #
 # Usage:
-#   ./hack/show-matrix.sh [options] [stack-dir]
+#   ./hack/show-matrix.sh [stack-dir] [options]
 #
 # Options:
 #   --markdown    Output as a GitHub-flavored Markdown table
+#   -h, --help    Show this help
 #
 # If <stack-dir> is omitted, it is derived from $PROVIDER and $CLUSTER_STACK
-# (default: providers/openstack/scs).
+# (default: providers/openstack/scs). Relative paths are resolved from the
+# repository root.
 #
 # Environment:
 #   PROVIDER        Provider name (default: openstack)
@@ -20,6 +22,9 @@
 #   OCI_REPOSITORY  OCI repository to query for CS versions (optional)
 
 set -euo pipefail
+
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 require_command() {
     local name="$1"
@@ -45,28 +50,50 @@ extract_latest_release_number() {
     }' | sort -n | tail -1
 }
 
-require_command yq
+usage() {
+    sed -n '3,/^$/s/^# \?//p' "$0"
+    exit "${1:-1}"
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --markdown) MARKDOWN=true; shift ;;
+            -h|--help)  usage 0 ;;
+            -*)         echo "Unknown option: $1" >&2; usage ;;
+            *)
+                if [[ -z "$BASE_DIR" ]]; then
+                    BASE_DIR="$1"; shift
+                else
+                    echo "Unexpected argument: $1" >&2; usage
+                fi
+                ;;
+        esac
+    done
+}
+
+resolve_base_dir() {
+    local dir="$1"
+
+    if [[ -z "$dir" ]]; then
+        dir="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
+    fi
+
+    if [[ ! "$dir" = /* ]]; then
+        dir="$REPO_ROOT/$dir"
+    fi
+
+    echo "$dir"
+}
 
 MARKDOWN=false
 BASE_DIR=""
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --markdown) MARKDOWN=true; shift ;;
-        -*)         echo "Unknown option: $1" >&2; exit 1 ;;
-        *)
-            if [[ -z "$BASE_DIR" ]]; then
-                BASE_DIR="$1"; shift
-            else
-                echo "Unexpected argument: $1" >&2; exit 1
-            fi
-            ;;
-    esac
-done
+parse_args "$@"
 
-if [[ -z "$BASE_DIR" ]]; then
-    BASE_DIR="providers/${PROVIDER:-openstack}/${CLUSTER_STACK:-scs}"
-fi
+require_command yq
+
+BASE_DIR="$(resolve_base_dir "$BASE_DIR")"
 
 if [[ ! -d "$BASE_DIR" ]]; then
     echo "Stack base directory not found: $BASE_DIR" >&2

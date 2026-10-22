@@ -23,17 +23,18 @@ set -euo pipefail
 #
 # The <stack-dir> is the base directory containing per-minor-version subdirs
 # (e.g., providers/openstack/scs). If omitted, it is derived from $PROVIDER
-# and $CLUSTER_STACK (default: providers/openstack/scs).
+# and $CLUSTER_STACK (default: providers/openstack/scs). Relative paths are
+# resolved from the repository root.
 #
 # Options:
 #   --dry-run   Preview changes without modifying files
 #   --all       Run against all stacks in providers/*/*/
+#   --check-image-repo  Resolve latest patch via IMAGE_BASE_URL/last-<minor> first
 #   -h, --help  Show this help
 #
 # Environment:
 #   PROVIDER          Provider name (default: openstack)
 #   CLUSTER_STACK     Cluster stack name (default: scs)
-#   GITHUB_TOKEN      Optional. GitHub personal access token for higher API rate limits.
 #   IMAGE_BASE_URL    Base URL for CAPI images (default: https://nbg1.your-objectstorage.com/...)
 #   IMAGE_VISIBILITY  Image visibility in image-manager.yaml (default: private)
 
@@ -69,8 +70,6 @@ yq_edit_in_place() {
     fi
 }
 
-require_command yq
-
 require_versions_tools() {
     require_command curl
     require_command jq
@@ -89,6 +88,7 @@ SUBCOMMAND=""       # versions, addons, or "" (both)
 BASE_DIR=""
 DRY_RUN=false
 RUN_ALL=false
+USE_IMAGE_REPO_LATEST=false
 
 # Image-manager defaults (for OpenStack image manifest generation)
 IMAGE_BASE_URL="${IMAGE_BASE_URL:-https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images}"
@@ -138,6 +138,7 @@ parse_args() {
                 ;;
             --dry-run)         DRY_RUN=true; shift ;;
             --all)             RUN_ALL=true; shift ;;
+            --check-image-repo) USE_IMAGE_REPO_LATEST=true; shift ;;
             -h|--help)         usage 0 ;;
             -*)                echo "Unknown option: $1" >&2; usage ;;
             *)
@@ -174,80 +175,41 @@ detect_provider() {
 }
 
 # ============================================
-# K8s version fetchers (provider-aware)
+# K8s version resolution
 # ============================================
 
-github_curl() {
-    local url="$1"
-    local -a headers=()
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        headers=(-H "Authorization: token $GITHUB_TOKEN")
-    fi
-    curl -sfL "${headers[@]+"${headers[@]}"}" "$url"
-}
-
-fetch_k8s_versions_github() {
-    local page=1
-    local all_tags=""
-
-    while true; do
-        local tags
-        tags=$(github_curl "https://api.github.com/repos/kubernetes/kubernetes/tags?per_page=100&page=$page" \
-            | jq -r '.[].name // empty') || { echo "Error fetching K8s tags from GitHub" >&2; return 1; }
-
-        [[ -z "$tags" ]] && break
-        all_tags+="$tags"$'\n'
-        page=$((page + 1))
-
-        if echo "$tags" | grep -qE '^v1\.2[0-9]\.'; then
-            break
-        fi
-    done
-
-    echo "$all_tags" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V
-}
-
-fetch_k8s_versions_dockerhub() {
-    local page=1
-    local all_tags=""
-
-    while true; do
-        local response
-        response=$(curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&page=$page") \
-            || { echo "Error fetching kindest/node tags from Docker Hub" >&2; return 1; }
-
-        local tags
-        tags=$(echo "$response" | jq -r '.results[].name // empty')
-        [[ -z "$tags" ]] && break
-
-        all_tags+="$tags"$'\n'
-
-        local next
-        next=$(echo "$response" | jq -r '.next // empty')
-        [[ -z "$next" ]] && break
-
-        page=$((page + 1))
-
-        if echo "$tags" | grep -qE '^v1\.2[0-9]\.'; then
-            break
-        fi
-    done
-
-    echo "$all_tags" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V
-}
-
-fetch_k8s_versions() {
-    local provider="$1"
-    case "$provider" in
-        docker) fetch_k8s_versions_dockerhub ;;
-        *)      fetch_k8s_versions_github ;;
-    esac
-}
-
-# Get the highest patch version for a given minor from a list of versions.
-highest_patch() {
+# Resolve latest stable patch for a given minor version (e.g., "34" → "1.34.4")
+resolve_latest_patch() {
     local minor="$1"
-    grep -E "^1\.${minor}\.[0-9]+$" | sort -V | tail -1
+    local provider="${2:-openstack}"
+
+    if [[ "$provider" == "docker" ]]; then
+        curl -sfL "https://registry.hub.docker.com/v2/repositories/kindest/node/tags?page_size=100&name=v1.${minor}." 2>/dev/null \
+            | jq -r '.results[].name' 2>/dev/null \
+            | grep -E "^v1\.${minor}\.[0-9]+$" \
+            | sed 's/^v//' \
+            | sort -V \
+            | tail -1
+        return
+    fi
+
+    if [[ "$USE_IMAGE_REPO_LATEST" == "true" ]]; then
+        local latest_available
+        if latest_available=$(curl -sfL "${IMAGE_BASE_URL}/last-1.${minor}" 2>/dev/null | awk '{print $NF}' | sed -E -n 's#.*/ubuntu-[0-9]+-kube-v([0-9]+\.[0-9]+\.[0-9]+)\.qcow2#\1#p'); then
+            if [[ -n "$latest_available" && "$latest_available" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "$latest_available"
+                return
+            fi
+        fi
+    fi
+
+    local version
+    if ! version=$(curl -sfL "https://dl.k8s.io/release/stable-1.${minor}.txt" 2>/dev/null | sed 's/^v//'); then
+        return 1
+    fi
+    if [[ -n "$version" && "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "$version"
+    fi
 }
 
 # ============================================
@@ -420,14 +382,11 @@ cmd_versions() {
     echo "Updating K8s versions: $base_dir"
     echo ""
 
-    # Fetch all available K8s versions
     if [[ "$provider" == "docker" ]]; then
-        echo "Fetching kindest/node tags from Docker Hub..."
+        echo "Resolving Kubernetes versions via kindest/node tags on Docker Hub..."
     else
-        echo "Fetching Kubernetes releases from GitHub..."
+        echo "Resolving Kubernetes versions via dl.k8s.io..."
     fi
-    local all_k8s_versions
-    all_k8s_versions=$(fetch_k8s_versions "$provider")
     echo ""
 
     local changes=0
@@ -452,7 +411,7 @@ cmd_versions() {
 
         # Find latest patch for this minor
         local latest_patch
-        latest_patch=$(echo "$all_k8s_versions" | highest_patch "$k8s_minor")
+        latest_patch=$(resolve_latest_patch "$k8s_minor" "$provider")
 
         if [[ -z "$latest_patch" ]]; then
             warn "$dir_name (1.$k8s_minor): no stable release found"
@@ -589,12 +548,21 @@ cmd_addons() {
                 # Get latest version
                 local latest_version=""
                 if [[ "$is_tied" == "true" ]]; then
-                    # For K8s-tied addons, match by prefix from csctl.yaml range
-                    local k8s_minor
-                    k8s_minor=$(extract_k8s_minor_number "$(yq -r '.config.kubernetesVersion' "$csctl_yaml")")
+                    # For K8s-tied addons, derive version prefix from csctl.yaml range
+                    local addon_range
+                    addon_range=""
+                    for short_name in "${!ADDON_SHORT_TO_CHART[@]}"; do
+                        if [[ "${ADDON_SHORT_TO_CHART[$short_name]}" == "$dep_name" ]]; then
+                            addon_range=$(yq -r ".addons.\"${short_name}\" // \"\"" "$csctl_yaml" 2>/dev/null)
+                            break
+                        fi
+                    done
+                    # Extract prefix: "2.35.x" → "2.35.", "3.0.x" → "3.0."
+                    local version_prefix
+                    version_prefix=$(echo "$addon_range" | sed -E 's/\.[^.]*$/\./')
                     latest_version=$(helm search repo "$dep_name/$dep_name" --versions -o json 2>/dev/null | \
-                        jq -r --arg minor "$k8s_minor" \
-                            '[.[] | select(.version | startswith("2." + $minor + "."))] | .[0].version // empty' 2>/dev/null) || true
+                        jq -r --arg prefix "$version_prefix" \
+                            '[.[] | select(.version | startswith($prefix))] | .[0].version // empty' 2>/dev/null) || true
                 else
                     latest_version=$(helm search repo "$dep_name/$dep_name" -o json 2>/dev/null | \
                         jq -r '.[0].version // empty' 2>/dev/null) || true
@@ -684,6 +652,8 @@ run_all() {
 
 main() {
     parse_args "$@"
+
+    require_command yq
 
     if [[ -z "$SUBCOMMAND" || "$SUBCOMMAND" != "addons" ]]; then
         require_versions_tools

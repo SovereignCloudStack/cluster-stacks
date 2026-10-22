@@ -18,8 +18,5 @@ export CLUSTER_STACK=scs
 # export OCI_ACCESS_TOKEN=token
 
 # --- Optional ---
-# GitHub token for higher API rate limits during Kubernetes version resolution.
-# export GITHUB_TOKEN=ghp_...
-
 # Kubeconfig for the management cluster (useful with direnv).
 # export KUBECONFIG=$PWD/.mgt-cluster-kubeconfig.yaml
