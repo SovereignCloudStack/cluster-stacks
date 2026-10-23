@@ -1,0 +1,42 @@
+---
+images:
+  - name: ubuntu-capi-image
+    enable: true
+    format: raw
+    login: ubuntu
+    min_disk: 20
+    min_ram: 2048
+    status: active
+    visibility: private
+    multi: false
+    separator: "-"
+    meta:
+      architecture: x86_64
+      hw_disk_bus: virtio
+      hw_rng_model: virtio
+      hw_scsi_model: virtio-scsi
+      hw_watchdog_action: reset
+      hypervisor_type: qemu
+      os_distro: ubuntu
+      os_purpose: k8snode
+      replace_frequency: never
+      uuid_validity: none
+      provided_until: none
+    tags:
+      - clusterstacks
+    versions:
+      - version: 'v1.32.13'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2204-kube-v1.32/ubuntu-2204-kube-v1.32.13.qcow2
+        checksum: "sha256:bd1c5664e2bc34cc37a424391a44511fd12becb4c2c51e9f6b102e90d992d5fa"
+      - version: 'v1.33.11'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.33/ubuntu-2404-kube-v1.33.11.qcow2
+        checksum: "sha256:a7bf1bab8a0e33de6346fd6a0042549d6f444c36db66a4b245be929e3f3d9985"
+      - version: 'v1.34.12'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.34/ubuntu-2404-kube-v1.34.12.qcow2
+        checksum: "sha256:776dbdeb2a911210d2d0154feb917a5580b9ac08ed9a322b80031561ddc849f0"
+      - version: 'v1.35.9'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.9.qcow2
+        checksum: "sha256:3e43388cbc9af1738ea39d2f796c8de0cfa306ba8c644d1852b02d83dca9d595"
+      - version: 'v1.36.5'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.5.qcow2
+        checksum: "sha256:94fff370fa72cfd2913691591585355b6fa8e93d675a875167bbca418abfaa26"

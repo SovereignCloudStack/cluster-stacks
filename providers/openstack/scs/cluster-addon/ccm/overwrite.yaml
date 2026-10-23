@@ -1,4 +1,0 @@
-values: |
-  openstack-cloud-controller-manager:
-    cluster:
-      name: {{ .Cluster.metadata.name }}
