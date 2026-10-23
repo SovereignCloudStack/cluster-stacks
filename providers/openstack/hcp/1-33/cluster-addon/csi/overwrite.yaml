@@ -1,0 +1,3 @@
+values: |
+  openstack-cinder-csi:
+    clusterID: "{{ .Cluster.metadata.name }}"
