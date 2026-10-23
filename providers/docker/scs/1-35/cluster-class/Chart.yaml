@@ -1,0 +1,7 @@
+apiVersion: v2
+name: docker-scs-1-35-cluster-class
+description: |
+  SCS Cluster Class (1.35) for the Docker infrastructure provider.
+  Uses CAPI v1beta2 for core/kubeadm resources, v1beta1 for Docker infra resources.
+type: application
+version: v1

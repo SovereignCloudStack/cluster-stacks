@@ -1,0 +1,109 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs:
+              - name: cloud-provider
+                value: external
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10257"
+              - name: profiling
+                value: "false"
+              - name: terminated-pod-gc-threshold
+                value: "100"
+          scheduler:
+            extraArgs:
+              - name: bind-address
+                value: 0.0.0.0
+              - name: secure-port
+                value: "10259"
+              - name: profiling
+                value: "false"
+          etcd:
+            local:
+              dataDir: /var/lib/etcd
+              extraArgs:
+                - name: listen-metrics-urls
+                  value: http://0.0.0.0:2381
+                - name: auto-compaction-mode
+                  value: periodic
+                - name: auto-compaction-retention
+                  value: 8h
+                - name: election-timeout
+                  value: "2500"
+                - name: heartbeat-interval
+                  value: "250"
+                - name: snapshot-count
+                  value: "6400"
+        files:
+        - content: |
+            ---
+            apiVersion: kubeproxy.config.k8s.io/v1alpha1
+            kind: KubeProxyConfiguration
+            metricsBindAddress: "0.0.0.0:10249"
+          path: /etc/kube-proxy-config.yaml
+        - content: |
+            #!/usr/bin/env bash
+
+            #
+            # (PK) I couldn't find a better/simpler way to conifgure it. See:
+            # https://github.com/kubernetes-sigs/cluster-api/issues/4512
+            #
+
+            set -o errexit
+            set -o nounset
+            set -o pipefail
+
+            dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+            readonly dir
+
+            # Exit fast if already appended.
+            if [[ ! -f ${dir}/kube-proxy-config.yaml ]]; then
+              exit 0
+            fi
+
+            # kubeadm config is in different directory in Flatcar (/etc) and Ubuntu (/run/kubeadm).
+            kubeadm_file="/etc/kubeadm.yml"
+            if [[ ! -f ${kubeadm_file} ]]; then
+              kubeadm_file="/run/kubeadm/kubeadm.yaml"
+            fi
+            
+            # Run this script only if this is the init node.
+            if [[ ! -f ${kubeadm_file} ]]; then
+              exit 0
+            fi
+
+            # Append kube-proxy-config.yaml to kubeadm config and delete it
+            cat "${dir}/kube-proxy-config.yaml" >> "${kubeadm_file}"
+            rm "${dir}/kube-proxy-config.yaml"
+
+            echo success > /tmp/kube-proxy-patch
+          owner: root:root
+          path: /etc/kube-proxy-patch.sh
+          permissions: "0755"
+        preKubeadmCommands:
+        - bash /etc/kube-proxy-patch.sh
+        initConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'
+        joinConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+              - name: cloud-provider
+                value: external
+              - name: provider-id
+                value: 'openstack:///{{ `{{ instance_id }}` }}'
+            name: '{{ `{{ local_hostname }}` }}'

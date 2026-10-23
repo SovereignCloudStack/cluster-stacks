@@ -1,0 +1,314 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+spec:
+  controlPlane:
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+    machineInfrastructure:
+      templateRef:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+  infrastructure:
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          name: {{ .Release.Name }}-{{ .Chart.Version }}-default-worker
+
+  #
+  # Variables
+  #
+  variables:
+  - name: imageRepository
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: {{ .Values.variables.imageRepository | quote }}
+        example: "registry.k8s.io"
+        description: "imageRepository sets the container registry to pull images from. If empty, the kubeadm default will be used."
+  - name: certSANs
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: {{ .Values.variables.certSANs | toJson }}
+        example: ["mydomain.example"]
+        description: "certSANs sets extra Subject Alternative Names for the API Server signing cert."
+        items:
+          type: string
+  - name: oidcConfig
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          clientID:
+            type: string
+            example: "kubectl"
+            description: "A client id that all tokens must be issued for."
+          issuerURL:
+            type: string
+            example: "https://dex.k8s.scs.community"
+            description: >-
+              URL of the provider that allows the API server to discover public signing keys.
+              Only URLs that use the https:// scheme are accepted.
+          usernameClaim:
+            type: string
+            example: "preferred_username"
+            default: {{ .Values.variables.oidcConfig.usernameClaim | quote }}
+            description: "JWT claim to use as the user name."
+          groupsClaim:
+            type: string
+            example: "groups"
+            default: {{ .Values.variables.oidcConfig.groupsClaim | quote }}
+            description: "JWT claim to use as the user's group. If the claim is present it must be an array of strings."
+          usernamePrefix:
+            type: string
+            example: "oidc:"
+            default: {{ .Values.variables.oidcConfig.usernamePrefix | quote }}
+            description: "Prefix prepended to username claims to prevent clashes with existing names."
+          groupsPrefix:
+            type: string
+            example: "oidc:"
+            default: {{ .Values.variables.oidcConfig.groupsPrefix | quote }}
+            description: "Prefix prepended to group claims to prevent clashes with existing names."
+  - name: registryMirrors
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: {{ .Values.variables.registryMirrors | toJson }}
+        description: "Registry mirrors for upstream container registries. Configures both containerd and CRI-O to pull through a mirror."
+        items:
+          type: object
+          properties:
+            hostnameUpstream:
+              type: string
+              example: "docker.io"
+              description: "The hostname of the upstream registry."
+            urlUpstream:
+              type: string
+              example: "https://registry-1.docker.io"
+              description: "The server URL of the upstream registry."
+            urlMirror:
+              type: string
+              example: "https://registry.example.com/v2/dockerhub"
+              description: "The URL of the mirror registry."
+            certMirror:
+              type: string
+              example: ""
+              description: "TLS certificate of the mirror in PEM format (optional)."
+
+  #
+  # Patches
+  #
+  patches:
+  - name: imageRepository
+    description: "Sets the imageRepository used for the KubeadmControlPlane."
+    enabledIf: {{ `'{{ ne .imageRepository "" }}'` }}
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository"
+        valueFrom:
+          variable: imageRepository
+  - name: customImage
+    description: "Sets the container image that is used for running dockerMachines for the control plane."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/customImage"
+        value: {{ (index .Values.images.controlPlane 0).name }}
+  - name: workerImage
+    description: "Sets the container image that is used for running dockerMachines for the worker machineDeployments."
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: {{ (index .Values.images.worker 0).name }}
+  - name: certSANs
+    description: "certSANs sets extra Subject Alternative Names for the API Server signing cert."
+    enabledIf: {{ `'{{ if .certSANs }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+            valueFrom:
+              variable: certSANs
+  - name: oidcConfig
+    description: "Configure API Server to use external authentication service."
+    enabledIf: {{ `'{{ if and .oidcConfig .oidcConfig.clientID .oidcConfig.issuerURL }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-client-id
+                value: {{ `'{{ .oidcConfig.clientID }}'` }}
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-issuer-url
+                value: {{ `'{{ .oidcConfig.issuerURL }}'` }}
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-username-claim
+                value: {{ `'{{ .oidcConfig.usernameClaim }}'` }}
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-groups-claim
+                value: {{ `'{{ .oidcConfig.groupsClaim }}'` }}
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-username-prefix
+                value: {{ `'{{ .oidcConfig.usernamePrefix }}'` }}
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/-"
+            valueFrom:
+              template: |
+                name: oidc-groups-prefix
+                value: {{ `'{{ .oidcConfig.groupsPrefix }}'` }}
+  #
+  # Registry mirror patches
+  #
+  - name: registryMirrorsControlPlane
+    description: "Configure registry mirrors on control plane nodes (containerd + CRI-O)."
+    enabledIf: {{ `'{{ if .registryMirrors }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+        - op: add
+          path: "/spec/template/spec/kubeadmConfigSpec/files"
+          valueFrom:
+            template: |
+              {{ `{{- range $r := .registryMirrors }}` }}
+              - content: |
+                  server = "{{ `{{ $r.urlUpstream }}` }}"
+                  [host."{{ `{{ $r.urlMirror }}` }}"]
+                    capabilities = ["pull","resolve"]
+                    override_path = true
+                owner: root:root
+                path: /etc/containerd/certs.d/{{ `{{ $r.hostnameUpstream }}` }}/hosts.toml
+                permissions: "0644"
+              - content: |
+                  [[registry]]
+                  prefix = "{{ `{{ $r.hostnameUpstream }}` }}"
+                  location = "{{ `{{ $r.hostnameUpstream }}` }}"
+                  [[registry.mirror]]
+                  location = "{{ `{{ $r.urlMirror }}` }}"
+                owner: root:root
+                path: /etc/containers/registries.conf.d/50-mirror-{{ `{{ $r.hostnameUpstream }}` }}.conf
+                permissions: "0644"
+              {{ `{{- if $r.certMirror }}` }}
+              - content: "{{ `{{ $r.certMirror }}` }}"
+                owner: root:root
+                path: /etc/containerd/certs/{{ `{{ $r.hostnameUpstream }}` }}/ca.crt
+                permissions: "0644"
+              - content: "{{ `{{ $r.certMirror }}` }}"
+                owner: root:root
+                path: /etc/containers/certs.d/{{ `{{ $r.hostnameUpstream }}` }}/ca.crt
+                permissions: "0644"
+              {{ `{{- end }}` }}
+              {{ `{{- end }}` }}
+  - name: registryMirrorsWorker
+    description: "Configure registry mirrors on worker nodes (containerd + CRI-O)."
+    enabledIf: {{ `'{{ if .registryMirrors }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+        - op: add
+          path: "/spec/template/spec/files"
+          valueFrom:
+            template: |
+              {{ `{{- range $r := .registryMirrors }}` }}
+              - content: |
+                  server = "{{ `{{ $r.urlUpstream }}` }}"
+                  [host."{{ `{{ $r.urlMirror }}` }}"]
+                    capabilities = ["pull","resolve"]
+                    override_path = true
+                owner: root:root
+                path: /etc/containerd/certs.d/{{ `{{ $r.hostnameUpstream }}` }}/hosts.toml
+                permissions: "0644"
+              - content: |
+                  [[registry]]
+                  prefix = "{{ `{{ $r.hostnameUpstream }}` }}"
+                  location = "{{ `{{ $r.hostnameUpstream }}` }}"
+                  [[registry.mirror]]
+                  location = "{{ `{{ $r.urlMirror }}` }}"
+                owner: root:root
+                path: /etc/containers/registries.conf.d/50-mirror-{{ `{{ $r.hostnameUpstream }}` }}.conf
+                permissions: "0644"
+              {{ `{{- if $r.certMirror }}` }}
+              - content: "{{ `{{ $r.certMirror }}` }}"
+                owner: root:root
+                path: /etc/containerd/certs/{{ `{{ $r.hostnameUpstream }}` }}/ca.crt
+                permissions: "0644"
+              - content: "{{ `{{ $r.certMirror }}` }}"
+                owner: root:root
+                path: /etc/containers/certs.d/{{ `{{ $r.hostnameUpstream }}` }}/ca.crt
+                permissions: "0644"
+              {{ `{{- end }}` }}
+              {{ `{{- end }}` }}

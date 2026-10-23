@@ -1,0 +1,24 @@
+values: |
+  {{- $overrides := dict }}
+  {{- $serviceLoadBalancer := "octavia-ovn" }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- if eq .name "serviceLoadBalancer" }}
+  {{- $serviceLoadBalancer = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $loadBalancer := dict }}
+  {{- if eq $serviceLoadBalancer "octavia-ovn" }}
+  {{- $_ := set $loadBalancer "lb-provider" "ovn" }}
+  {{- $_ := set $loadBalancer "lb-method" "SOURCE_IP_PORT" }}
+  {{- $_ := set $loadBalancer "manage-security-groups" true }}
+  {{- else if eq $serviceLoadBalancer "octavia-amphora" }}
+  {{- $_ := set $loadBalancer "lb-provider" "amphora" }}
+  {{- end }}
+  {{- $values := dict "cluster" (dict "name" .Cluster.metadata.name) "cloudConfig" (dict "loadBalancer" $loadBalancer) }}
+  {{- range $key, $value := $overrides.ccm }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  openstack-cloud-controller-manager: {{ toJson $values }}

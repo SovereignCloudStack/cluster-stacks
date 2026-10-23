@@ -1,0 +1,15 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackClusterTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+spec:
+  template:
+    spec:
+      identityRef:
+        cloudName: overridden-by-patch
+        name: overridden-by-patch
+      apiServerLoadBalancer:
+        enabled: false
+      managedSecurityGroups:
+        allowAllInClusterTraffic: true

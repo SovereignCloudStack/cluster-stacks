@@ -1,0 +1,16 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
+kind: HostedControlPlaneTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+spec:
+  template:
+    spec:
+      deployment:
+        controllerManager:
+          args:
+            # The controller manager of the hosted control plane has to allocate the pod CIDRs of the nodes,
+            # Cilium (ipam.mode: kubernetes) does not become ready without them.
+            allocate-node-cidrs: "true"
+      gateway:
+        namespace: overridden-by-patch
+        name: overridden-by-patch

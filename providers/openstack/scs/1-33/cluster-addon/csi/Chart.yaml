@@ -1,0 +1,10 @@
+apiVersion: v2
+type: application
+description: CSI
+name: CSI
+version: v1
+dependencies:
+  - alias: openstack-cinder-csi
+    name: openstack-cinder-csi
+    repository: https://kubernetes.github.io/cloud-provider-openstack
+    version: 2.33.1
