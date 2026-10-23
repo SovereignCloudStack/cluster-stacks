@@ -394,6 +394,14 @@ spec:
                 type: string
                 example: ""
                 description: "TLS certificate of the mirror in PEM format (optional)."
+    # CNI
+    - name: ciliumHostLegacyRouting
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: boolean
+          default: {{ .Values.variables.ciliumHostLegacyRouting }}
+          description: "Route pod traffic through the host network stack (Cilium bpf.hostLegacyRouting)."
     - name: componentOverrides
       required: false
       schema:

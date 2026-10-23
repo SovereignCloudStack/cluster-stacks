@@ -41,6 +41,9 @@ variables:
   # Container runtime
   registryMirrors: []
 
+  # CNI
+  ciliumHostLegacyRouting: false
+
   # OIDC
   oidcConfig:
     clientID: ""
