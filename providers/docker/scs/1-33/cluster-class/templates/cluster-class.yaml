@@ -1,0 +1,185 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-control-plane
+      namespace: {{ .Release.Namespace }}
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: {{ .Release.Name }}-{{ .Chart.Version }}-machinetemplate-docker
+        namespace: {{ .Release.Namespace }}
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+      namespace: {{ .Release.Namespace }}
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-worker-bootstraptemplate-docker
+            namespace: {{ .Release.Namespace }}
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachineTemplate
+            name: {{ .Release.Name }}-{{ .Chart.Version }}-machinetemplate-docker
+            namespace: {{ .Release.Namespace }}
+  variables:
+  - name: imageRepository
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "registry.k8s.io"
+        description: "imageRepository sets the container registry to pull images from. If empty, the kubeadm default will be used."
+  - name: certSANs
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: array
+        default: []
+        example: ["mydomain.example"]
+        description: "Extra Subject Alternative Names for the API server TLS certificate."
+        items:
+          type: string
+  - name: oidcConfig
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          clientID:
+            type: string
+            example: "kubectl"
+            description: "A client id that all tokens must be issued for."
+          issuerURL:
+            type: string
+            example: "https://dex.k8s.scs.community"
+            description: >-
+              URL of the provider that allows the API server to
+              discover public signing keys. Only URLs that use the https:// scheme are
+              accepted.
+          usernameClaim:
+            type: string
+            example: "preferred_username"
+            default: "preferred_username"
+            description: "JWT claim to use as the user name."
+          groupsClaim:
+            type: string
+            example: "groups"
+            default: "groups"
+            description: "JWT claim to use as the user's group."
+          usernamePrefix:
+            type: string
+            example: "oidc:"
+            default: "oidc:"
+            description: "Prefix prepended to username claims to prevent clashes with existing names."
+          groupsPrefix:
+            type: string
+            example: "oidc:"
+            default: "oidc:"
+            description: "Prefix prepended to group claims to prevent clashes with existing names."
+  patches:
+  - name: imageRepository
+    description: "Sets the imageRepository used for the KubeadmControlPlane."
+    enabledIf: '{{ ne .imageRepository "" }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository"
+        valueFrom:
+          variable: imageRepository
+  - name: customImageControlPlane
+    description: "Sets the container image for control plane DockerMachines."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/customImage"
+        value: {{ (index .Values.images.controlPlane 0).name }}
+  - name: customImageWorker
+    description: "Sets the container image for worker DockerMachines."
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: {{ (index .Values.images.worker 0).name }}
+  - name: certSANs
+    description: "certSANs sets extra Subject Alternative Names for the API Server signing cert."
+    enabledIf: {{ `'{{ if .certSANs }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/certSANs"
+            valueFrom:
+              variable: certSANs
+  - name: oidcConfig
+    description: "Configure API Server to use external authentication service."
+    enabledIf: {{ `'{{ if and .oidcConfig .oidcConfig.clientID .oidcConfig.issuerURL }}true{{end}}'` }}
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-client-id"
+            valueFrom:
+              variable: oidcConfig.clientID
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-issuer-url"
+            valueFrom:
+              variable: oidcConfig.issuerURL
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-claim"
+            valueFrom:
+              variable: oidcConfig.usernameClaim
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-claim"
+            valueFrom:
+              variable: oidcConfig.groupsClaim
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-username-prefix"
+            valueFrom:
+              variable: oidcConfig.usernamePrefix
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/oidc-groups-prefix"
+            valueFrom:
+              variable: oidcConfig.groupsPrefix

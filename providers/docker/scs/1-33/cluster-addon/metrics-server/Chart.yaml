@@ -1,0 +1,9 @@
+apiVersion: v2
+name: metrics-server
+description: Metrics Server for Docker SCS2 cluster stack
+type: application
+version: 0.1.0
+dependencies:
+  - name: metrics-server
+    version: "3.13.0"
+    repository: https://kubernetes-sigs.github.io/metrics-server/
