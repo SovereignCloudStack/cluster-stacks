@@ -1,0 +1,5 @@
+apiVersion: v2
+description: "This chart installs and configures:\n* Openstack scs2 Cluster Class\n"
+name: openstack-scs2-1-36-cluster-class
+type: application
+version: v1
