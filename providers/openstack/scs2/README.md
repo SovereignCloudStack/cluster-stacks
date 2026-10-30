@@ -132,7 +132,7 @@ spec:
     classNamespace: $CLUSTERSTACK_NAMESPACE
     controlPlane:
       replicas: 1
-    version: v1.34.8
+    version: v1.34.13
     workers:
       machineDeployments:
         - class: default-worker
