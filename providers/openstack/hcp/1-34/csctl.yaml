@@ -1,0 +1,10 @@
+apiVersion: csctl.clusterstack.x-k8s.io/v1alpha1
+config:
+  clusterStackName: hcp
+  kubernetesVersion: v1.34
+  provider:
+    apiVersion: openstack.csctl.clusterstack.x-k8s.io/v1alpha1
+    type: openstack
+addons:
+  ccm: 2.34.x
+  csi: 2.34.x

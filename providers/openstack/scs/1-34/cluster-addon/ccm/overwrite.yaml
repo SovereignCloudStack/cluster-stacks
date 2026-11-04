@@ -1,0 +1,17 @@
+values: |
+  {{- $serviceLoadBalancer := "octavia-ovn" }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "serviceLoadBalancer" }}{{ $serviceLoadBalancer = .value }}{{ end }}
+  {{- end }}
+  openstack-cloud-controller-manager:
+    cluster:
+      name: {{ .Cluster.metadata.name }}
+    cloudConfig:
+      loadBalancer:
+        {{- if eq $serviceLoadBalancer "octavia-ovn" }}
+        lb-provider: ovn
+        lb-method: SOURCE_IP_PORT
+        manage-security-groups: true
+        {{- else if eq $serviceLoadBalancer "octavia-amphora" }}
+        lb-provider: amphora
+        {{- end }}

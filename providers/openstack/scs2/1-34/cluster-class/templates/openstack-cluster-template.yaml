@@ -1,0 +1,45 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: OpenStackClusterTemplate
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Version }}-cluster
+spec:
+  template:
+    spec:
+      identityRef:
+        cloudName: overridden-by-patch
+        name: overridden-by-patch
+      apiServerLoadBalancer:
+        enabled: false
+      managedSecurityGroups:
+        allNodesSecurityGroupRules:
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: VXLAN (Cilium)
+          portRangeMin: 8472
+          portRangeMax: 8472
+          protocol: udp
+          description: "Allow VXLAN traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: HealthCheck (Cilium)
+          portRangeMin: 4240
+          portRangeMax: 4240
+          protocol: tcp
+          description: "Allow HealthCheck traffic for Cilium"
+        - remoteManagedGroups:
+          - controlplane
+          - worker
+          direction: ingress
+          etherType: IPv4
+          name: Hubble (Cilium)
+          portRangeMin: 4244
+          portRangeMax: 4244
+          protocol: tcp
+          description: "Allow Hubble traffic for Cilium"

@@ -1,0 +1,36 @@
+apiVersion: clusteraddonconfig.x-k8s.io/v1alpha1
+clusterAddonVersion: clusteraddons.clusterstack.x-k8s.io/v1alpha1
+addonStages:
+  AfterControlPlaneInitialized:
+    - name: gateway-api
+      action: apply
+    - name: cni
+      action: apply
+    - name: metrics-server
+      action: apply
+    - name: csi
+      action: apply
+    - name: ccm
+      action: apply
+  BeforeClusterUpgrade:
+    - name: gateway-api
+      action: apply
+    - name: cni
+      action: apply
+    - name: metrics-server
+      action: apply
+    - name: csi
+      action: apply
+    - name: ccm
+      action: apply
+  AfterClusterUpgrade:
+    - name: gateway-api
+      action: apply
+    - name: cni
+      action: apply
+    - name: metrics-server
+      action: apply
+    - name: csi
+      action: apply
+    - name: ccm
+      action: apply
