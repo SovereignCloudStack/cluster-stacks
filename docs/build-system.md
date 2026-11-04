@@ -120,7 +120,7 @@ Cilium operator finds the CRDs when it starts, and `gatewayAPI.gatewayClass.crea
 operator).
 
 The CRDs are vendored, the version has to match the Cilium version of the `cni` addon (Cilium 1.19: Gateway API v1.4.1,
-Cilium 1.20: Gateway API v1.6.3):
+Cilium 1.20: Gateway API v1.6.3). `just update addons` keeps them in sync with Cilium, or by hand:
 
 ```bash
 ./hack/update-gateway-api-crds.sh v1.4.1 providers/openstack/scs/1-35 providers/docker/scs/1-35

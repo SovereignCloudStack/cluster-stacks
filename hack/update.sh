@@ -18,7 +18,8 @@ set -euo pipefail
 #
 # Subcommands:
 #   versions    Update K8s patch versions in csctl.yaml + image-manager.yaml
-#   addons      Update Helm chart dependencies in cluster-addon/*/Chart.yaml
+#   addons      Update Helm chart dependencies in cluster-addon/*/Chart.yaml,
+#               the Gateway API CRDs follow the Cilium version
 #   (none)      Run both: versions first, then addons
 #
 # The <stack-dir> is the base directory containing per-minor-version subdirs
@@ -472,6 +473,12 @@ cmd_versions() {
 # Subcommand: addons
 # ============================================
 
+# Gateway API version that a Cilium release supports, from its documentation config.
+gateway_api_version_for_cilium() {
+    curl -fsSL "https://raw.githubusercontent.com/cilium/cilium/v${1}/Documentation/conf.py" |
+        sed -n "s/^gateway_api_version = '\(v[0-9.]*\)'.*/\1/p"
+}
+
 cmd_addons() {
     local base_dir="$1"
     local query_failures=0
@@ -524,6 +531,7 @@ cmd_addons() {
 
         echo "=== $dir_name ==="
 
+        local cilium_version=""
         for addon_dir in "$version_dir"/cluster-addon/*/; do
             [[ -f "$addon_dir/Chart.yaml" ]] || continue
             local addon_name chart_file
@@ -583,6 +591,10 @@ cmd_addons() {
                     continue
                 fi
 
+                if [[ "$dep_name" == "cilium" ]]; then
+                    cilium_version="$latest_version"
+                fi
+
                 if [[ "$current_version" == "$latest_version" ]]; then
                     ok "$dep_name: $current_version (up to date)"
                     continue
@@ -597,6 +609,24 @@ cmd_addons() {
                 fi
             done
         done
+
+        # The vendored Gateway API CRDs follow the Cilium version
+        local gateway_chart="${version_dir}cluster-addon/gateway-api/Chart.yaml"
+        if [[ -f "$gateway_chart" && -n "$cilium_version" ]]; then
+            local gateway_version current_gateway
+            current_gateway=$(yq -r '.appVersion' "$gateway_chart")
+            gateway_version=$(gateway_api_version_for_cilium "$cilium_version" || true)
+            if [[ -z "$gateway_version" ]]; then
+                warn "gateway-api: could not determine the version for Cilium $cilium_version"
+                query_failures=$((query_failures + 1))
+            elif [[ "$current_gateway" != "$gateway_version" ]]; then
+                change "gateway-api: $current_gateway → $gateway_version"
+                total_updates=$((total_updates + 1))
+                if [[ "$DRY_RUN" != "true" ]]; then
+                    "$SCRIPT_DIR/update-gateway-api-crds.sh" "$gateway_version" "$version_dir"
+                fi
+            fi
+        fi
         echo ""
     done
 
