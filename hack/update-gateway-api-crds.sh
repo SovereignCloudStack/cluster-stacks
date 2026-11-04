@@ -43,6 +43,11 @@ CRDS=(
     "${tlsroute_channel}/gateway.networking.k8s.io_tlsroutes.yaml"
 )
 
+# Cilium 1.20 (Gateway API v1.6.3) does not enable the Gateway API without BackendTLSPolicy, Cilium 1.19 does not use it
+if [[ "$tlsroute_channel" == "standard" ]]; then
+    CRDS+=(standard/gateway.networking.k8s.io_backendtlspolicies.yaml)
+fi
+
 targets=()
 for dir in "$@"; do targets+=("${dir%/}/cluster-addon/gateway-api"); done
 

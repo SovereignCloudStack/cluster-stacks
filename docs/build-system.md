@@ -128,7 +128,8 @@ Cilium 1.20: Gateway API v1.6.3):
 ```
 
 The standard channel is installed plus `TLSRoute`, which the hosted control plane provider needs (experimental channel
-before Gateway API v1.5, standard channel since then). Clusters that are upgraded to a release that contains the addon
+before Gateway API v1.5, standard channel since then), since Gateway API v1.5 also `BackendTLSPolicy`, without which
+Cilium 1.20 does not enable the Gateway API. Clusters that are upgraded to a release that contains the addon
 need a restart of the `cilium-operator` once (`kubectl -n kube-system rollout restart deploy/cilium-operator`), the
 operator only looks for the CRDs when it starts.
 
