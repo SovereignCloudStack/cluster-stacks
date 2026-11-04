@@ -280,11 +280,17 @@ update_image_manager() {
         # Fetch checksum
         local checksum=""
         checksum=$(curl -sf "${image_url}.CHECKSUM" | awk '{print $1}' || echo "")
+        local checksum_field="${checksum:+sha256:${checksum}}"
         if [[ -z "$checksum" ]]; then
-            warn "1.$minor: checksum fetch failed (${image_url}.CHECKSUM) — continuing without"
+            if [[ "${existing_versions[$minor]-}" == "v${k8s_version}|"* ]]; then
+                checksum_field=$(echo "${existing_versions[$minor]}" | cut -d'|' -f3)
+                warn "1.$minor: checksum fetch failed (${image_url}.CHECKSUM) — keeping the existing one"
+            else
+                warn "1.$minor: checksum fetch failed (${image_url}.CHECKSUM) — continuing without"
+            fi
         fi
 
-        local new_entry="v${k8s_version}|${image_url}|${checksum:+sha256:${checksum}}"
+        local new_entry="v${k8s_version}|${image_url}|${checksum_field}"
 
         if [[ -n "${existing_versions[$minor]+_}" ]]; then
             if [[ "${existing_versions[$minor]}" != "$new_entry" ]]; then
