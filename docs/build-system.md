@@ -123,8 +123,8 @@ The CRDs are vendored, the version has to match the Cilium version of the `cni` 
 Cilium 1.20: Gateway API v1.6.3). `just update addons` keeps them in sync with Cilium, or by hand:
 
 ```bash
-./hack/update-gateway-api-crds.sh v1.4.1 providers/openstack/scs/1-35 providers/docker/scs/1-35
-./hack/update-gateway-api-crds.sh v1.6.3 providers/openstack/scs/1-36
+./hack/update-gateway-api-crds.sh v1.4.1 providers/docker/scs/1-35
+./hack/update-gateway-api-crds.sh v1.6.3 providers/openstack/scs/1-35 providers/openstack/scs/1-36
 ```
 
 The standard channel is installed plus `TLSRoute`, which the hosted control plane provider needs (experimental channel

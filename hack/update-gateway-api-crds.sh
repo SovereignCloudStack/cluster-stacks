@@ -2,8 +2,8 @@
 # Vendor the Gateway API CRDs into the gateway-api cluster addon of the scs stacks.
 #
 # Usage: hack/update-gateway-api-crds.sh <gateway-api-version> <stack-dir>...
-#   hack/update-gateway-api-crds.sh v1.4.1 providers/openstack/scs/1-35 providers/docker/scs/1-35
-#   hack/update-gateway-api-crds.sh v1.6.3 providers/openstack/scs/1-36
+#   hack/update-gateway-api-crds.sh v1.4.1 providers/docker/scs/1-35
+#   hack/update-gateway-api-crds.sh v1.6.3 providers/openstack/scs/1-35 providers/openstack/scs/1-36
 #
 # The CRDs are those the Cilium Gateway API support needs: the standard channel
 # plus TLSRoute, which the hosted control plane provider uses for TLS
