@@ -344,7 +344,7 @@ images:
     format: raw
     login: ubuntu
     min_disk: 20
-    min_ram: 1024
+    min_ram: 2048
     status: active
     visibility: ${IMAGE_VISIBILITY}
     multi: false
