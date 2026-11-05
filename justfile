@@ -82,7 +82,7 @@ generate-cluster *args:
 
 # Generate ORC Image (default) or image-manager manifests (e.g. `just generate-image-manifests 1.35`)
 generate-image-manifests *args:
-    @if [[ "${1:-}" =~ ^[0-9]+\.[0-9]+$ ]]; then set -- --version "$@"; fi; ./hack/generate-image-manifests.sh "$@"
+    @if [[ "${1:-}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then set -- --version "$@"; fi; ./hack/generate-image-manifests.sh "$@"
 
 # Convert the variables of a Cluster manifest from scs2 to scs (e.g. `just migrate-cluster cluster.yaml`)
 migrate-cluster *args:

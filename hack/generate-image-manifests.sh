@@ -9,7 +9,8 @@
 #   ./hack/generate-image-manifests.sh [stack-dir] [options]
 #
 # Options:
-#   --version <X.Y>       Generate for a specific K8s minor version
+#   --version <X.Y[.Z]>   Generate for a specific K8s minor version
+#                         (X.Y.Z: this patch version instead of the one in csctl.yaml)
 #   --format <format>     Output format: orc (default) or image-manager
 #   --namespace <ns>      Namespace for ORC Image manifests
 #   --check-image-repo    Resolve latest patch version via IMAGE_BASE_URL/last-<minor> first
@@ -253,6 +254,7 @@ for version_dir in "$BASE_DIR"/1-*/; do
     fi
 
     # Resolve full K8s patch version
+    [[ "$TARGET_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] && k8s_version_raw="$TARGET_VERSION"
     k8s_version=$(resolve_k8s_version "$k8s_version_raw")
 
     UBUNTU=$(ubuntu_for_minor "$k8s_minor")
