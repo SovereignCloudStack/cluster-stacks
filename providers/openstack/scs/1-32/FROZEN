@@ -1,0 +1,4 @@
+This is the scs stack for Kubernetes 1.32 as it was released before the per-minor-version layout and the unified
+variables (cloud_name, ssh_key, controller_flavor, ...). It is kept unchanged so that existing clusters can be upgraded
+within the minor version. `hack/update.sh` skips directories with this file. New features and the unified variables
+start with Kubernetes 1.33.

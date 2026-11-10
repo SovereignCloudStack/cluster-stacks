@@ -1,0 +1,14 @@
+cilium:
+  namespaceOverride: kube-system
+  tls:
+    secretsNamespace:
+      name: "kube-system"
+  sessionAffinity: true
+  sctp:
+    enabled: true
+  ipam:
+    mode: "kubernetes"
+  gatewayAPI:
+    enabled: true
+    secretsNamespace:
+      name: "kube-system"

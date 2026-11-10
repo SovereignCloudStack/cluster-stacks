@@ -1,0 +1,30 @@
+values: |
+  {{- $overrides := dict }}
+  {{- $serviceLoadBalancer := "octavia-ovn" }}
+  {{- $networkExternalID := "" }}
+  {{- range .Cluster.spec.topology.variables }}
+  {{- if eq .name "componentOverrides" }}
+  {{- $overrides = .value }}
+  {{- end }}
+  {{- if eq .name "serviceLoadBalancer" }}
+  {{- $serviceLoadBalancer = .value }}
+  {{- end }}
+  {{- if eq .name "networkExternalID" }}
+  {{- $networkExternalID = .value }}
+  {{- end }}
+  {{- end }}
+  {{- $loadBalancer := dict "manage-security-groups" true "create-monitor" true }}
+  {{- if eq $serviceLoadBalancer "octavia-ovn" }}
+  {{- $_ := set $loadBalancer "lb-provider" "ovn" }}
+  {{- $_ := set $loadBalancer "lb-method" "SOURCE_IP_PORT" }}
+  {{- else if eq $serviceLoadBalancer "octavia-amphora" }}
+  {{- $_ := set $loadBalancer "lb-provider" "amphora" }}
+  {{- end }}
+  {{- if $networkExternalID }}
+  {{- $_ := set $loadBalancer "floating-network-id" $networkExternalID }}
+  {{- end }}
+  {{- $values := dict "cluster" (dict "name" .Cluster.metadata.name) "cloudConfig" (dict "loadBalancer" $loadBalancer) }}
+  {{- range $key, $value := $overrides.ccm }}
+  {{- $_ := set $values $key $value }}
+  {{- end }}
+  openstack-cloud-controller-manager: {{ toJson $values }}

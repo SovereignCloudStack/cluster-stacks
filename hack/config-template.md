@@ -1,58 +1,59 @@
 # Configuration
 
-This page lists the custom configuration options available, including their default values and if they are optional. The following example shows how these variables can be used inside the `cluster.yaml` file under `spec.topology.variables`.
+This page lists the custom configuration options available, including their default values and whether they are optional. The following example shows how these variables can be used inside the `cluster.yaml` file under `spec.topology.variables`.
+
+## Version matrix
+
+!!matrix!!
 
 ## Example
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: <cluster-api-version>
 kind: Cluster
 metadata:
-  name:
-  namespace:
+  name: my-cluster
+  namespace: my-namespace
   labels:
     managed-secret: cloud-config
 spec:
-  clusterNetwork:
-    pods:
-      cidrBlocks:
-        - 192.168.0.0/16
-    serviceDomain: cluster.local
-    services:
-      cidrBlocks:
-        - 10.96.0.0/12
   topology:
-    variables: // <-- variables from the table can be set here
-      - name: controller_flavor
-        value: "SCS-4V-8-20"
-      - name: worker_flavor
-        value: "SCS-4V-8-20"
-      - name: external_id
-        value: "ebfe5546-f09f-4f42-ab54-094e457d42ec"
-    class: openstack-alpha-1-29-v2
+    variables:   # <-- variables from the table below can be set here
+      - name: <variable-name>
+        value: <value>
+    classRef:   # cluster.x-k8s.io/v1beta1 clusters (hcp) use "class: <installed-clusterclass>" instead
+      name: <installed-clusterclass>
     controlPlane:
-      replicas: 2
-    version: v1.29.3
+      replicas: 3
+      variables:
+        overrides:
+          - name: <variable-name>
+            value: <value>
+    version: v<supported-kubernetes-patch>
     workers:
       machineDeployments:
-        - class: openstack-alpha-1-29-v2
-          failureDomain: nova
-          name: openstack-alpha-1-29-v2
-          replicas: 4
+        - class: default-worker
+          name: md-0
+          replicas: 3
 ```
 
-Variables from the table containing a `.` are to be used in an object with the part before the dot being the object name and the part behind the dot being the value names. The following example demonstrates this with `oidc_config`.
+`spec.clusterNetwork` is optional. Set pod or service CIDRs only when you need
+non-default values or explicit network settings.
+
+Variables of type `object` are set as nested values. The following example demonstrates the shape:
 
 ```yaml
 ...
 topology:
   variables:
-    - name: oidc_config
+    - name: oidcConfig
       value:
-        issuer_url: "https://dex.k8s.scs.community"
-        client_id: "kubectl"
+        issuerURL: "https://dex.k8s.scs.community"
+        clientID: "kubectl"
 ...
 ```
+
+In v1beta2, per-role overrides (e.g. different flavors for control plane and workers) are set via `topology.controlPlane.variables.overrides` and `topology.workers.machineDeployments[].variables.overrides` instead of separate variable names.
 
 ## Available variables
 

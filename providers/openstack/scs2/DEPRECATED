@@ -1,0 +1,2 @@
+scs2 is deprecated and only maintained (patch releases, addon updates).
+No new Kubernetes minor versions are added by "just add-version". Use the scs stack.

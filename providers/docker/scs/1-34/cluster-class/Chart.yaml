@@ -1,0 +1,7 @@
+apiVersion: v2
+name: docker-scs-1-34-cluster-class
+description: |
+  SCS Cluster Class (1.34) for the Docker infrastructure provider.
+  Uses CAPI v1beta1 APIs with camelCase variables (imageRepository, certSANs, oidcConfig).
+type: application
+version: v1

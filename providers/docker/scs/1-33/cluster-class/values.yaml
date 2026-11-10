@@ -1,0 +1,6 @@
+# Node images for kind (patched at build time by build.sh for each K8s version)
+images:
+  controlPlane:
+    - name: registry.scs.community/docker.io/kindest/node:v1.34.3
+  worker:
+    - name: registry.scs.community/docker.io/kindest/node:v1.34.3

@@ -1,0 +1,6 @@
+apiVersion: v2
+type: application
+description: Gateway API CRDs v1.6.3
+name: gateway-api
+version: v1
+appVersion: v1.6.3
