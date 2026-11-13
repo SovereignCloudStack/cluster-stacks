@@ -1,0 +1,9 @@
+apiVersion: v2
+description: "This chart installs and configures:
+
+  * Openstack rke2 Cluster Class
+
+  "
+name: openstack-rke2-1-33-cluster-class
+type: application
+version: v1
