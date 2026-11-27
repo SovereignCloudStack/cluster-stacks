@@ -55,6 +55,16 @@ spec:
             If set to true (default), the `imageName` is interpreted as a reference to an ORC image.
             If set to false, the `imageName` is used to filter images in the OpenStack project instead.
           default: false
+    - name: imageTag
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: string
+          description: |
+            Optional Glance tag to filter images during provisioning
+            Format: `build_date:YYYY-MM-DD`
+            Ignored when `imageIsOrc` is enabled. Applies to control-plane, worker, and bastion images
+          default: ""  
     - name: imageAddVersion
       required: false
       schema:
@@ -573,6 +583,10 @@ spec:
                 template: |
                   {{ `{{ if .imageIsOrc }}imageRef{{ else }}filter{{ end }}` }}:
                     name: {{ `{{ .imageName }}{{ if .imageAddVersion }}-{{ .builtin.controlPlane.version }}{{ end }}` }}
+                    {{ `{{- if and .imageTag (not .imageIsOrc) }}` }}
+                    tags:
+                      - {{ `{{ .imageTag }}` }}
+                    {{ `{{- end }}` }}
     - name: controlPlaneFlavor
       description: "Sets the openstack instance flavor for the KubeadmControlPlane."
       enabledIf: {{ `'{{ ne .controlPlaneFlavor "" }}'` }}
@@ -714,6 +728,10 @@ spec:
                 template: |
                   {{ `{{ if .imageIsOrc }}imageRef{{ else }}filter{{ end }}` }}:
                     name: {{ `{{ .imageName }}{{ if .imageAddVersion }}-{{ .builtin.machineDeployment.version }}{{ end }}` }}
+                    {{ `{{- if and .imageTag (not .imageIsOrc) }}` }}
+                    tags:
+                      - {{ `{{ .imageTag }}` }}
+                    {{ `{{- end }}` }}
     - name: workerFlavor
       description: "Sets the openstack instance flavor for the worker nodes."
       enabledIf: {{ `'{{ ne .workerFlavor "" }}'` }}
