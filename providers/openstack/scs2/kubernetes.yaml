@@ -101,6 +101,10 @@ images:
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.10.qcow2
         checksum: "sha256:b2525361cabd9db4d710349f11e8d51945798ea402173506e7ab285d4ff8a731"
         build_date: 2026-10-28
+      - version: 'v1.35.11'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.35/ubuntu-2404-kube-v1.35.11.qcow2
+        checksum: "sha256:cfee9311246e8cbbc5210802c985d8b89231a2ff1a4f7c81db419d8bd1586800"
+        build_date: 2026-11-27
       - version: 'v1.36.4'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.4.qcow2
         checksum: "sha256:ca5ddb42c30c4e66fa9263e03b9941997122ddadbb348363257200c9de80daf6"
@@ -113,6 +117,10 @@ images:
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.6.qcow2
         checksum: "sha256:b3dc3410590eaf48ad5de0e6bc4f534ae967cde355fbbf9b287f82662cb62156"
         build_date: 2026-10-28
+      - version: 'v1.36.7'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2404-kube-v1.36/ubuntu-2404-kube-v1.36.7.qcow2
+        checksum: "sha256:d337361b376dcb17b2419206bf5de04f6ae272b493ceb382cb76f2e03533d825"
+        build_date: 2026-11-27
       - version: 'v1.37.1'
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2404-kube-v1.37.1.qcow2
         checksum: "sha256:5df3dc0f7bb58e39b584ba59cdbaef8828a6f5b7ebcb10c59a2d86e4d87adec8"
@@ -121,3 +129,8 @@ images:
         url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2404-kube-v1.37.2.qcow2
         checksum: "sha256:cdd9c8dfb86ded79ce3a0372caa149ee346288ad8f11f911f04712f1cbe48fec"
         build_date: 2026-10-28
+      - version: 'v1.37.3'
+        url: https://nbg1.your-objectstorage.com/osism/openstack-k8s-capi-images/ubuntu-2604-kube-v1.37/ubuntu-2404-kube-v1.37.3.qcow2
+        checksum: "sha256:cc449d7e557658b022b9fbeb3c16e783bada3d54979cd0108e5ce9453f174637"
+        build_date: 2026-11-27
+      # Note: Debian images for 1.37 possible ...
